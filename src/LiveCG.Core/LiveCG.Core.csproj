@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><PlatformTarget>x64</PlatformTarget></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <EmbeddedResource Include="Browser\*" LogicalName="LiveCG.Core.Browser.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

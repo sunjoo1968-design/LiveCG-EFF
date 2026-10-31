@@ -1,0 +1,21 @@
+{
+  "Version": "0.10.0",
+  "Creator": "SunjooAn",
+  "Date": "2026-10-31",
+  "Passed": 752,
+  "Core": 368,
+  "Wpf": 301,
+  "Chromium": 40,
+  "Clock": 5,
+  "Obs33Integration": 14,
+  "RenderComparisons": 24,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "PackageSHA256": "25D2BB4953B3DEBAFAF0CA2396CD1040A3D6C85FF15462BF09041F4D846A88C4",
+  "PackageMiB": 171.6,
+  "PackageEntries": 437,
+  "RuntimePatchBytes": 9540,
+  "MaxRenderMeanByteError": 0.314,
+  "MaxChangedPixelsPercent": 0.314,
+  "Notes": "실제 OBS33 독립 테스트. 외부 송출·녹화 없음. 원본 데이터는 공개 대상에서 제외."
+}

@@ -1,0 +1,6 @@
+<Solution>
+ <Project Path="src/LiveCG.Core/LiveCG.Core.csproj"/>
+ <Project Path="src/LiveCG.App/LiveCG.App.csproj"/>
+ <Project Path="tests/LiveCG.Verify/LiveCG.Verify.csproj"/>
+ <Project Path="tests/LiveCG.UiVerify/LiveCG.UiVerify.csproj"/>
+</Solution>

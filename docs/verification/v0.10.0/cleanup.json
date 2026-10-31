@@ -1,0 +1,254 @@
+{
+  "Version": "0.10.0",
+  "Creator": "SunjooAn",
+  "Date": "2026-10-31",
+  "Status": "complete",
+  "RemovedBytes": 7851510056,
+  "PreservedPackageSHA256": "25D2BB4953B3DEBAFAF0CA2396CD1040A3D6C85FF15462BF09041F4D846A88C4",
+  "Targets": [
+    {
+      "Path": "dist/LiveCG-EFF-0.6.0",
+      "Bytes": 484641693
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.6.0-win-x64.zip",
+      "Bytes": 179844421
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.7.0",
+      "Bytes": 484723386
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.7.0-win-x64.zip",
+      "Bytes": 179877612
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.8.0",
+      "Bytes": 484767750
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.8.0-win-x64.zip",
+      "Bytes": 179896432
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.8.1",
+      "Bytes": 484769491
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.8.1-win-x64.zip",
+      "Bytes": 179897281
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.9.0",
+      "Bytes": 484856983
+    },
+    {
+      "Path": "dist/LiveCG-EFF-0.9.0-win-x64.zip",
+      "Bytes": 179930921
+    },
+    {
+      "Path": ".tools",
+      "Bytes": 2737987248
+    },
+    {
+      "Path": "artifacts",
+      "Bytes": 657945974
+    },
+    {
+      "Path": "assets",
+      "Bytes": 0
+    },
+    {
+      "Path": "src/LiveCG.App/bin",
+      "Bytes": 547731682
+    },
+    {
+      "Path": "src/LiveCG.App/obj",
+      "Bytes": 3941024
+    },
+    {
+      "Path": "src/LiveCG.Core/bin",
+      "Bytes": 566268
+    },
+    {
+      "Path": "src/LiveCG.Core/obj",
+      "Bytes": 827002
+    },
+    {
+      "Path": "tests/LiveCG.UiVerify/bin",
+      "Bytes": 274276432
+    },
+    {
+      "Path": "tests/LiveCG.UiVerify/obj",
+      "Bytes": 552281
+    },
+    {
+      "Path": "tests/LiveCG.Verify/bin",
+      "Bytes": 303851090
+    },
+    {
+      "Path": "tests/LiveCG.Verify/obj",
+      "Bytes": 482752
+    },
+    {
+      "Path": "docs/01-plan/features/direct-manipulation.plan.md",
+      "Bytes": 1818
+    },
+    {
+      "Path": "docs/01-plan/features/editor-workflow.plan.md",
+      "Bytes": 4564
+    },
+    {
+      "Path": "docs/01-plan/features/group-masks.plan.md",
+      "Bytes": 1563
+    },
+    {
+      "Path": "docs/01-plan/features/layer-editor.plan.md",
+      "Bytes": 1412
+    },
+    {
+      "Path": "docs/01-plan/features/livecg-eff.plan.md",
+      "Bytes": 10907
+    },
+    {
+      "Path": "docs/01-plan/features/obs-playback.plan.md",
+      "Bytes": 1794
+    },
+    {
+      "Path": "docs/01-plan/features/precision-editing.plan.md",
+      "Bytes": 1550
+    },
+    {
+      "Path": "docs/01-plan/features/studio-workspace.plan.md",
+      "Bytes": 2737
+    },
+    {
+      "Path": "docs/01-plan/features/timeline-editor.plan.md",
+      "Bytes": 2627
+    },
+    {
+      "Path": "docs/01-plan/features/window-restore.plan.md",
+      "Bytes": 863
+    },
+    {
+      "Path": "docs/02-design/features/direct-manipulation.design.md",
+      "Bytes": 3739
+    },
+    {
+      "Path": "docs/02-design/features/editor-workflow.design.md",
+      "Bytes": 3827
+    },
+    {
+      "Path": "docs/02-design/features/group-masks.design.md",
+      "Bytes": 3482
+    },
+    {
+      "Path": "docs/02-design/features/layer-editor.design.md",
+      "Bytes": 3434
+    },
+    {
+      "Path": "docs/02-design/features/livecg-eff.design.md",
+      "Bytes": 7383
+    },
+    {
+      "Path": "docs/02-design/features/obs-playback.design.md",
+      "Bytes": 3785
+    },
+    {
+      "Path": "docs/02-design/features/precision-editing.design.md",
+      "Bytes": 3624
+    },
+    {
+      "Path": "docs/02-design/features/studio-workspace.design.md",
+      "Bytes": 4337
+    },
+    {
+      "Path": "docs/02-design/features/timeline-editor.design.md",
+      "Bytes": 3830
+    },
+    {
+      "Path": "docs/02-design/features/window-restore.design.md",
+      "Bytes": 1432
+    },
+    {
+      "Path": "docs/03-analysis/direct-manipulation.analysis.md",
+      "Bytes": 3752
+    },
+    {
+      "Path": "docs/03-analysis/editor-workflow.analysis.md",
+      "Bytes": 4935
+    },
+    {
+      "Path": "docs/03-analysis/group-masks.analysis.md",
+      "Bytes": 4035
+    },
+    {
+      "Path": "docs/03-analysis/layer-editor.analysis.md",
+      "Bytes": 5028
+    },
+    {
+      "Path": "docs/03-analysis/livecg-eff.analysis.md",
+      "Bytes": 4242
+    },
+    {
+      "Path": "docs/03-analysis/obs-playback.analysis.md",
+      "Bytes": 3609
+    },
+    {
+      "Path": "docs/03-analysis/precision-editing.analysis.md",
+      "Bytes": 4483
+    },
+    {
+      "Path": "docs/03-analysis/studio-workspace.analysis.md",
+      "Bytes": 5472
+    },
+    {
+      "Path": "docs/03-analysis/timeline-editor.analysis.md",
+      "Bytes": 5157
+    },
+    {
+      "Path": "docs/03-analysis/window-restore.analysis.md",
+      "Bytes": 1804
+    },
+    {
+      "Path": "docs/04-report/direct-manipulation.report.md",
+      "Bytes": 3937
+    },
+    {
+      "Path": "docs/04-report/editor-workflow.report.md",
+      "Bytes": 3037
+    },
+    {
+      "Path": "docs/04-report/group-masks.report.md",
+      "Bytes": 3663
+    },
+    {
+      "Path": "docs/04-report/layer-editor.report.md",
+      "Bytes": 2969
+    },
+    {
+      "Path": "docs/04-report/livecg-eff.report.md",
+      "Bytes": 3159
+    },
+    {
+      "Path": "docs/04-report/obs-playback.report.md",
+      "Bytes": 3556
+    },
+    {
+      "Path": "docs/04-report/precision-editing.report.md",
+      "Bytes": 2911
+    },
+    {
+      "Path": "docs/04-report/studio-workspace.report.md",
+      "Bytes": 2891
+    },
+    {
+      "Path": "docs/04-report/timeline-editor.report.md",
+      "Bytes": 3554
+    },
+    {
+      "Path": "docs/04-report/window-restore.report.md",
+      "Bytes": 1431
+    }
+  ]
+}
