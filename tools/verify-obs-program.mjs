@@ -55,7 +55,7 @@ try{
         const renderState=await request('GetSourceActive',{sourceName:renderName});check(renderState.videoActive&&renderState.videoShowing,'screenshot source belongs to actual program at '+time+'s');
         const shot=await request('GetSourceScreenshot',{sourceName:renderName,imageFormat:'png',imageWidth:160,imageHeight:100});const actual=path.join(colorFolder,`actual-obs-${time.toFixed(2)}.png`);await fs.writeFile(actual,Buffer.from(shot.imageData.split(',')[1],'base64'));renderCaptures.push({package:'Actual OBS 33',premultiplied:true,time,expected:path.join(colorFolder,'expected',time.toFixed(2)+'.png'),actual});check(shot.imageData.startsWith('data:image/png;base64,'),'actual OBS CEF renders colored sweep/crop at '+time+'s');
     }
-    for(const [name,time] of [['soft-outside',.3],['soft-group',.25],['content-only',.7]]){
+    for(const [name,time] of [['soft-outside',.3],['soft-group',.25],['content-only',.7],['manual-separation',.6],['inactive-manual-group',.6]]){
         const dir=path.join(root,'artifacts/v010-core',name+'.obs'),html=await fs.readFile(path.join(dir,'index.html'),'utf8'),marker='[SOFT-'+name+']';
         await fs.writeFile(path.join(dir,'obs-soft.html'),html.replace('</body>',`<script>let ready=false;setInterval(()=>{if(window.LiveCG?.status().loaded){LiveCG.renderAt(${time});if(!ready){ready=true;console.error("${marker}")}}},50)</script></body>`));
         const inputName='Soft '+name;await request('CreateInput',{sceneName:'LiveCG Browser',inputName,inputKind:'browser_source',inputSettings:{is_local_file:true,local_file:path.join(dir,'obs-soft.html'),width:160,height:120,fps_custom:true,fps:30,shutdown:false,restart_when_active:false},sceneItemEnabled:true});

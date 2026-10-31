@@ -10,7 +10,7 @@ public partial class MainWindow
     private sealed record GroupChoice(Guid Id,string Name){public override string ToString()=>Name;}
     private void InitializeGroups()
     {
-        Choices(CreationRoleBox,["자동 연결","새 전체 묶음","묶음 안 부분 효과","독립 객체"]);CreationRoleBox.SelectedIndex=0;Choices(RegionRoleBox,["독립 객체 · 따로 움직임","전체 묶음 (그룹)","묶음 안 부분 효과"]);Choices(MaskOperationBox,["보일 곳 더하기","이 부분 가리기 (빼기)","겹친 곳만 보이기"]);Choices(MaskEndBox,["마지막 마스크 모양 유지","구간이 끝나면 원본 복귀","마스크 표시 범위 비우기"]);
+        Choices(CreationRoleBox,["자동 연결","새 전체 묶음","묶음 안 부분 효과","독립 객체"]);CreationRoleBox.SelectedIndex=0;Choices(RegionRoleBox,["독립 객체 · 따로 움직임","전체 묶음 (그룹)","묶음 안 부분 효과"]);Choices(MaskOperationBox,["보일 곳 더하기","이 부분 가리기 (빼기)","겹친 곳만 보이기"]);Choices(MaskEndBox,["마지막 모양 유지","마스크 적용 해제","대상 영역 숨김 (범위 비움)"]);
         Choices(MaskStartBox,["0","0.5","1","2"]);Choices(MaskDurationBox,["1","2","3","5","10"]);Choices(MaskOpacityBox,["0","25","50","75","100"]);Choices(MaskFeatherBox,["0","0.5","1","2","4","8"]);Choices(MaskExpandBox,["-4","-2","-1","0","1","2","4","8"]);
         Preview.MaskCreated+=MaskCreated;Preview.MaskEdited+=()=>{MarkEdited();LoadMaskFields();RefreshTimeline();};Preview.MaskDeleteRequested+=()=>DeleteMask(this,new RoutedEventArgs());
         Preview.RegionCreated+=ConfigureNewRegion;
@@ -33,7 +33,7 @@ public partial class MainWindow
     {
         if(RegionRoleBox is null)return;var prior=_loading;_loading=true;RegionRoleBox.SelectedIndex=(int)(_region?.Role??RegionRole.Group);
         ParentGroupBox.ItemsSource=_current?.Regions.Where(g=>g.Role==RegionRole.Group&&g.Id!=_region?.Id).Select(g=>new GroupChoice(g.Id,g.Name)).ToList();ParentGroupBox.SelectedItem=ParentGroupBox.Items.Cast<GroupChoice>().FirstOrDefault(g=>g.Id==_region?.ParentId);
-        MaskList.ItemsSource=_region?.Masks.ToList();MaskList.SelectedItem=_selectedMask;GroupRelationExpander.IsExpanded=_selectedMask is null;GroupRelationText.Text=_region is null?"목록이나 타임라인에서 영역을 고르세요.":_region.Role==RegionRole.Group?"▣ "+_region.Name+" · 전체 묶음":_region.ParentId is { } id?"▣ "+(_current?.Regions.FirstOrDefault(r=>r.Id==id)?.Name??"")+"  ›  ◇ "+_region.Name:"◇ "+_region.Name+" · 독립 객체";_loading=prior;LoadMaskFields();
+        MaskList.ItemsSource=_region?.Masks.ToList();MaskList.SelectedItem=_selectedMask;GroupRelationText.Text=_region is null?"목록이나 타임라인에서 영역을 고르세요.":_region.Role==RegionRole.Group?"▣ "+_region.Name+" · 전체 묶음":_region.ParentId is { } id?"▣ "+(_current?.Regions.FirstOrDefault(r=>r.Id==id)?.Name??"")+"  ›  ◇ "+_region.Name:"◇ "+_region.Name+" · 독립 객체";_loading=prior;LoadMaskFields();LoadContextLabels();
     }
     public bool SetRegionRelation(EffectRegion region,RegionRole role,Guid? parentId,out string error)
     {
@@ -49,7 +49,7 @@ public partial class MainWindow
     public void SelectMask(EffectRegion owner,MaskTrack mask)
     {
         if(_current is null||!owner.Masks.Contains(mask))return;SelectRegion(owner,null,false);owner.Collapsed=false;var parent=_current.Regions.FirstOrDefault(g=>g.Id==owner.ParentId);if(parent is not null)parent.Collapsed=false;
-        _selectedMask=mask;Preview.SelectedMask=mask;Preview.SelectedRegion=owner;TimelineEditor.SelectedMask=mask;TimelineEditor.SelectedClipIds.Clear();EffectsTabs.SelectedIndex=3;LoadGroupFields();RefreshTimeline();
+        _selectedMask=mask;Preview.SelectedMask=mask;Preview.SelectedRegion=owner;TimelineEditor.SelectedMask=mask;TimelineEditor.SelectedClipIds.Clear();EffectsTabs.SelectedIndex=3;GroupMaskTabs.SelectedIndex=1;LoadGroupFields();RefreshTimeline();
     }
     private void MaskListChanged(object sender,SelectionChangedEventArgs e){if(!_loading&&_region is not null&&MaskList.SelectedItem is MaskTrack mask)SelectMask(_region,mask);}
     public (double Start,double Duration) NewMaskSpan(EffectRegion owner)
@@ -74,8 +74,9 @@ public partial class MainWindow
     private void DeleteMask(object sender,RoutedEventArgs e){if(_busy||_region is null||_selectedMask is null)return;Preview.CancelGesture();TimelineEditor.CancelGesture();_region.Masks.Remove(_selectedMask);ClearMaskSelection();LoadGroupFields();MarkEdited();RefreshTimeline();}
     private void LoadMaskFields()
     {
+        if(MaskEditorPanel is not null){MaskEditorPanel.Visibility=_selectedMask is null?Visibility.Collapsed:Visibility.Visible;MaskEmptyHint.Visibility=_selectedMask is null?Visibility.Visible:Visibility.Collapsed;MaskList.Visibility=_region?.Masks.Count>0?Visibility.Visible:Visibility.Collapsed;}
         if(MaskNameBox is null)return;var prior=_loading;_loading=true;var m=_selectedMask;MaskNameBox.Text=m?.Name??"";MaskOperationBox.SelectedIndex=(int)(m?.Operation??MaskOperation.Add);MaskEnabledCheck.IsChecked=m?.Enabled??true;MaskInvertCheck.IsChecked=m?.Invert??false;
-        MaskStartBox.Text=F(m?.Start??0);MaskDurationBox.Text=F(m?.Duration??3);MaskOpacityBox.Text=F((m?.Opacity??1)*100);MaskFeatherBox.Text=F(m?.Feather??0);MaskExpandBox.Text=F(m?.Expand??0);MaskEndBox.SelectedIndex=(int)(m?.EndMode??MaskEndMode.Release);MaskStartCheck.IsChecked=m?.StartAtInPoint??true;
+        MaskStartBox.Text=F(m?.Start??0);MaskDurationBox.Text=F(m?.Duration??3);MaskOpacityBox.Text=F((m?.Opacity??1)*100);MaskFeatherBox.Text=F(m?.Feather??0);MaskExpandBox.Text=F(m?.Expand??0);if(MaskEndBox.Items.Count==3)MaskEndBox.Items[2]=m?.Operation==MaskOperation.Subtract?"가림 해제 (범위 비움)":"대상 영역 숨김 (범위 비움)";MaskEndBox.SelectedIndex=(int)(m?.EndMode??MaskEndMode.Release);MaskStartCheck.IsChecked=m?.StartAtInPoint??true;
         MaskEndHint.Text=m is null?"보라색 마스크 막대의 양끝을 드래그해 적용 구간을 정합니다.":m.EndMode switch{MaskEndMode.Release=>"막대가 끝나면 이 마스크를 적용하지 않습니다. 부모 원본/다른 마스크는 유지합니다.",MaskEndMode.Hold=>"막대가 끝나도 마지막 모양으로 계속 가립니다/보입니다.",_=>m.Operation==MaskOperation.Subtract?"끝난 뒤 빼기 마스크가 비어 가림을 해제합니다.":"끝난 뒤 보일 범위가 비어 소유 영역/부분 효과를 가립니다."};_loading=prior;
     }
     private static double MaskNumber(ComboBox box){if(double.TryParse(box.Text,NumberStyles.Float,CultureInfo.InvariantCulture,out var n)&&double.IsFinite(n))return n;throw new System.IO.InvalidDataException("마스크 숫자를 확인하세요.");}

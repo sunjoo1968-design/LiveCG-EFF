@@ -25,7 +25,8 @@ public record RegionSoftness
 /// <summary>Shared source-space geometry and alpha for native rendering and exported browser assets.</summary>
 public static class RegionRaster
 {
-    public static bool Custom(EffectRegion r)=>r.Softness.Enabled||r.ContentOnly;
+    public static bool Custom(EffectRegion r)=>r.Softness.Enabled||r.ContentOnly||(!r.CutoutEnabled&&r.Cutout is not null);
+    public static ObjectCutout? ActiveCutout(EffectRegion r)=>r.CutoutEnabled?r.Cutout:null;
     public static SKRectI Rect(EffectRegion r,int w,int h)
     {var b=ObjectExtractor.PixelRect(r.Bounds,w,h);var p=(int)Math.Ceiling(r.Softness.Padding)+((r.Softness.Padding>0)?2:0);return new(Math.Max(0,b.Left-p),Math.Max(0,b.Top-p),Math.Min(w,b.Right+p),Math.Min(h,b.Bottom+p));}
     public static SKPath Path(EffectRegion r,SKRectI rect,int w,int h)
@@ -51,16 +52,16 @@ public static class RegionRaster
                 b.SetPixel(x,y,SKColors.White.WithAlpha((byte)Math.Round(a*255)));
             }
         }
-        if(r.Cutout is { } cutout)
-        {using var decoded=cutout.Decode();using var image=SKImage.FromBitmap(decoded);using var mask=new SKBitmap(rect.Width,rect.Height);mask.Erase(SKColors.Transparent);using(var c=new SKCanvas(mask)){var original=ObjectExtractor.PixelRect(r.Bounds,w,h);c.DrawImage(image,SKRect.Create(original.Left-rect.Left,original.Top-rect.Top,original.Width,original.Height));}Multiply(b,mask);}
+        if(ActiveCutout(r) is { } cutout)
+        {using var decoded=!soft&&!string.IsNullOrEmpty(cutout.ErasePng)?SKBitmap.Decode(Convert.FromBase64String(cutout.ErasePng)):cutout.Decode();using var image=SKImage.FromBitmap(decoded);using var mask=new SKBitmap(rect.Width,rect.Height);mask.Erase(SKColors.Transparent);using(var c=new SKCanvas(mask)){var original=ObjectExtractor.PixelRect(r.Bounds,w,h);c.DrawImage(image,SKRect.Create(original.Left-rect.Left,original.Top-rect.Top,original.Width,original.Height));}Multiply(b,mask);}
         return b;
     }
     public static SKBitmap Raw(SKBitmap source,EffectRegion r,SKRectI rect,SKColor background)
     {
         using var crop=new SKBitmap();if(!source.ExtractSubset(crop,rect))throw new InvalidDataException("영역을 읽을 수 없습니다.");var output=crop.Copy();
-        using(var corrected=r.Cutout?.DecodeForeground())if(corrected is not null){using var c=new SKCanvas(output);c.Clear(SKColors.Transparent);using var image=SKImage.FromBitmap(corrected);var original=ObjectExtractor.PixelRect(r.Bounds,source.Width,source.Height);c.DrawImage(image,SKRect.Create(original.Left-rect.Left,original.Top-rect.Top,original.Width,original.Height));}
-        if(r.ContentOnly)
-        {var mask=ObjectExtractor.Extract(output,new(){Mode=ExtractionMode.BackgroundColor,Background=background,Tolerance=r.ContentTolerance,Feather=0,PreserveInterior=true});using var alpha=mask.Bitmap();Multiply(output,alpha);}
+        using(var corrected=ActiveCutout(r)?.DecodeForeground())if(corrected is not null){using var c=new SKCanvas(output);c.Clear(SKColors.Transparent);using var image=SKImage.FromBitmap(corrected);var original=ObjectExtractor.PixelRect(r.Bounds,source.Width,source.Height);c.DrawImage(image,SKRect.Create(original.Left-rect.Left,original.Top-rect.Top,original.Width,original.Height));}
+        if(r.ContentOnly&&ActiveCutout(r) is null)
+        {var mask=ObjectExtractor.Extract(output,RegionSeparation.Options(r,background));using var alpha=mask.Bitmap();Multiply(output,alpha);}
         return output;
     }
     public static void Multiply(SKBitmap target,SKBitmap mask)

@@ -170,7 +170,7 @@
     }
     function applyArea(frame, r, parent, time) {
         const a = assets.get(r.id), clips = effective(r.clips, time); if (!clips.length) return;
-        if(r.softness?.enabled||r.contentOnly){applySoftArea(frame,r,parent,time,a,clips);return;}
+        if(a.customRaster||r.softness?.enabled||r.contentOnly){applySoftArea(frame,r,parent,time,a,clips);return;}
         const b = { x: r.bounds.x * data.width - parent.x, y: r.bounds.y * data.height - parent.y, width: r.bounds.width * data.width, height: r.bounds.height * data.height };
         const numeric = a.digits.length > 0 && clips.some(c => ["DigitRoll", "Bounce"].includes(c.options.kind) && time >= c.start && time < c.start + c.duration), s = motion(clips, time, b, numeric);
         const masks = maskCoverage(r, parent, time, r.id + "-masks");

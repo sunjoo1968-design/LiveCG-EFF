@@ -152,6 +152,7 @@ await DirectChecks.Run(folder,Check);
 await PlaybackChecks.Run(folder,Check);
 await BroadcastChecks.Run(folder,Check);
 await SoftEdgeChecks.Run(folder,Check);
+await ContextChecks.Run(folder,Check);
 Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");
 File.WriteAllText(Path.Combine(folder,"result.txt"),$"{count-failures.Count}/{count} passed\n"+string.Join("\n",failures));
 return failures.Count==0?0:1;

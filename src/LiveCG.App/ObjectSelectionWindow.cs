@@ -87,27 +87,31 @@ public sealed class ObjectSelectionWindow:Window
     public MaskCanvas Canvas { get; }
     public NormalizedRect SelectedBounds { get; private set; }
     public ObjectCutout? SelectedCutout { get; private set; }
+    public CheckBox FitBoundsCheck { get; }=new(){Content="분리 결과에 영역 맞춤",ToolTip="끄면 원래 선택 범위를 유지합니다. 켜면 보이는 오브젝트 크기에 맞춰 범위를 줄입니다.",IsChecked=false};
+    public SKColor SelectedBackground=>_background;
+    public double SelectedTolerance=>_tolerance.Value;
     public ObjectSelectionWindow(SKBitmap source,EffectRegion region)
     {
-        Title="오브젝트에 맞추기 · "+ProductInfo.Credit;Width=1120;Height=800;MinWidth=760;MinHeight=580;WindowStartupLocation=WindowStartupLocation.CenterOwner;Background=new SolidColorBrush(Color.FromRgb(23,33,45));Foreground=Brushes.White;
-        _sourceWidth=source.Width;_sourceHeight=source.Height;_original=ObjectExtractor.PixelRect(region.Bounds,source.Width,source.Height);using var subset=new SKBitmap();source.ExtractSubset(subset,_original);_crop=subset.Copy();_background=ObjectExtractor.GuessSurrounding(source,_original);
+        Title="정밀 분리 · 보정 · "+ProductInfo.Credit;Width=1120;Height=800;MinWidth=760;MinHeight=580;WindowStartupLocation=WindowStartupLocation.CenterOwner;Background=new SolidColorBrush(Color.FromRgb(23,33,45));Foreground=Brushes.White;
+        _sourceWidth=source.Width;_sourceHeight=source.Height;_original=ObjectExtractor.PixelRect(region.Bounds,source.Width,source.Height);using var subset=new SKBitmap();source.ExtractSubset(subset,_original);_crop=subset.Copy();_background=RegionSeparation.Background(source,region);
         _region=region.Copy(false);
-        SelectedBounds=region.Bounds;SelectedCutout=region.Cutout;var mask=ObjectExtractor.Extract(_crop,new(){Background=_background});
+        SelectedBounds=region.Bounds;SelectedCutout=RegionRaster.ActiveCutout(region);var mask=RegionSeparation.InitialMask(source,region);_tolerance.Value=region.ContentTolerance;_feather.Value=0;_edgeClean.IsChecked=false;
         Restrict(mask);_erase=mask.Morph(1,true);
-        if(region.Cutout is { } existing&&existing.Width==_crop.Width&&existing.Height==_crop.Height){mask=MaskBuffer.Decode(existing);_foregroundPng=existing.ForegroundPng;if(!string.IsNullOrEmpty(existing.ErasePng))_erase=MaskBuffer.Decode(new(){Width=existing.Width,Height=existing.Height,MaskPng=existing.ErasePng});}
-        else{var clean=ObjectExtractor.CleanEdges(_crop,mask,_background);mask=clean.Mask;_foregroundPng=clean.Foreground;}
+        if(RegionRaster.ActiveCutout(region) is { } existing&&existing.Width==_crop.Width&&existing.Height==_crop.Height){mask=MaskBuffer.Decode(existing);_foregroundPng=existing.ForegroundPng;if(!string.IsNullOrEmpty(existing.ErasePng))_erase=MaskBuffer.Decode(new(){Width=existing.Width,Height=existing.Height,MaskPng=existing.ErasePng});}
         Canvas=new(_crop,mask);Canvas.SetForeground(_foregroundPng);var root=new DockPanel{Margin=new Thickness(10)};Content=root;
         var actions=new WrapPanel();DockPanel.SetDock(actions,Dock.Bottom);root.Children.Add(actions);
         void Button(Panel host,string text,Action click){var b=new Button{Content=text,Padding=new Thickness(9,6,9,6)};b.Click+=(_,_)=>click();host.Children.Add(b);}
-        Button(actions,"되돌리기",Undo);Button(actions,"다시 실행",Redo);Button(actions,"화면 맞춤",Canvas.Fit);Button(actions,"취소",()=>Close());Button(actions,"오브젝트 적용",()=>{if(PrepareResult())DialogResult=true;});actions.Children.Add(_info);
+        Button(actions,"되돌리기",Undo);Button(actions,"다시 실행",Redo);Button(actions,"화면 맞춤",Canvas.Fit);Button(actions,"취소",()=>Close());Button(actions,"보정 적용",()=>{if(PrepareResult())DialogResult=true;});actions.Children.Add(_info);
         var settings=new StackPanel{Margin=new Thickness(5)};var settingsScroll=new ScrollViewer{Width=245,Content=settings,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};DockPanel.SetDock(settingsScroll,Dock.Right);root.Children.Add(settingsScroll);
         void Label(string text)=>settings.Children.Add(new TextBlock{Text=text,Margin=new Thickness(4,9,0,3),TextWrapping=TextWrapping.Wrap});
-        Label("분리 방법");foreach(var text in new[]{"자동 후보","PNG 투명도 사용","배경색으로 분리"})_mode.Items.Add(text);_mode.SelectedIndex=0;settings.Children.Add(_mode);
+        settings.Children.Add(new TextBlock{Text="현재 분리 결과에서 이어서 보정합니다.",TextWrapping=TextWrapping.Wrap,Foreground=Brushes.Aquamarine,Margin=new Thickness(4)});
+        settings.Children.Add(FitBoundsCheck);
+        Label("자동 분리 다시 계산");foreach(var text in new[]{"자동 후보","PNG 투명도 사용","배경색으로 분리"})_mode.Items.Add(text);_mode.SelectedIndex=2;settings.Children.Add(_mode);
         Button(settings,"스포이드 · 원본 배경색",()=>{Canvas.PickColor=true;Canvas.Focus();});Button(settings,"배경 색상표",()=>{var picker=new ColorPickerWindow(_background){Owner=this};if(picker.ShowDialog()==true)_background=picker.SelectedColor;else if(picker.PickSourceRequested){Canvas.PickColor=true;Canvas.Focus();}});
         Button(settings,"단색 배경 빠른 정리",ApplySolidCleanup);
-        Label("허용오차 — 높으면 배경을 더 제거");settings.Children.Add(_tolerance);Label("가장자리 부드럽게");settings.Children.Add(_feather);settings.Children.Add(_shadow);
+        Label("허용오차 — 높으면 배경을 더 제거");settings.Children.Add(_tolerance);Label("오브젝트 윤곽 부드럽게");settings.Children.Add(_feather);settings.Children.Add(_shadow);
         settings.Children.Add(_interior);_interior.ToolTip="바깥에 연결된 배경만 지워 닫힌 오브젝트 안의 같은 색 글자를 보존합니다.";
-        settings.Children.Add(_edgeClean);Label("테두리 안쪽 축소 (0~3px)");settings.Children.Add(_shrink);Button(settings,"테두리 1px 줄이기",ContractOnePixel);
+        settings.Children.Add(_edgeClean);Label("오브젝트 윤곽 안쪽 축소 (0~3px)");settings.Children.Add(_shrink);Button(settings,"윤곽 1px 줄이기",ContractOnePixel);
         Button(settings,"분리 다시 계산",()=>Generate());Label("옵션을 바꾼 뒤 다시 계산하세요.\n사진 배경은 포함/제외 브러시로 보정할 수 있습니다.");
         Label("미리보기");foreach(var text in new[]{"원본 + 윤곽 표시","마스크","분리 결과"})_view.Items.Add(text);_view.SelectedIndex=0;settings.Children.Add(_view);
         Label("브러시");foreach(var text in new[]{"보기 / 이동","포함 (+)","제외 (−)"})_brush.Items.Add(text);_brush.SelectedIndex=0;settings.Children.Add(_brush);Label("브러시 반경 · [ / ] · Shift=10px");_size.Minimum=1;_size.Maximum=200;settings.Children.Add(_size);settings.Children.Add(_radiusText);_radiusText.Text=$"{_size.Value:0}px";
@@ -130,5 +134,5 @@ public sealed class ObjectSelectionWindow:Window
     {try{var next=ObjectExtractor.Extract(_crop,new(){Mode=(ExtractionMode)_mode.SelectedIndex,Background=_background,Tolerance=_tolerance.Value,Feather=(int)_feather.Value,IncludeShadow=_shadow.IsChecked==true,PreserveInterior=_interior.IsChecked==true});Restrict(next);var erase=next.Morph(1,true);next=next.Morph((int)_shrink.Value,false);var foreground="";if(_edgeClean.IsChecked==true){var clean=ObjectExtractor.CleanEdges(_crop,next,_background);next=clean.Mask;foreground=clean.Foreground;}Record(Snapshot());Canvas.Buffer=next;_erase=erase;_foregroundPng=foreground;Canvas.SetForeground(_foregroundPng);}catch(Exception ex){_info.Text=ex.Message;}}
     public void Undo(){if(_undo.Count==0)return;_redo.Add(Snapshot());var old=_undo[^1];_undo.RemoveAt(_undo.Count-1);Restore(old);}
     public void Redo(){if(_redo.Count==0)return;_undo.Add(Snapshot());var next=_redo[^1];_redo.RemoveAt(_redo.Count-1);Restore(next);}
-    public bool PrepareResult(){try{var grown=Canvas.Buffer.Morph(1,true);var erase=_erase.Copy();for(var i=0;i<erase.Alpha.Length;i++)erase.Alpha[i]=Math.Max(erase.Alpha[i],grown.Alpha[i]);var result=ObjectExtractor.Fit(Canvas.Buffer,_original,_sourceWidth,_sourceHeight,_foregroundPng,erase);SelectedBounds=result.Bounds;SelectedCutout=result.Cutout;return true;}catch(Exception ex){_info.Text=ex.Message;return false;}}
+    public bool PrepareResult(){try{var grown=Canvas.Buffer.Morph(1,true);var erase=_erase.Copy();for(var i=0;i<erase.Alpha.Length;i++)erase.Alpha[i]=Math.Max(erase.Alpha[i],grown.Alpha[i]);if(FitBoundsCheck.IsChecked==true){var result=ObjectExtractor.Fit(Canvas.Buffer,_original,_sourceWidth,_sourceHeight,_foregroundPng,erase);SelectedBounds=result.Bounds;SelectedCutout=result.Cutout;}else{SelectedBounds=_region.Bounds;SelectedCutout=Canvas.Buffer.Encode() with{ForegroundPng=_foregroundPng,ErasePng=erase.Encode().MaskPng};}return true;}catch(Exception ex){_info.Text=ex.Message;return false;}}
 }

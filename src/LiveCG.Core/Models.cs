@@ -145,6 +145,7 @@ public record EffectRegion
     public RegionShape Shape { get; set; }
     public List<RegionPoint> Points { get; set; }=[];
     public ObjectCutout? Cutout { get; set; }
+    public bool CutoutEnabled { get; set; }=true;
     public List<EffectClip> Clips { get; set; } = [];
     public BackgroundMode Background { get; set; } = BackgroundMode.Auto;
     public string BackgroundColor { get; set; } = "#FFFFFF";

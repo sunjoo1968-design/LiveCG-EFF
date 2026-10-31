@@ -82,6 +82,7 @@ public static class ObjectExtractor
 {
     public static SKBitmap CropObject(SKBitmap source,EffectRegion region)
     {
+        if(RegionRaster.Custom(region)){var padded=RegionRaster.Rect(region,source.Width,source.Height);var raw=RegionRaster.Raw(source,region,padded,RegionSeparation.Background(source,region));using var shape=RegionRaster.Shape(region,padded,source.Width,source.Height);RegionRaster.Multiply(raw,shape);return raw;}
         var rect=PixelRect(region.Bounds,source.Width,source.Height);using var subset=new SKBitmap();if(!source.ExtractSubset(subset,rect))throw new InvalidDataException("영역을 추출하지 못했습니다.");
         var bitmap=subset.Copy();
         if(region.Cutout is { } cutout)

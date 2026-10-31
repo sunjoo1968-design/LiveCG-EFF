@@ -1,0 +1,20 @@
+{
+  "Version": "0.12.0",
+  "Creator": "SunjooAn",
+  "Date": "2026-10-31",
+  "Core": 431,
+  "Wpf": 342,
+  "Chromium": 81,
+  "Clock": 5,
+  "Obs33Integration": 24,
+  "RenderComparisons": 59,
+  "Passed": 942,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "MaxRenderMeanByteError": 1.9190234375,
+  "MaxChangedPixelsPercent": 2.197916666666667,
+  "PreviousPackageSHA256": "C545BCE8ECF27A3DA159600701B12FEC564D90F52D780EFA800A6D42A17FB7E5",
+  "PackageSHA256": "61D564D92349346F9B26FF17F5F07986EABB3A198A669B613D85956B3FBFFAF6",
+  "PackageMiB": 172.6,
+  "PackageEntries": 468
+}

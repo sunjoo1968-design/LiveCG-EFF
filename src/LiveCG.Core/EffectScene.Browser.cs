@@ -23,7 +23,7 @@ public sealed partial class EffectScene
                 using var raster=_maskRenderer.RenderOne(m,parentRect.Width,parentRect.Height,Width,Height,parentRect,.5);
                 masks.Add(new{id=mask.Id,image=Bitmap(raster,prefix+"-"+mask.Id.ToString("N")+"-mask.png")});
             }
-            output.Add(new{id=region.Id,x=rect.Left,y=rect.Top,width=rect.Width,height=rect.Height,
+            output.Add(new{id=region.Id,x=rect.Left,y=rect.Top,width=rect.Width,height=rect.Height,customRaster=RegionRaster.Custom(region),
                 raw=Bitmap(raw,prefix+"-raw.png"),shape=Bitmap(shape,prefix+"-shape.png"),image=Save(layer.Image,prefix+"-image.png"),backing=Save(layer.BackingImage,prefix+"-backing.png"),erase=Save(layer.EraseImage!,prefix+"-erase.png"),fill=Save(layer.FillImage!,prefix+"-fill.png"),
                 background=Css(layer.Background),ink=Css(layer.Ink),digits=layer.Digits.Select(r=>new{x=r.Left,y=r.Top,width=r.Width,height=r.Height}).ToArray(),masks});
             progress?.Invoke((double)++count/Math.Max(1,regions.Count));

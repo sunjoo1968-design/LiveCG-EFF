@@ -58,7 +58,7 @@ internal static class LayerUiChecks
                 check(mask.HandleBrushKey(Key.OemOpenBrackets,ModifierKeys.Shift)&&mask.BrushRadius==size-9,"Shift bracket changes brush radius by ten pixels");
                 check(!mask.HandleBrushKey(Key.OemCloseBrackets,ModifierKeys.Control),"brush shortcuts do not consume unrelated modifier combinations");
                 var pixels=mask.Canvas.Buffer.Alpha.ToArray();mask.ContractOnePixel();check(!pixels.SequenceEqual(mask.Canvas.Buffer.Alpha),"one-pixel cleanup button modifies the actual object mask");mask.Undo();check(pixels.SequenceEqual(mask.Canvas.Buffer.Alpha),"mask cleanup can be undone without losing the object");
-                check(mask.PrepareResult()&&mask.SelectedCutout!.ForegroundPng.Length>0&&mask.SelectedCutout.ErasePng.Length>0,"object apply preserves cleaned colors and separate source erase coverage");
+                mask.ApplySolidCleanup();check(mask.PrepareResult()&&mask.SelectedCutout!.ForegroundPng.Length>0&&mask.SelectedCutout.ErasePng.Length>0,"explicit precision cleanup preserves cleaned colors and separate source erase coverage");
                 var copy=Job().Regions[3].Copy(false);copy.Bounds=mask.SelectedBounds;copy.Cutout=mask.SelectedCutout;var reopen=new ObjectSelectionWindow(source,copy);check(reopen.Canvas.Buffer.Alpha.SequenceEqual(MaskBuffer.Decode(copy.Cutout!).Alpha),"reopening fitted object preserves its saved mask instead of recalculating it");reopen.Close();
                 mask.ApplySolidCleanup();check(mask.Canvas.ViewMode==2,"solid background preset opens the actual cleaned result preview");
                 StudioUiChecks.Capture(mask,Path.Combine(folder,"mask-edge-cleanup.png"),1120,800);

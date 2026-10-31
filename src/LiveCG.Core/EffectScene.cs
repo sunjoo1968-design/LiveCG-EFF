@@ -282,7 +282,7 @@ public sealed partial class EffectScene : IDisposable
             if(old.Bounds==(SKRect)rect&&SameGeometry(old.Geometry,region)&&old.Higher.Count==higher.Count&&old.Higher.Zip(higher).All(p=>SameGeometry(p.First,p.Second)))return old;
             old.Dispose(); _layers.Remove(region.Id);
         }
-        var background = region.Background switch { BackgroundMode.Transparent => SKColors.Transparent, BackgroundMode.Solid => SKColor.Parse(region.BackgroundColor), _ => GuessBackground(rect) };
+        var background = RegionSeparation.Background(_source,region);
         if(RegionRaster.Custom(region))
         {
             using var raw=RegionRaster.Raw(_source,region,rect,background);
@@ -342,8 +342,8 @@ public sealed partial class EffectScene : IDisposable
         _layers.Add(region.Id, layer); return layer;
     }
 
-    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Softness==b.Softness&&a.ContentOnly==b.ContentOnly&&a.ContentTolerance==b.ContentTolerance&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
-    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,Bounds=r.Bounds,Shape=r.Shape,Softness=r.Softness with{},ContentOnly=r.ContentOnly,ContentTolerance=r.ContentTolerance,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
+    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Softness==b.Softness&&a.ContentOnly==b.ContentOnly&&a.ContentTolerance==b.ContentTolerance&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.CutoutEnabled==b.CutoutEnabled&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
+    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,Bounds=r.Bounds,Shape=r.Shape,Softness=r.Softness with{},ContentOnly=r.ContentOnly,ContentTolerance=r.ContentTolerance,CutoutEnabled=r.CutoutEnabled,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
     private static SKBitmap Coverage(EffectRegion region,SKRectI rect)
     {
         var bitmap=new SKBitmap(rect.Width,rect.Height);bitmap.Erase(SKColors.Transparent);

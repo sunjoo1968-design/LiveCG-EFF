@@ -312,7 +312,7 @@ public partial class MainWindow : Window
         Preview.OutputOpacity=plan?.Opacity(_time)??1;
         ExitPlaybackButton.IsEnabled=!_busy&&_current?.Playback.Enabled==true&&_current.Playback.ExitEnabled!=false;
         TimelineEditor.SetVideo(_video);TimelineEditor.CursorTime=_time;TimelineEditor.InvalidateVisual();
-        TimeText.Text=$"{_time:0.00} / {resolved.ActualDuration:0.00}초";Preview.InvalidateVisual();
+        TimeText.Text=$"{_time:0.00} / {resolved.ActualDuration:0.00}초";LoadContextLabels();Preview.InvalidateVisual();
     }
     private void ShowVideo()
     {
@@ -509,7 +509,7 @@ public partial class MainWindow : Window
     private void ShowHelp(object sender,RoutedEventArgs e)=>MessageBox.Show(this,
         "1. 도형은 다음 그리기에만 적용됩니다. 기존 도형은 선택 도형 변경, 펜/자유손은 점 편집으로 점 이동·선분 추가·Delete 삭제합니다.\n"+
         "2. 편집 크게는 타임라인을 접습니다. 지정 시 크게를 켜면 자동 확대 배치합니다. 창 분리는 별도 창, 닫기는 복귀입니다.\n"+
-        "3. 오브젝트 맞춤: 안쪽 보존·단색 배경 빠른 정리·1px 줄이기·색 번짐 제거. 브러시 [ / ] 1px, Shift+[ / ] 10px.\n"+
+        "3. 영역 빠른 조절: 소프트·내용만·배경색. 정밀 분리·보정은 현재 마스크에서 이어서 편집, 범위 맞춤은 선택 옵션. 브러시 [ / ] 1px, Shift+[ / ] 10px.\n"+
         "4. 위 행이 위 레이어입니다. 자동 잘라내기는 해제했습니다. 큰 영역은 그룹, 안쪽 배지 등은 그룹 안 효과 영역으로 연결하세요.\n"+
         "5. 내 효과 > 새 모션에서 프레임별 위치·크기·회전·불투명도·기준점을 편집합니다. 불투명도 0은 숨김, 100은 표시입니다.\n"+
         "6. 제작실의 키와 기존 효과 조합을 에셋 저장 후 삽입하세요. 마우스 이동·크기·회전은 현재 프레임에 자동 키를 만듭니다.\n"+

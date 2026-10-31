@@ -27,10 +27,11 @@ public partial class MainWindow
         {
             if(Environment.GetEnvironmentVariable("LIVECG_DISABLE_WORKSPACE_RESTORE")=="1"){_workspaceReady=true;return;}
             _workspace=WorkspaceState.Load();_workspaceReady=true;
+            AreaPinCheck.IsChecked=_workspace.AreaToolsPinned;AreaToolsExpander.IsExpanded=_workspace.AreaToolsExpanded;
             _workspace.Main?.Apply(this);EditorGrid.ColumnDefinitions[0].Width=new GridLength(Math.Clamp(_workspace.LeftWidth,240,450));
             _timelineHeight=Math.Clamp(_workspace.TimelineHeight,170,700);AutoFocusCheck.IsChecked=_workspace.AutoFocus;OutputExpander.IsExpanded=_workspace.OutputExpanded;
             SetFocusMode(_workspace.FocusMode);
-            if(_workspace.PreviewDetached)DetachPreview(this,new RoutedEventArgs());if(_workspace.EffectsDetached)DetachEffects(this,new RoutedEventArgs());
+            if(_workspace.PreviewDetached)DetachPreview(this,new RoutedEventArgs());if(_workspace.EffectsDetached)DetachEffects(this,new RoutedEventArgs());if(_workspace.AreaToolsDetached)DetachAreaTools(this,new RoutedEventArgs());
         };
     }
     private void ToggleFocusMode(object sender,RoutedEventArgs e)=>SetFocusMode(!_focusMode);
@@ -70,20 +71,22 @@ public partial class MainWindow
     }
     private void ResetWorkspace(object sender,RoutedEventArgs e)
     {
-        if(_busy)return;_previewWindow?.Close();_effectsWindow?.Close();_timelineHeight=245;SetFocusMode(false);AutoFocusCheck.IsChecked=true;
+        if(_busy)return;_areaWindow?.Close();_previewWindow?.Close();_effectsWindow?.Close();AreaPinCheck.IsChecked=true;AreaToolsExpander.IsExpanded=true;_timelineHeight=245;SetFocusMode(false);AutoFocusCheck.IsChecked=true;
         EditorGrid.ColumnDefinitions[0].Width=new GridLength(280);EditorGrid.ColumnDefinitions[4].Width=new GridLength(335);OutputExpander.IsExpanded=true;Preview.Fit(false);_workspace=new();SaveWorkspace();
     }
     private void SaveWorkspace()
     {
         if(!_workspaceReady)return;
         _workspace.Main=WindowPlacement.Capture(this);_workspace.PreviewDetached=_previewWindow is not null;_workspace.EffectsDetached=_effectsWindow is not null;
+        _workspace.AreaToolsDetached=_areaWindow is not null;_workspace.AreaToolsPinned=AreaPinCheck.IsChecked==true;_workspace.AreaToolsExpanded=AreaToolsExpander.IsExpanded;
+        if(_areaWindow is not null)_workspace.AreaTools=WindowPlacement.Capture(_areaWindow);
         if(_previewWindow is not null)_workspace.Preview=WindowPlacement.Capture(_previewWindow);if(_effectsWindow is not null)_workspace.Effects=WindowPlacement.Capture(_effectsWindow);
         _workspace.FocusMode=_focusMode;_workspace.AutoFocus=AutoFocusCheck.IsChecked==true;_workspace.OutputExpanded=OutputExpander.IsExpanded;_workspace.LeftWidth=EditorGrid.ColumnDefinitions[0].ActualWidth;_workspace.TimelineHeight=_timelineHeight;
         try{_workspace.Save();}catch(IOException ex){Notify("화면 배치 저장: "+ex.Message);}
     }
     private bool ConfirmStudiosClose()=>_studios.All(studio=>studio.ConfirmClose());
-    private void CloseWorkspace(){if(_shuttingDown)return;SaveWorkspace();_shuttingDown=true;foreach(var studio in _studios.ToArray())studio.Close();_previewWindow?.Close();_effectsWindow?.Close();}
-    private void SetWorkspaceBusy(bool busy){PreviewPanel.IsEnabled=!busy;EffectsPanel.IsEnabled=!busy;if(_previewWindow is not null)_previewWindow.IsEnabled=!busy;if(_effectsWindow is not null)_effectsWindow.IsEnabled=!busy;}
+    private void CloseWorkspace(){if(_shuttingDown)return;SaveWorkspace();_shuttingDown=true;foreach(var studio in _studios.ToArray())studio.Close();_areaWindow?.Close();_previewWindow?.Close();_effectsWindow?.Close();}
+    private void SetWorkspaceBusy(bool busy){PreviewPanel.IsEnabled=!busy;EffectsPanel.IsEnabled=!busy;if(_areaWindow is not null)_areaWindow.IsEnabled=!busy;if(_previewWindow is not null)_previewWindow.IsEnabled=!busy;if(_effectsWindow is not null)_effectsWindow.IsEnabled=!busy;}
     private void AddFileMenu()
     {
         var menu=new ContextMenu();ImageJob? clicked=null;
@@ -105,30 +108,33 @@ public partial class MainWindow
     private void ChooseBackgroundColor(object sender,RoutedEventArgs e)
     {
         if(_busy||_region is null)return;var color=SKColor.TryParse(_region.BackgroundColor,out var c)?c:SKColors.White;
-        var picker=new ColorPickerWindow(color){Owner=_effectsWindow??this};if(picker.ShowDialog()==true)SetBackgroundColor(picker.SelectedColor);else if(picker.PickSourceRequested)PickBackgroundColor(this,new RoutedEventArgs());
+        var picker=new ColorPickerWindow(color){Owner=_areaWindow??_previewWindow??this};if(picker.ShowDialog()==true)SetBackgroundColor(picker.SelectedColor);else if(picker.PickSourceRequested)PickBackgroundColor(this,new RoutedEventArgs());
     }
     private void SetBackgroundColor(SKColor color)
     {
         if(_region is null)return;var previous=_loading;_loading=true;BackgroundBox.SelectedIndex=(int)BackgroundMode.Solid;BackgroundColorBox.Text=ColorPickerWindow.Hex(color);_loading=previous;
-        _region.Background=BackgroundMode.Solid;_region.BackgroundColor=ColorPickerWindow.Hex(color);ColorSwatch.Background=new SolidColorBrush(System.Windows.Media.Color.FromArgb(color.Alpha,color.Red,color.Green,color.Blue));MarkEdited();Preview.InvalidateVisual();
+        _region.Background=BackgroundMode.Solid;_region.BackgroundColor=ColorPickerWindow.Hex(color);ColorSwatch.Background=new SolidColorBrush(System.Windows.Media.Color.FromArgb(color.Alpha,color.Red,color.Green,color.Blue));MarkEdited();LoadContextLabels();Preview.InvalidateVisual();
     }
     private void FitObject(object sender,RoutedEventArgs e)
     {
         if(_busy||_current is null||_region is null)return;
-        try{using var source=SKBitmap.Decode(_current.SourcePath)??throw new InvalidDataException("원본을 읽지 못했습니다.");var dialog=new ObjectSelectionWindow(source,_region){Owner=_previewWindow??this};
-            if(dialog.ShowDialog()==true)ApplyObjectSelection(dialog.SelectedBounds,dialog.SelectedCutout);}
+        try{using var source=SKBitmap.Decode(_current.SourcePath)??throw new InvalidDataException("원본을 읽지 못했습니다.");var candidate=_region.Copy(false);candidate.CutoutEnabled=true;var dialog=new ObjectSelectionWindow(source,candidate){Owner=_areaWindow??_previewWindow??this};
+            if(dialog.ShowDialog()==true)ApplyObjectSelection(dialog.SelectedBounds,dialog.SelectedCutout,dialog.SelectedBackground,dialog.SelectedTolerance);}
         catch(Exception ex){Error(ex);}
     }
-    private void ClearObject(object sender,RoutedEventArgs e){if(_busy||_region is null)return;_region.Cutout=null;MarkEdited();Preview.InvalidateVisual();}
-    public void ApplyObjectSelection(NormalizedRect bounds,ObjectCutout? cutout){if(_busy||_region is null)return;cutout?.Validate();_region.Bounds=bounds.Clamp();_region.Cutout=cutout;_region.Shape=RegionShape.Rectangle;SelectRegion(_region,_clip);MarkEdited();Preview.InvalidateVisual();Notify("오브젝트 윤곽과 범위 적용 완료");}
+    private void ClearObject(object sender,RoutedEventArgs e){if(_busy||_region is null)return;_region.Cutout=null;_region.CutoutEnabled=true;_region.ContentOnly=true;MarkEdited();LoadSoftnessFields();Preview.InvalidateVisual();Notify("현재 배경색·허용오차의 자동 분리로 전환했습니다.");}
+    public void ApplyObjectSelection(NormalizedRect bounds,ObjectCutout? cutout,SKColor? background=null,double? tolerance=null)
+    {if(_busy||_region is null)return;cutout?.Validate();var changedBounds=_region.Bounds!=bounds.Clamp();_region.Bounds=bounds.Clamp();_region.Cutout=cutout;_region.CutoutEnabled=true;_region.ContentOnly=cutout is not null;if(changedBounds)_region.Shape=RegionShape.Rectangle;if(background is { } color){_region.Background=color.Alpha==0?BackgroundMode.Transparent:BackgroundMode.Solid;_region.BackgroundColor=ColorPickerWindow.Hex(color);}if(tolerance is { } value)_region.ContentTolerance=value;var oldLoading=_loading;_loading=true;BackgroundBox.SelectedIndex=(int)_region.Background;BackgroundColorBox.Text=_region.BackgroundColor;_loading=oldLoading;SelectRegion(_region,_clip);MarkEdited();Preview.InvalidateVisual();Notify("정밀 보정 적용 · 자동 분리 중복 없음");}
     private EffectAsset? SelectedAsset=>AssetList.SelectedItem as EffectAsset;
     private void RefreshAssets(){_assets=AssetStore.List(out var errors);FilterEffects(this,new TextChangedEventArgs(TextBox.TextChangedEvent,UndoAction.None));if(errors.Count>0)Notify("일부 에셋을 읽지 못했습니다: "+errors[0]);}
     private void FilterEffects(object sender,TextChangedEventArgs e)
     {
         if(EffectSearchBox is null||AssetList is null)return;var query=EffectSearchBox.Text.Trim();
         foreach(var thumbnail in _thumbnails)thumbnail.Visibility=ProductInfo.EffectName(thumbnail.Kind).Contains(query,StringComparison.OrdinalIgnoreCase)?Visibility.Visible:Visibility.Collapsed;
-        AssetList.ItemsSource=_assets.Where(a=>(a.Name+" "+a.Category).Contains(query,StringComparison.OrdinalIgnoreCase)).ToList();
+        FilterAssetSearch(sender,e);
     }
+    private void FilterAssetSearch(object sender,TextChangedEventArgs e)
+    {if(AssetList is null)return;var query=AssetSearchBox?.Text.Trim()??"";AssetList.ItemsSource=_assets.Where(a=>(a.Name+" "+a.Category).Contains(query,StringComparison.OrdinalIgnoreCase)).ToList();}
     private SKBitmap? CurrentObjectSample()
     {
         if(_current is null||_region is null)return null;using var source=SKBitmap.Decode(_current.SourcePath);return source is null?null:ObjectExtractor.CropObject(source,_region);
