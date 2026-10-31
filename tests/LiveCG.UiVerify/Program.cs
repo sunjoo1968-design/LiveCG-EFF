@@ -74,7 +74,7 @@ internal static class Program
             preview.EndPointer();Pump();
             Check(job.Regions.Count==1&&preview.SelectedRegion?.Id==job.Regions[0].Id,"mouse drag creates and clearly selects first region");
             var first=job.Regions[0];
-            Check(Control<TextBlock>(window,"SelectedRegionText").Text.Contains("✓ 01"),"selected area number and check are explicit");
+            Check(Control<TextBlock>(window,"SelectedRegionText").ToolTip?.ToString()?.Contains("✓ 01")==true&&Control<TextBlock>(window,"SelectedRegionText").Text==first.Name,"selected area name and detailed selection tooltip are explicit");
             Call(window,"AddRegion",window,new RoutedEventArgs());preview.BeginPointer(Screen(640,185));preview.MovePointer(Screen(900,345));preview.EndPointer();Pump();
             Check(job.Regions.Count==2&&preview.SelectedRegion?.Id==job.Regions[0].Id,"new manual area is the selected top layer");
             var second=job.Regions[0];
@@ -144,6 +144,7 @@ internal static class Program
             BroadcastUiChecks.Run(window,folder,Check);
             SoftUiChecks.Run(window,folder,Check);
             ContextUiChecks.Run(window,folder,Check);
+            LayerPanelUiChecks.Run(window,folder,Check);
             var demo=TestFixtures.Demo(path);window.ApplyDocument(new(){Jobs=[demo],Video=new(){Fps=30,EndHold=.9}});Layout(window);
             Control<CheckBox>(window,"SnapCheck").IsChecked=true;Control<CheckBox>(window,"RippleCheck").IsChecked=true;
             Control<ListBox>(window,"RegionList").SelectedItem=demo.Regions[3];Call(window,"Seek",3.55,true);Pump();

@@ -63,7 +63,7 @@ public partial class MainWindow : Window
         TimelineEditor.DeleteRequested+=()=>DeleteClip(this,new RoutedEventArgs());TimelineEditor.Message+=Notify;
         TimelineEditor.MoveLayerRequested+=MoveLayer;TimelineEditor.ToggleLayerRequested+=ToggleLayer;
         _clock.Tick+=(_,_)=>TickPlayback();
-        InitializePlayback();InitializeGroups();InitializeMouseProperties();InitializeSoftness();LoadUserDefaults();_loading=false;ShowVideo();ShowEditorOptions();SelectRegion(null);TimelineEditor.SetJob(null,_video);ResetHistory();InitializeWorkspace();_clock.Start();
+        InitializePlayback();InitializeGroups();InitializeMouseProperties();InitializeSoftness();InitializeLayerPanel();LoadUserDefaults();_loading=false;ShowVideo();ShowEditorOptions();SelectRegion(null);TimelineEditor.SetJob(null,_video);ResetHistory();InitializeWorkspace();_clock.Start();
         Loaded+=async(_,_)=>{var paths=Environment.GetCommandLineArgs().Skip(1).Where(p=>p.EndsWith(".png",StringComparison.OrdinalIgnoreCase)).ToArray();if(paths.Length>0)await ImportAsync(paths);};
     }
     private VideoOptions ResolvedVideo=>_current is null?TimelineRules.Resolve([], _video):TimelineRules.Resolve(_current,_video);
@@ -153,7 +153,7 @@ public partial class MainWindow : Window
 
     private void RefreshRegionList()
     {
-        var previous=_loading;_loading=true;RegionList.ItemsSource=LayerGraph.Rows(_current?.Regions??[]).Where(r=>r.Mask is null).Select(r=>r.Region).ToList();RegionList.SelectedItem=_region;_loading=previous;
+        var previous=_loading;_loading=true;RegionList.Tag=_current?.SourcePath??"";LayerCountText.Text=(_current?.Regions.Count??0)+"개";RegionList.ItemsSource=LayerGraph.Rows(_current?.Regions??[]).Where(r=>r.Mask is null).Select(r=>r.Region).ToList();RegionList.SelectedItem=_region;_loading=previous;
     }
     private void RefreshClipList()
     {
@@ -199,8 +199,8 @@ public partial class MainWindow : Window
     }
     private void UpdateSelectionLabel()
     {
-        var index=_region is null?-1:_current?.Regions.IndexOf(_region)??-1;
-        SelectedRegionText.Text=index<0?"선택 영역 없음 · 직접 지정 후 효과를 추가하세요":$"✓ {index+1:00}  {_region!.Name} 선택됨 · {_region.Clips.Count}개 효과{(_region.Locked?" · 위치 잠금":"")}{(TimelineEditor.SelectedClipIds.Count>1?$" · {TimelineEditor.SelectedClipIds.Count}개 클립 선택":"")}";
+        SelectedRegionText.Text=_region?.Name??"영역 선택";var index=_region is null?-1:_current?.Regions.IndexOf(_region)??-1;
+        SelectedRegionText.ToolTip=index<0?"선택 영역 없음 · 직접 지정 후 효과를 추가하세요":$"✓ {index+1:00}  {_region!.Name} 선택됨 · {_region.Clips.Count}개 효과{(_region.Locked?" · 위치 잠금":"")}{(TimelineEditor.SelectedClipIds.Count>1?$" · {TimelineEditor.SelectedClipIds.Count}개 클립 선택":"")}";
     }
     private bool CommitRegion(bool report)
     {
@@ -504,7 +504,7 @@ public partial class MainWindow : Window
     {
         if(_busy){e.Cancel=true;_workCts?.Cancel();Notify("현재 작업을 취소하고 있습니다. 멈춘 뒤 다시 닫으세요.");return;}
         if(!ConfirmStudiosClose()||!ConfirmDiscard()){e.Cancel=true;return;}
-        CloseWorkspace();_clock.Stop();Preview.Dispose();foreach(var t in _thumbnails)t.Dispose();
+        CloseWorkspace();_clock.Stop();(Resources["LayerThumbnail"] as IDisposable)?.Dispose();Preview.Dispose();foreach(var t in _thumbnails)t.Dispose();
     }
     private void ShowHelp(object sender,RoutedEventArgs e)=>MessageBox.Show(this,
         "1. 도형은 다음 그리기에만 적용됩니다. 기존 도형은 선택 도형 변경, 펜/자유손은 점 편집으로 점 이동·선분 추가·Delete 삭제합니다.\n"+

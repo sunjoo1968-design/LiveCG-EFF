@@ -4,7 +4,7 @@
  <Window.Resources>
   <Style x:Key="ContentOnlyExpander" TargetType="Expander"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Expander"><ContentPresenter x:Name="Body" ContentSource="Content"/><ControlTemplate.Triggers><Trigger Property="IsExpanded" Value="False"><Setter TargetName="Body" Property="Visibility" Value="Collapsed"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
   <local:ThumbnailConverter x:Key="Thumbnail"/>
-  <local:AssetThumbnailConverter x:Key="AssetThumbnail"/>
+  <local:AssetThumbnailConverter x:Key="AssetThumbnail"/><local:LayerThumbnailConverter x:Key="LayerThumbnail"/><local:LayerRowConverter x:Key="LayerRowInfo"/>
   <Style TargetType="TabItem">
    <Setter Property="Foreground" Value="#E8F3FA"/><Setter Property="Background" Value="#2C4356"/><Setter Property="Width" Value="140"/><Setter Property="MinHeight" Value="44"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="BorderBrush" Value="#5B7891"/>
    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
@@ -28,7 +28,7 @@
    <Button Content="현재 옵션을 기본값으로 저장" Click="SaveDefaults"/><Button Content="기본값 복원" Click="ResetDefaults"/><Button Content="단축키 설정" Click="ConfigureShortcuts"/><Button Content="배치 초기화" Click="ResetWorkspace"/><Button Content="도움말" Click="ShowHelp"/>
   </WrapPanel>
   <Grid Grid.Row="2" x:Name="EditorGrid">
-   <Grid.ColumnDefinitions><ColumnDefinition Width="280" MinWidth="240"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="335"/></Grid.ColumnDefinitions>
+   <Grid.ColumnDefinitions><ColumnDefinition Width="280" MinWidth="240"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*" MinWidth="300"/><ColumnDefinition Width="10"/><ColumnDefinition Width="335" MinWidth="300"/></Grid.ColumnDefinitions>
    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="7"/><RowDefinition Height="280" MinHeight="260"/></Grid.RowDefinitions>
    <Border Grid.RowSpan="3" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="10">
     <Grid><Grid.RowDefinitions><RowDefinition Height="*" MinHeight="120"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DockPanel Grid.Row="0">
@@ -74,55 +74,43 @@
     <DockPanel>
      <StackPanel DockPanel.Dock="Top">
       <Grid><TextBlock Text="02  원본 편집 / 효과 미리보기" FontWeight="Bold"/><TextBlock x:Name="ImageSizeText" HorizontalAlignment="Right" Foreground="#93AABA" FontSize="10"/></Grid>
-      <WrapPanel Margin="-3,6,0,5">
-       <Button x:Name="FocusModeButton" Content="편집 크게" Click="ToggleFocusMode" Padding="8,6"/>
-       <Button Content="창 분리" Click="DetachPreview" Padding="8,6"/><CheckBox x:Name="AutoFocusCheck" Content="지정 시 크게" Checked="AutoFocusChanged" Unchecked="AutoFocusChanged"/>
-       <Button x:Name="DrawModeButton" Content="＋ 직접 지정" Click="AddRegion" Background="#23534A" Padding="10,6"/>
-       <ComboBox x:Name="ShapeBox" Width="115" ToolTip="다음에 새로 그릴 도형 · 기존 선택영역은 바꾸지 않습니다" SelectionChanged="ShapeChanged"/>
-       <Button x:Name="PathEditButton" Content="점 편집" Click="TogglePointEditing" ToolTip="경로 점 이동·선분 클릭으로 점 추가·Delete 삭제" Padding="7,5"/><Expander Header="그리기 설정" Foreground="#AFC3D3"><StackPanel><Button Content="선택 도형 변경" Click="ChangeSelectedShape" Padding="7,5"/><ComboBox x:Name="CreationRoleBox" Width="140" ToolTip="새 영역의 그룹 연결 방식"/></StackPanel></Expander>
-       <Button x:Name="ZoomOutButton" Content="−" Click="ZoomOut" Padding="10,5"/>
-       <Button x:Name="ZoomInButton" Content="＋" Click="ZoomIn" Padding="10,5"/>
-       <Button Content="100%" Click="NativeZoom" Padding="8,5"/><Button Content="내용 맞춤" Click="FitContent" Padding="8,5"/><Button Content="원래 보기" Click="ResetZoom" Padding="8,5"/>
-
-       <TextBlock x:Name="ZoomText" Foreground="#93AABA" Margin="8,0" FontSize="10"/>
-      </WrapPanel>
+      <Grid Height="38" Margin="0,5,0,4">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
+       <Button Content="‹" Tag="DrawingToolbarScroll" Click="ScrollToolbarLeft" Padding="2" ToolTip="도구줄 왼쪽으로"/>
+       <ScrollViewer x:Name="DrawingToolbarScroll" Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel">
+        <StackPanel x:Name="DrawingToolbar" Orientation="Horizontal" VerticalAlignment="Center">
+         <StackPanel.Resources><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Height" Value="30"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Padding" Value="7,3"/></Style><Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Height" Value="30"/><Setter Property="VerticalAlignment" Value="Center"/></Style></StackPanel.Resources>
+         <Button x:Name="FocusModeButton" Content="편집 크게" Click="ToggleFocusMode"/><Button Content="창 분리" Click="DetachPreview"/>
+         <CheckBox x:Name="AutoFocusCheck" Content="지정 시 크게" Checked="AutoFocusChanged" Unchecked="AutoFocusChanged" VerticalAlignment="Center"/>
+         <Button x:Name="DrawModeButton" Content="＋ 직접 지정" Click="AddRegion" Background="#23534A"/>
+         <ComboBox x:Name="ShapeBox" Width="115" SelectionChanged="ShapeChanged" ToolTip="새로 그릴 도형 · 기존 선택은 유지"/>
+         <Button x:Name="PathEditButton" Content="점 편집" Click="TogglePointEditing"/><Button Content="선택 도형 변경" Click="ChangeSelectedShape"/>
+         <ComboBox x:Name="CreationRoleBox" Width="105" ToolTip="새 영역의 그룹 연결 방식"/>
+         <Button x:Name="ZoomOutButton" Content="−" Click="ZoomOut"/><TextBlock x:Name="ZoomText" VerticalAlignment="Center" Foreground="#A8C1CE" Margin="4"/><Button x:Name="ZoomInButton" Content="＋" Click="ZoomIn"/>
+         <Button Content="100%" Click="NativeZoom"/><Button Content="내용 맞춤" Click="FitContent"/><Button Content="원래 보기" Click="ResetZoom"/>
+        </StackPanel>
+       </ScrollViewer>
+       <Button Grid.Column="2" Content="›" Tag="DrawingToolbarScroll" Click="ScrollToolbarRight" Padding="2" ToolTip="도구줄 오른쪽으로"/>
+      </Grid>
      </StackPanel>
      <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-      <WrapPanel><CheckBox x:Name="EffectsPreviewCheck" Content="효과 미리보기" Checked="PreviewModeChanged" Unchecked="PreviewModeChanged"/>
-       <CheckBox x:Name="HideOverlaysCheck" Content="선택 표시 숨김" Checked="EditorOptionsChanged" Unchecked="EditorOptionsChanged"/>
-       <CheckBox x:Name="ShowAllRegionsCheck" Content="모든 영역 이름" Checked="EditorOptionsChanged" Unchecked="EditorOptionsChanged"/>
-       <TextBlock Text="비교 배경" Margin="8,5,3,0" Foreground="#93AABA"/>
-       <ComboBox x:Name="CompareBackgroundBox" Width="130" SelectionChanged="CompareBackgroundChanged" ToolTip="편집 확인용 · 출력에는 포함되지 않습니다."/>
-       <Button Content="이미지" Click="ChooseBackground" Padding="7,4"/><Button Content="초기화" Click="ClearBackground" Padding="7,4"/>
-      </WrapPanel>
-      <Grid x:Name="AreaToolsHost" Margin="0,5,0,0">
-       <Border x:Name="AreaToolsPanel" Background="#15322F" BorderBrush="#3B6F64" BorderThickness="1" CornerRadius="6" Padding="6">
-        <DockPanel>
-         <WrapPanel DockPanel.Dock="Top">
-          <TextBlock x:Name="SelectedRegionText" Text="영역을 선택하면 빠른 조절을 사용할 수 있습니다" MaxWidth="230" TextTrimming="CharacterEllipsis" Foreground="#82EDC9" VerticalAlignment="Center" Margin="3"/>
-          <Button x:Name="AreaVisibilityButton" Content="표시/숨김" Click="ToggleSelectedLayer" Padding="6,3"/>
-          <CheckBox x:Name="RegionLockCheck" Content="잠금" Checked="RegionPropertiesChanged" Unchecked="RegionPropertiesChanged"/>
-          <CheckBox x:Name="AreaPinCheck" Content="고정" IsChecked="True"/>
-          <Button Content="별도 창" Click="DetachAreaTools" Padding="6,3"/><Button Content="접기/펼치기" Click="ToggleAreaTools" Padding="6,3"/>
-         </WrapPanel>
-         <Expander x:Name="AreaToolsExpander" Style="{StaticResource ContentOnlyExpander}" IsExpanded="True" Foreground="#D6F5E9">
-          <StackPanel>
-           <StackPanel x:Name="SoftnessPanel"/>
-           <Expander x:Name="AreaDetailsExpander" Style="{StaticResource ContentOnlyExpander}" Foreground="#BCD4D0">
-            <ScrollViewer MaxHeight="190" VerticalScrollBarVisibility="Auto">
-             <StackPanel>
-              <StackPanel x:Name="SoftDetailsPanel"/>
-              <TextBlock Text="배경을 채우는 방식" Margin="3,7,3,2"/><ComboBox x:Name="BackgroundBox" SelectionChanged="BackgroundChanged"/>
-              <TextBox x:Name="BackgroundColorBox" IsReadOnly="True" Text="#FFFFFF"/>
-              <Button Content="자동 분리로 되돌리기" Click="ClearObject" ToolTip="수동 마스크를 지우고 현재 배경색/허용오차로 자동 분리합니다. 되돌리기 가능."/>
-             </StackPanel>
-            </ScrollViewer>
-           </Expander>
-          </StackPanel>
-         </Expander>
-        </DockPanel>
-       </Border>
-      </Grid>
+      <ScrollViewer Height="34" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel" ToolTip="좁은 창에서는 마우스 휠로 좌우 이동">
+       <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><CheckBox x:Name="EffectsPreviewCheck" Content="효과 미리보기" Checked="PreviewModeChanged" Unchecked="PreviewModeChanged"/><CheckBox x:Name="HideOverlaysCheck" Content="선택 표시 숨김" Checked="EditorOptionsChanged" Unchecked="EditorOptionsChanged"/><CheckBox x:Name="ShowAllRegionsCheck" Content="모든 영역 이름" Checked="EditorOptionsChanged" Unchecked="EditorOptionsChanged"/><TextBlock Text="비교 배경" Margin="6,5,3,0" Foreground="#93AABA"/><ComboBox x:Name="CompareBackgroundBox" Width="115" Height="28" SelectionChanged="CompareBackgroundChanged"/><Button Content="이미지" Click="ChooseBackground" Padding="6,3"/><Button Content="초기화" Click="ClearBackground" Padding="6,3"/></StackPanel>
+      </ScrollViewer>
+      <Border x:Name="AreaToolsPanel" Height="40" Background="#15322F" BorderBrush="#3B6F64" BorderThickness="1" CornerRadius="5" Margin="0,4,0,0" Padding="2">
+       <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
+        <Button Content="‹" Tag="AreaToolbarScroll" Click="ScrollToolbarLeft" Padding="2"/>
+        <ScrollViewer x:Name="AreaToolbarScroll" Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel"><StackPanel x:Name="SoftnessPanel" Orientation="Horizontal" VerticalAlignment="Center"/></ScrollViewer>
+        <Button Grid.Column="2" Content="›" Tag="AreaToolbarScroll" Click="ScrollToolbarRight" Padding="2"/>
+        <Popup x:Name="AreaDetailsPopup" Placement="Top" PlacementTarget="{Binding ElementName=AreaToolsPanel}" StaysOpen="False" AllowsTransparency="True">
+         <Border TextElement.Foreground="#DFE7EE" Background="#192C37" BorderBrush="#69BFA8" BorderThickness="1" CornerRadius="6" Padding="10" Width="380"><ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto"><StackPanel>
+          <DockPanel><Button DockPanel.Dock="Right" Content="닫기" Click="CloseAreaDetails"/><TextBlock Text="영역 세부 설정" FontWeight="Bold" VerticalAlignment="Center" Foreground="#92E4C7"/></DockPanel>
+          <StackPanel x:Name="SoftDetailsPanel"/><TextBlock Text="배경을 채우는 방식" Margin="3,7,3,2"/><ComboBox x:Name="BackgroundBox" SelectionChanged="BackgroundChanged"/>
+          <TextBox x:Name="BackgroundColorBox" IsReadOnly="True" Text="#FFFFFF"/><Button Content="자동 분리로 되돌리기" Click="ClearObject"/>
+         </StackPanel></ScrollViewer></Border>
+        </Popup>
+       </Grid>
+      </Border>
      </StackPanel>
      <local:PreviewControl x:Name="Preview"/>
     </DockPanel>
@@ -130,19 +118,31 @@
    </Grid>
    <Grid x:Name="EffectsHost" Grid.Column="4" Grid.RowSpan="3">
 <Border x:Name="EffectsPanel" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="10">
- <DockPanel>
-  <StackPanel DockPanel.Dock="Top">
-   <WrapPanel><TextBlock Text="03  효과 / 속성" FontWeight="Bold" FontSize="14"/><Button Content="창 분리" Click="DetachEffects" Padding="7,4"/></WrapPanel>
-   <TextBlock x:Name="ContextPathText" Text="영역이나 클립을 선택하세요" Foreground="#7FE9C5" Margin="3,4" TextTrimming="CharacterEllipsis"/>
-   <Expander Header="영역 목록 · 이름 / 관리" Foreground="#A9C0CE" Margin="2,2,2,6">
-    <StackPanel><ListBox x:Name="RegionList" DisplayMemberPath="Label" Height="80" SelectionChanged="RegionSelectionChanged"/>
-     <TextBox x:Name="RegionNameBox" ToolTip="영역 이름" LostFocus="RegionPropertiesChanged"/>
-     <WrapPanel><Button Content="↑" Click="MoveLayerUp"/><Button Content="↓" Click="MoveLayerDown"/>
-      <Button Content="복제" Click="DuplicateRegion"/><Button Content="영역 삭제" Click="DeleteRegion"/><Button Content="일괄 적용" Click="ApplyRegions"/></WrapPanel>
-    </StackPanel>
-   </Expander>
+ <Grid x:Name="PropertiesLayout" SizeChanged="PropertiesLayoutChanged">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition x:Name="LayerPanelRow" Height="240" MinHeight="110"/><RowDefinition Height="6"/><RowDefinition Height="*" MinHeight="200"/></Grid.RowDefinitions>
+  <StackPanel Grid.Row="0"><WrapPanel><TextBlock Text="03  레이어 / 효과 속성" FontWeight="Bold" FontSize="14"/><Button Content="창 분리" Click="DetachEffects" Padding="7,4"/></WrapPanel><TextBlock x:Name="ContextPathText" Text="영역이나 클립을 선택하세요" Foreground="#7FE9C5" Margin="3,4" TextTrimming="CharacterEllipsis"/>
+   <TextBox x:Name="RegionNameBox" Visibility="Collapsed" LostFocus="RegionPropertiesChanged"/><CheckBox x:Name="RegionLockCheck" Visibility="Collapsed" Checked="RegionPropertiesChanged" Unchecked="RegionPropertiesChanged"/>
   </StackPanel>
-  <TabControl x:Name="EffectsTabs" Background="#14202D" BorderBrush="#354A5C" Foreground="#DFE7EE" Padding="3" SelectionChanged="PropertyTabChanged">
+  <Border Grid.Row="1" x:Name="LayerListPanel" BorderBrush="#3A5667" BorderThickness="1" Background="#111E29" CornerRadius="4" Padding="3">
+   <DockPanel>
+    <DockPanel DockPanel.Dock="Top" Margin="3,1"><TextBlock Text="레이어" FontWeight="Bold"/><TextBlock x:Name="LayerCountText" HorizontalAlignment="Right" Foreground="#9BB5C6"/></DockPanel>
+    <WrapPanel DockPanel.Dock="Bottom"><Button Content="복제" Click="DuplicateRegion" Padding="6,3"/><Button Content="삭제" Click="DeleteRegion" Padding="6,3"/><Button Content="일괄 적용" Click="ApplyRegions" Padding="6,3"/><TextBlock Text="↕ 행 드래그" Foreground="#8EA9BA" FontSize="10" Margin="5"/></WrapPanel>
+    <ListBox x:Name="RegionList" SelectionChanged="RegionSelectionChanged" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True" AllowDrop="True" PreviewMouseLeftButtonDown="LayerPointerDown" PreviewMouseMove="LayerPointerMove" DragOver="LayerDragOver" Drop="LayerDrop" PreviewKeyDown="LayerListKeyDown">
+     <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="ToolTip" Value="{Binding Label}"/></Style></ListBox.ItemContainerStyle>
+     <ListBox.ItemTemplate><DataTemplate><Border BorderBrush="#263D4C" BorderThickness="0,0,0,1" Padding="1" Height="40">
+      <Grid Margin="{Binding Converter={StaticResource LayerRowInfo},ConverterParameter=indent}"><Grid.ColumnDefinitions><ColumnDefinition Width="17"/><ColumnDefinition Width="24"/><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/><ColumnDefinition Width="25"/></Grid.ColumnDefinitions>
+       <Button Grid.Column="0" Content="{Binding Converter={StaticResource LayerRowInfo},ConverterParameter=fold}" Click="LayerFoldClick" Padding="0" Margin="0" Background="Transparent" BorderThickness="0" ToolTip="그룹 접기/펼치기"/>
+       <Button Grid.Column="1" Content="{Binding Converter={StaticResource LayerRowInfo},ConverterParameter=eye}" Click="LayerEyeClick" Padding="0" Margin="0" Background="Transparent" BorderThickness="0" ToolTip="표시/숨김"/>
+       <Image Grid.Column="2" Width="36" Height="28" Stretch="Uniform"><Image.Source><MultiBinding Converter="{StaticResource LayerThumbnail}"><Binding/><Binding RelativeSource="{RelativeSource AncestorType=ListBox}" Path="Tag"/></MultiBinding></Image.Source></Image>
+       <Grid Grid.Column="3" Margin="4,0"><StackPanel x:Name="LayerNameDisplay" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MouseLeftButtonDown="LayerNameDoubleClick"/><TextBlock Text="{Binding Converter={StaticResource LayerRowInfo},ConverterParameter=counts}" Foreground="#9AB2C4" FontSize="9"/></StackPanel><TextBox x:Name="LayerNameEditor" Text="{Binding Name,Mode=OneWay}" Visibility="Collapsed" MaxLength="100" LostKeyboardFocus="LayerNameLostFocus" KeyDown="LayerNameKeyDown" VerticalAlignment="Center"/></Grid>
+       <Button Grid.Column="4" Content="{Binding Converter={StaticResource LayerRowInfo},ConverterParameter=lock}" Click="LayerLockClick" Padding="0" Margin="0" Background="Transparent" BorderThickness="0" ToolTip="위치 잠금/해제"/>
+      </Grid>
+     </Border></DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+   </DockPanel>
+  </Border>
+  <GridSplitter x:Name="LayerHeightSplitter" Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#365467" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" DragStarted="PanelResizeStarted" DragCompleted="LayerHeightChanged" ToolTip="레이어 목록 높이 조절"/>
+  <TabControl Grid.Row="3" x:Name="EffectsTabs" Background="#14202D" BorderBrush="#354A5C" Foreground="#DFE7EE" Padding="3" SelectionChanged="PropertyTabChanged">
    <TabControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></TabControl.ItemsPanel>
    <TabControl.Template><ControlTemplate TargetType="TabControl"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><ItemsPresenter/><Border Grid.Row="1" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="3"><ContentPresenter ContentSource="SelectedContent"/></Border></Grid></ControlTemplate></TabControl.Template>
    <TabItem Header="① 효과 · 20종">
@@ -220,9 +220,10 @@
     </TabControl>
    </TabItem>
   </TabControl>
- </DockPanel>
+ </Grid>
 </Border>
    </Grid>
+   <GridSplitter x:Name="EffectsWidthSplitter" Grid.Column="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#365467" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" DragStarted="PanelResizeStarted" DragCompleted="EffectsWidthChanged" ToolTip="레이어·속성 패널 너비 조절"/>
    <GridSplitter x:Name="TimelineSplitter" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="5" Background="#263C4C" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"/>
    <Border x:Name="TimelinePanel" Grid.Row="2" Grid.Column="2" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="8">
     <DockPanel>

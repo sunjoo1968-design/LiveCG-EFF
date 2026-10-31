@@ -32,19 +32,17 @@ public class WorkspaceState
     public WindowPlacement? Main { get; set; }
     public WindowPlacement? Preview { get; set; }
     public WindowPlacement? Effects { get; set; }
-    public WindowPlacement? AreaTools { get; set; }
-    public bool AreaToolsDetached { get; set; }
-    public bool AreaToolsExpanded { get; set; }=true;
-    public bool AreaToolsPinned { get; set; }=true;
     public bool PreviewDetached { get; set; }
     public bool EffectsDetached { get; set; }
     public bool FocusMode { get; set; }
     public bool AutoFocus { get; set; }=true;
+    public double RightWidth { get; set; }=335;
+    public double LayerPanelHeight { get; set; }=240;
     public double LeftWidth { get; set; }=280;
     public double TimelineHeight { get; set; }=245;
     public bool OutputExpanded { get; set; }=true;
     public static string Path=>System.IO.Path.Combine(LiveCG.Core.DocumentStore.DataDirectory,"workspace.json");
-    private WorkspaceState Normalize(){Main=Main?.Normalized();Preview=Preview?.Normalized();Effects=Effects?.Normalized();AreaTools=AreaTools?.Normalized();LeftWidth=double.IsFinite(LeftWidth)?Math.Clamp(LeftWidth,240,450):280;TimelineHeight=double.IsFinite(TimelineHeight)?Math.Clamp(TimelineHeight,170,700):245;return this;}
+    private WorkspaceState Normalize(){Main=Main?.Normalized();Preview=Preview?.Normalized();Effects=Effects?.Normalized();RightWidth=double.IsFinite(RightWidth)?Math.Clamp(RightWidth,300,700):335;LayerPanelHeight=double.IsFinite(LayerPanelHeight)?Math.Clamp(LayerPanelHeight,110,480):240;LeftWidth=double.IsFinite(LeftWidth)?Math.Clamp(LeftWidth,240,450):280;TimelineHeight=double.IsFinite(TimelineHeight)?Math.Clamp(TimelineHeight,170,700):245;return this;}
     public static WorkspaceState Load(){try{return (JsonSerializer.Deserialize<WorkspaceState>(File.ReadAllText(Path))??new()).Normalize();}catch(IOException){return new();}catch(JsonException){return new();}}
     public void Save()
     {

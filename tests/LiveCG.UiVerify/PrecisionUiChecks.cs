@@ -28,7 +28,7 @@ internal static class PrecisionUiChecks
         }
         Point Center(int row){var r=timeline.ClipRect(Job().Regions[row],Job().Regions[row].Clips[0]);return new(r.MidX(),r.Top+14);}
         void SelectTwo(){timeline.BeginPointer(Center(0));timeline.EndPointer();timeline.BeginPointer(Center(1),true);timeline.EndPointer();Pump();}
-        Load();SelectTwo();check(timeline.SelectedClipIds.Count==2&&C<TextBlock>("SelectedRegionText").Text.Contains("2개 클립 선택"),"Ctrl-click selects clips across region rows with an explicit count");
+        Load();SelectTwo();check(timeline.SelectedClipIds.Count==2&&C<TextBlock>("ContextPathText").Text.Contains("선택 2개"),"Ctrl-click selects clips across region rows with an explicit count");
         timeline.BeginPointer(Center(0),true);timeline.EndPointer();check(timeline.SelectedClipIds.Count==1&&timeline.SelectedClipIds.Contains(Job().Regions[1].Clips[0].Id),"Ctrl-click toggles a selected clip without clearing the other row");
         timeline.BeginPointer(Center(0),true);timeline.EndPointer();var count=Field<EditHistory>("_history").UndoCount;var at=Center(0);
         timeline.BeginPointer(at);timeline.MovePointer(new(at.X+timeline.PixelsPerSecond*.5,at.Y));timeline.EndPointer();

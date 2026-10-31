@@ -49,7 +49,7 @@ public partial class MainWindow
     public void SelectMask(EffectRegion owner,MaskTrack mask)
     {
         if(_current is null||!owner.Masks.Contains(mask))return;SelectRegion(owner,null,false);owner.Collapsed=false;var parent=_current.Regions.FirstOrDefault(g=>g.Id==owner.ParentId);if(parent is not null)parent.Collapsed=false;
-        _selectedMask=mask;Preview.SelectedMask=mask;Preview.SelectedRegion=owner;TimelineEditor.SelectedMask=mask;TimelineEditor.SelectedClipIds.Clear();EffectsTabs.SelectedIndex=3;GroupMaskTabs.SelectedIndex=1;LoadGroupFields();RefreshTimeline();
+        _selectedMask=mask;Preview.SelectedMask=mask;Preview.SelectedRegion=owner;TimelineEditor.SelectedMask=mask;TimelineEditor.SelectedClipIds.Clear();EffectsTabs.SelectedIndex=3;GroupMaskTabs.SelectedIndex=1;RefreshRegionList();LoadGroupFields();RefreshTimeline();
     }
     private void MaskListChanged(object sender,SelectionChangedEventArgs e){if(!_loading&&_region is not null&&MaskList.SelectedItem is MaskTrack mask)SelectMask(_region,mask);}
     public (double Start,double Duration) NewMaskSpan(EffectRegion owner)
@@ -71,7 +71,7 @@ public partial class MainWindow
         _region.Masks.Add(mask);SelectMask(_region,mask);MarkEdited();
     }
     private void DuplicateMask(object sender,RoutedEventArgs e){if(_region is null||_selectedMask is null||_region.Masks.Count>=100)return;var copy=_selectedMask.Copy();copy.Name+=" 복사";_region.Masks.Add(copy);SelectMask(_region,copy);MarkEdited();}
-    private void DeleteMask(object sender,RoutedEventArgs e){if(_busy||_region is null||_selectedMask is null)return;Preview.CancelGesture();TimelineEditor.CancelGesture();_region.Masks.Remove(_selectedMask);ClearMaskSelection();LoadGroupFields();MarkEdited();RefreshTimeline();}
+    private void DeleteMask(object sender,RoutedEventArgs e){if(_busy||_region is null||_selectedMask is null)return;Preview.CancelGesture();TimelineEditor.CancelGesture();_region.Masks.Remove(_selectedMask);ClearMaskSelection();RefreshRegionList();LoadGroupFields();MarkEdited();RefreshTimeline();}
     private void LoadMaskFields()
     {
         if(MaskEditorPanel is not null){MaskEditorPanel.Visibility=_selectedMask is null?Visibility.Collapsed:Visibility.Visible;MaskEmptyHint.Visibility=_selectedMask is null?Visibility.Visible:Visibility.Collapsed;MaskList.Visibility=_region?.Masks.Count>0?Visibility.Visible:Visibility.Collapsed;}

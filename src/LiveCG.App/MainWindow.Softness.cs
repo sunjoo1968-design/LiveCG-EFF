@@ -12,9 +12,10 @@ public partial class MainWindow
 {
     private readonly CheckBox _softEnabled=new(){Content="소프트",VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(4)};
     private readonly CheckBox _softSeparate=new(){Content="위·오른쪽·아래·왼쪽 개별 조절"};
-    private readonly ComboBox _contentMode=new(){Width=165,VerticalAlignment=VerticalAlignment.Center};
+    private readonly ComboBox _contentMode=new(){Width=140,VerticalAlignment=VerticalAlignment.Center};
     private readonly TextBlock _separationState=new(){VerticalAlignment=VerticalAlignment.Center,Foreground=Brushes.Aquamarine,Margin=new Thickness(5),FontSize=10};
-    private readonly ComboBox _softDirection=new(){Width=120,VerticalAlignment=VerticalAlignment.Center};
+    private readonly ComboBox _softDirection=new(){Width=80,VerticalAlignment=VerticalAlignment.Center};
+    public readonly TextBlock SelectedRegionText=new(){Width=78,TextTrimming=TextTrimming.CharacterEllipsis,Foreground=Brushes.Aquamarine,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(3)};
     public readonly Border ColorSwatch=new(){Width=22,Height=22,BorderThickness=new Thickness(1),BorderBrush=Brushes.LightSteelBlue,Background=Brushes.White,Margin=new Thickness(4)};
     private readonly Dictionary<string,MouseValueControl> _softValues=[];
     private readonly Dictionary<string,TextBox> _softInputs=[];
@@ -23,25 +24,25 @@ public partial class MainWindow
     public IReadOnlyDictionary<string,MouseValueControl> SoftValues=>_softValues;
     private void InitializeSoftness()
     {
-        RegisterName("ColorSwatch",ColorSwatch);RegisterName("AreaContentMode",_contentMode);RegisterName("AreaSoftEnabled",_softEnabled);
-        var row=new WrapPanel();SoftnessPanel.Children.Add(row);row.Children.Add(_softEnabled);
+        RegisterName("SelectedRegionText",SelectedRegionText);RegisterName("ColorSwatch",ColorSwatch);RegisterName("AreaContentMode",_contentMode);RegisterName("AreaSoftEnabled",_softEnabled);
+        Panel row=SoftnessPanel;row.Children.Add(SelectedRegionText);row.Children.Add(_softEnabled);
         Choices(_softDirection,["안쪽","바깥쪽","양쪽"]);
         void Change(Action<EffectRegion> edit){if(_loading||_softSync||_busy||_region is null)return;edit(_region);MarkEdited();LoadContextLabels();Preview.InvalidateVisual();}
         _softEnabled.Checked+=(_,_)=>Change(r=>r.Softness=r.Softness with{Enabled=true});_softEnabled.Unchecked+=(_,_)=>Change(r=>r.Softness=r.Softness with{Enabled=false});
         _softDirection.SelectionChanged+=(_,_)=>Change(r=>r.Softness=r.Softness with{Direction=(SoftDirection)Math.Max(0,_softDirection.SelectedIndex)});
         void Number(Panel host,string key,string title,double min,double max,string unit,Action<EffectRegion,double> set,bool compact=false)
         {
-            Panel target=host;if(compact){var box=new StackPanel{Width=145,Margin=new Thickness(4,0,6,0)};host.Children.Add(box);target=box;}
-            target.Children.Add(new TextBlock{Text=title,FontSize=compact?10:12,Margin=new Thickness(3,3,3,0)});var input=new TextBox();target.Children.Add(input);EditorState? before=null;
+            Panel target=host;
+            target.Children.Add(new TextBlock{Text=compact?"폭":title,FontSize=compact?10:12,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(3,3,3,0)});var input=new TextBox();target.Children.Add(input);EditorState? before=null;
             var mouse=MouseValueControl.Attach(input,min,max,unit,v=>Change(r=>set(r,v)),()=>{before=CaptureState();BeginGesture();},commit=>{EndGesture(commit);if(!commit&&before is not null)RestoreEdit(before);before=null;});
-            if(compact&&input.Parent is Expander exact&&exact.Parent is Panel parent){parent.Children.Remove(exact);exact.Header="경계 폭 정밀 입력";SoftDetailsPanel.Children.Add(exact);}
+            if(compact){mouse.Orientation=Orientation.Horizontal;mouse.Width=140;mouse.Height=30;mouse.VerticalAlignment=VerticalAlignment.Center;mouse.Slider.Width=75;foreach(FrameworkElement part in mouse.Children)part.VerticalAlignment=VerticalAlignment.Center;if(input.Parent is Expander exact&&exact.Parent is Panel parent){parent.Children.Remove(exact);exact.Header="경계 폭 정밀 입력";SoftDetailsPanel.Children.Add(exact);}}
             input.LostKeyboardFocus+=(_,_)=>{if(double.TryParse(input.Text,NumberStyles.Float,CultureInfo.InvariantCulture,out var n)&&double.IsFinite(n))mouse.EditValue(Math.Clamp(n,min,max));};_softValues[key]=mouse;_softInputs[key]=input;
         }
         Number(row,"Width","경계 폭",0,256,"px",(r,v)=>r.Softness=r.Softness with{Width=v},true);row.Children.Add(_softDirection);
-        var details=new Button{Content="세부 설정",VerticalAlignment=VerticalAlignment.Center};details.Click+=(_,_)=>AreaDetailsExpander.IsExpanded=!AreaDetailsExpander.IsExpanded;row.Children.Add(details);
-        var content=new WrapPanel();SoftnessPanel.Children.Add(content);Choices(_contentMode,["영역 전체","배경 고정·내용만"]);content.Children.Add(_contentMode);content.Children.Add(_separationState);content.Children.Add(ColorSwatch);
+        var details=new Button{Content="세부 설정",VerticalAlignment=VerticalAlignment.Center};details.Click+=(_,_)=>AreaDetailsPopup.IsOpen=!AreaDetailsPopup.IsOpen;row.Children.Add(details);
+        Panel content=row;Choices(_contentMode,["영역 전체","배경 고정·내용만"]);content.Children.Add(_contentMode);content.Children.Add(ColorSwatch);
         void Button(string text,RoutedEventHandler action){var b=new Button{Content=text,Padding=new Thickness(7,4,7,4),VerticalAlignment=VerticalAlignment.Center};b.Click+=action;content.Children.Add(b);}
-        Button("스포이드",PickBackgroundColor);Button("색상표",ChooseBackgroundColor);Button("정밀 분리·보정",FitObject);
+        Button("스포이드",PickBackgroundColor);Button("색상표",ChooseBackgroundColor);Button("정밀 보정",FitObject);row.Children.Remove(details);row.Children.Add(details);
         _contentMode.SelectionChanged+=(_,_)=>Change(r=>{var on=_contentMode.SelectedIndex==1;r.ContentOnly=on;r.CutoutEnabled=on;});
         Number(SoftDetailsPanel,"Strength","영역 경계 부드러움 강도",10,300,"%",(r,v)=>r.Softness=r.Softness with{Strength=v/100});
         SoftDetailsPanel.Children.Add(_softSeparate);SoftDetailsPanel.Children.Add(_softSides);
@@ -52,8 +53,6 @@ public partial class MainWindow
         SoftDetailsPanel.Children.Add(new TextBlock{Text="영역 소프트는 선택틀의 경계, 정밀 보정은 실제 오브젝트 윤곽을 조절합니다. 수동 마스크에는 자동 분리를 다시 적용하지 않습니다.",TextWrapping=TextWrapping.Wrap,Foreground=Brushes.LightSteelBlue,Margin=new Thickness(4)});
         Choices(CompareBackgroundBox,["체크무늬","검정 배경","흰색 배경","검정/흰색","사용자 이미지"]);CompareBackgroundBox.SelectedIndex=0;
         Choices(ClipSectionChoice,["자동 분류","등장","반복","퇴장"]);
-        AreaPinCheck.Checked+=(_,_)=>AreaToolsExpander.IsExpanded=true;
-        AreaToolsPanel.IsKeyboardFocusWithinChanged+=(_,_)=>{if(AreaPinCheck.IsChecked!=true&&!AreaToolsPanel.IsKeyboardFocusWithin&&_areaWindow is null)AreaToolsExpander.IsExpanded=false;};
     }
     private void LoadSoftnessFields()
     {
@@ -61,12 +60,12 @@ public partial class MainWindow
         var s=_region?.Softness??new();_softEnabled.IsChecked=s.Enabled;_softDirection.SelectedIndex=(int)s.Direction;_softSeparate.IsChecked=s.SeparateSides;_softSides.Visibility=s.SeparateSides?Visibility.Visible:Visibility.Collapsed;
         _contentMode.SelectedIndex=_region is not null&&(_region.ContentOnly||RegionRaster.ActiveCutout(_region) is not null)?1:0;
         foreach(var (k,v) in new Dictionary<string,double>{{"Width",s.Width},{"Strength",s.Strength*100},{"Top",s.Top},{"Right",s.Right},{"Bottom",s.Bottom},{"Left",s.Left},{"Tolerance",_region?.ContentTolerance??24}}){_softValues[k].SetSilently(v);_softInputs[k].Text=v.ToString("0.###",CultureInfo.InvariantCulture);}
-        SoftnessPanel.IsEnabled=AreaDetailsExpander.IsEnabled=_region is not null&&!_busy;_softSync=false;LoadContextLabels();
+        SoftnessPanel.IsEnabled=_region is not null&&!_busy;_softSync=false;LoadContextLabels();
     }
     private void CompareBackgroundChanged(object sender,SelectionChangedEventArgs e)
     {if(Preview is null)return;Preview.ComparisonBackground=Math.Max(0,CompareBackgroundBox.SelectedIndex);Preview.InvalidateVisual();}
     private void ShowSoftnessProperties(object sender,RoutedEventArgs e)
-    {if(_region is null){Notify("먼저 효과를 적용할 영역을 선택하세요.");return;}AreaToolsExpander.IsExpanded=true;LoadSoftnessFields();if(_areaWindow is not null)_areaWindow.Activate();}
+    {if(_region is null){Notify("먼저 효과를 적용할 영역을 선택하세요.");return;}LoadSoftnessFields();AreaToolbarScroll.ScrollToLeftEnd();}
     private void AssignTimelineSection(ClipSection section)
     {
         if(_busy||_current is null)return;var clips=TimelineEditor.SelectedClips.Select(x=>x.Clip).ToList();if(clips.Count==0&&_clip is not null)clips.Add(_clip);
