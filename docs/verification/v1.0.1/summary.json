@@ -1,0 +1,17 @@
+{
+  "Version": "1.0.1",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-01",
+  "Change": "Remove output sequence badge row",
+  "Wpf": 390,
+  "Passed": 390,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "PreviousRenderingVerification": "v1.0.0",
+  "PreviousFullChecks": 1040,
+  "RenderingAndPlaybackChanged": false,
+  "OutputStripRemoved": true,
+  "PackageSHA256": "CE69A894023AF78751EF67E0843A95CAEA3B5E35CD956E1BD10F416E90C5395B",
+  "PackageMiB": 173.8,
+  "PackageEntries": 492
+}

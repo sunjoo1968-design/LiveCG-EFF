@@ -1,18 +1,22 @@
 # LiveCG-EFF
 
-**제작자 SunjooAn · 현재 버전 1.0.0 · Windows x64**
+**제작자 SunjooAn · 현재 버전 1.0.1 · Windows x64**
 
 이미지에서 마우스로 지정한 영역에 효과를 배치하고 **투명 WebM / OBS 브라우저 패키지**로 출력하는 라이브커머스 자막 편집기입니다. 가격 자동 탐지와 사운드는 포함하지 않습니다.
 
 ## 다운로드와 실행
 
-[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.0.0-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.0.1-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
 
-## v1.0.0 변경
+## v1.0.1 수정
+
+타임라인 위의 출력 순서·등장·반복·쉬기 표시 줄을 제거해 편집 공간을 확보했습니다. 실제 구간 바와 좌측 반복 설정·재생/출력 동작은 유지합니다.
+
+## v1.0 기능
 
 - 좌측에서 **WebM 반복 횟수·반복 사이 쉬기·쉬는 모습**을 직접 조절합니다. 구간 설정과 연동하고 최종 길이·프레임을 즉시 표시합니다.
 - 새 작업은 **반복 사이 1초 / 원본 유지·효과만 쉬기**가 기본입니다. 마지막 모습 유지·전체 투명도 선택할 수 있습니다.
-- WebM은 마지막 반복 뒤 쉬기를 생략합니다. OBS는 효과와 쉬기를 계속 반복합니다. 타임라인 위 출력 순서 띠로 확인하세요.
+- WebM은 마지막 반복 뒤 쉬기를 생략합니다. OBS는 효과와 쉬기를 계속 반복합니다.
 - 선택 파일에 반복 설정만 일괄 적용하고 현재 옵션을 새 작업 기본값으로 저장할 수 있습니다. **1회 + 쉬기 확인**과 **출력 예정 목록 확인**을 제공합니다.
 - OBS 방송용 HTML을 **원본명_index.html**, 확인용을 **원본명_preview.html**로 출력합니다. 좌측 **OBS 파일 위치**로 방송용 파일을 찾습니다.
 - PNG·JPG/JPEG·BMP·정적 WebP를 입력합니다. JPEG 회전 정보를 적용하며 원본 이미지를 수정하지 않습니다. 출력의 내부 이미지는 실제 PNG로 저장합니다.
@@ -20,7 +24,7 @@
 - 편집/타임라인과 우측 패널의 크기 조절은 잠갔습니다. **레이어 목록 높이 조절·내부 스크롤·높이 기억은 유지**합니다. 전체 프로그램 창은 크기를 바꿀 수 있습니다.
 - 좌측 출력 설정을 출력 방식 / 반복·출력 길이 / 영상 품질 / 저장·출력 대상 / 실행·진행으로 구분합니다. 작은 창에서도 자료 목록 공간을 확보합니다.
 
-![좌측 반복 설정과 출력 순서](docs/images/output-v1.0.0.png)
+![출력 순서 표시 줄을 제거한 편집 화면](docs/images/output-v1.0.1.png)
 
 ## 기본 작업
 
@@ -102,6 +106,6 @@ node .\tools\verify-obs-program.mjs .
 
 실제 브라우저 검증에는 Node24·Chrome, OBS 통합에는 OBS33 개발용 설치본이 필요합니다. 일반 배포 사용자에게는 필요하지 않습니다. OBS 검증은 별도 portable 설정을 쓰며 송출·녹화를 시작하지 않습니다. 네이티브/Canvas의 블러·글자 경계에는 소폭 차이가 있을 수 있습니다.
 
-[검증 요약](docs/verification/v1.0.0/summary.json) · [계획](docs/01-plan/features/v1-output-workflow.plan.md) · [설계](docs/02-design/features/v1-output-workflow.design.md) · [검토](docs/03-analysis/v1-output-workflow.analysis.md) · [완료 보고](docs/04-report/v1-output-workflow.report.md)
+[검증 요약](docs/verification/v1.0.1/summary.json) · [계획](docs/01-plan/features/remove-output-strip.plan.md) · [설계](docs/02-design/features/remove-output-strip.design.md) · [검토](docs/03-analysis/remove-output-strip.analysis.md) · [완료 보고](docs/04-report/remove-output-strip.report.md)
 
 외부 구성 요소의 제작자·라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), licenses 및 배포본의 FFmpeg/.NET 고지에 유지합니다. 개인 원본·작업·사용자 설정과 인증 정보는 공개하지 않습니다.

@@ -234,7 +234,7 @@
    <GridSplitter x:Name="EffectsWidthSplitter" Grid.Column="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#365467" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" IsEnabled="False" IsHitTestVisible="False" Focusable="False" ToolTip="내부 패널 너비 고정"/>
    <GridSplitter x:Name="TimelineSplitter" IsEnabled="False" IsHitTestVisible="False" Focusable="False" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="5" Background="#263C4C" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"/>
    <Border x:Name="TimelinePanel" Grid.Row="2" Grid.Column="2" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="8">
-    <DockPanel><ScrollViewer DockPanel.Dock="Top" Height="25" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel"><StackPanel x:Name="OutputSequenceStrip" Orientation="Horizontal" ToolTip="최종 출력 순서 · 편집 시간과 반복 출력 시간은 별도입니다."/></ScrollViewer>
+    <DockPanel>
      <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,3">
       <Button Content="복사" Click="CopyClip" ToolTip="Ctrl+C" Padding="7,5"/><Button Content="붙여넣기" Click="PasteClip" ToolTip="선택 영역의 현재 커서에 붙여넣기 · Ctrl+V" Padding="7,5"/>
       <Button x:Name="UndoButton" Content="되돌리기" Click="UndoEdit" ToolTip="Ctrl+Z" Padding="7,5"/><Button x:Name="RedoButton" Content="다시" Click="RedoEdit" ToolTip="Ctrl+Shift+Z" Padding="7,5"/>

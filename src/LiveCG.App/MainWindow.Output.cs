@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using LiveCG.Core;
 
 namespace LiveCG.App;
@@ -18,16 +17,6 @@ public partial class MainWindow
         AutoDurationText.Text=plan is null?"이미지를 선택하세요":$"WebM {plan.WebmDuration:0.00}초 · {plan.WebmFrameCount:N0}프레임"+(plan.Enabled?$"\n{plan.Repeats}회 · 사이 쉬기 {(double)plan.RestFrames/plan.Fps:0.##}초\nOBS 무한 반복":"\n구간 미사용 · 전체 1회");
         AutoDurationText.ToolTip=plan is null?"":$"편집 타임라인 {plan.Duration:0.##}초 · 최종 WebM은 반복 사이 쉬기를 포함하고 마지막 쉬기는 생략합니다.";
         WebmRepeatsBox.IsEnabled=LoopRestBox.IsEnabled=RestModeBox.IsEnabled=!_busy;_outputSync=false;
-        RefreshOutputSequence(plan);
-    }
-    private void RefreshOutputSequence(PlaybackPlan? plan)
-    {
-        if(OutputSequenceStrip is null)return;OutputSequenceStrip.Children.Clear();
-        void Part(string text,string color){OutputSequenceStrip.Children.Add(new Border{Background=(Brush)new BrushConverter().ConvertFromString(color)!,CornerRadius=new CornerRadius(3),Margin=new Thickness(2,0,2,0),Padding=new Thickness(6,2,6,2),Child=new TextBlock{Text=text,FontSize=10,Foreground=Brushes.White}});}
-        Part("출력 순서","#263C4B");if(plan is null)return;if(!plan.Enabled){Part("전체 1회","#386D80");return;}
-        if(plan.IntroFrames>0)Part($"등장 {(double)plan.IntroFrames/plan.Fps:0.##}초","#386D80");var cycles=_video.Output==OutputKind.Browser?1:Math.Min(3,plan.Repeats);
-        for(var i=0;i<cycles;i++){Part($"반복 {i+1} · {(double)plan.LoopFrames/plan.Fps:0.##}초","#286D58");if(plan.RestFrames>0&&(i<plan.Repeats-1||_video.Output==OutputKind.Browser))Part($"쉬기 {(double)plan.RestFrames/plan.Fps:0.##}초","#54616B");}
-        if(_video.Output==OutputKind.Browser)Part("↶ 무한 반복","#286D58");else if(plan.Repeats>3)Part($"… 총 {plan.Repeats}회","#286D58");if(plan.ExitEnabled)Part("퇴장","#805368");
     }
     private void OutputTimingComboChanged(object sender,SelectionChangedEventArgs e){if(!_outputSync&&!_loading)QueueEdit(()=>OutputTimingChanged(sender,e));}
     private void OutputTimingChanged(object sender,RoutedEventArgs e)=>CommitOutputTiming();
