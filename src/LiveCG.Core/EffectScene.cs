@@ -15,6 +15,8 @@ public sealed partial class EffectScene : IDisposable
     private readonly Dictionary<Guid, Layer> _layers = [];
     public int Width => _source.Width;
     public int Height => _source.Height;
+    public SKBitmap OriginalFrame()=>_source.Copy();
+    public void DrawSource(SKCanvas canvas)=>DrawOriginal(canvas,0,0,null);
     public EffectScene(SKBitmap source) { _source = source; _image = SKImage.FromBitmap(source); }
 
     public void Validate(IReadOnlyList<EffectRegion> regions)

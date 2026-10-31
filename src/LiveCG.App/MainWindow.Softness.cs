@@ -75,7 +75,7 @@ public partial class MainWindow
     public Window? CreateLoopComparison()
     {
         if(_current is null||!_current.Playback.Enabled)return null;var plan=PlaybackPlan.Create(_current,_video);
-        using var source=SKBitmap.Decode(_current.SourcePath);using var scene=new EffectScene(source);var panel=new StackPanel{Margin=new Thickness(12)};
+        using var source=SourceImage.Read(_current.SourcePath);using var scene=new EffectScene(source);var panel=new StackPanel{Margin=new Thickness(12)};
         panel.Children.Add(new TextBlock{Text="반복 마지막 → 반복 첫 프레임 · 크기·위치·경계가 이어지는지 비교하세요.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4,4,4,12)});
         var grid=new System.Windows.Controls.Primitives.UniformGrid{Columns=2};panel.Children.Add(grid);
         foreach(var (time,label) in new[]{((plan.LoopEndFrame-1d)/plan.Fps,"반복 마지막 프레임"),((double)plan.IntroFrames/plan.Fps,"반복 첫 프레임")})

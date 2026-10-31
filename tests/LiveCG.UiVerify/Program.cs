@@ -145,6 +145,7 @@ internal static class Program
             SoftUiChecks.Run(window,folder,Check);
             ContextUiChecks.Run(window,folder,Check);
             LayerPanelUiChecks.Run(window,folder,Check);
+            OutputUiChecks.Run(window,folder,Check);
             var demo=TestFixtures.Demo(path);window.ApplyDocument(new(){Jobs=[demo],Video=new(){Fps=30,EndHold=.9}});Layout(window);
             Control<CheckBox>(window,"SnapCheck").IsChecked=true;Control<CheckBox>(window,"RippleCheck").IsChecked=true;
             Control<ListBox>(window,"RegionList").SelectedItem=demo.Regions[3];Call(window,"Seek",3.55,true);Pump();

@@ -33,7 +33,7 @@ public sealed class LayerThumbnailConverter:IMultiValueConverter,IDisposable
         try
         {
             var stamp=File.GetLastWriteTimeUtc(path).Ticks;
-            if(_path!=path||_stamp!=stamp||_source is null){Dispose();_path=path;_stamp=stamp;_source=SKBitmap.Decode(path);if(_source is null)return null;_image=SKImage.FromBitmap(_source);}
+            if(_path!=path||_stamp!=stamp||_source is null){Dispose();_path=path;_stamp=stamp;_source=SourceImage.Read(path);if(_source is null)return null;_image=SKImage.FromBitmap(_source);}
             var hash=new HashCode();hash.Add(r.Bounds);hash.Add(r.Shape);foreach(var point in r.Points)hash.Add(point);var key=hash.ToHashCode();
             if(_cache.TryGetValue(r.Id,out var cached)&&cached.Key==key)return cached.Image;
             var rect=ObjectExtractor.PixelRect(r.Bounds,_source!.Width,_source.Height);using var bitmap=new SKBitmap(48,34);using var canvas=new SKCanvas(bitmap);canvas.Clear(new SKColor(27,41,52));

@@ -1,6 +1,6 @@
 # 프로젝트 구성
 
-현재 버전0.13.0 · 제작자 SunjooAn
+현재 버전1.0.0 · 제작자 SunjooAn
 
 - src/LiveCG.App: Windows WPF 편집기, 창·타임라인·영역·색상·모션 UI
 - src/LiveCG.Core: 효과·그룹·마스크·프레임 규칙·WebM/OBS 브라우저 출력

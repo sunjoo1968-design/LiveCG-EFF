@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -9,6 +10,9 @@ public sealed class PlaybackWindow:Window
     public PlaybackSections Sections { get; }
     public Dictionary<string,MouseValueControl> Values { get; }=[];
     public ListBox Clips { get; }=new(){SelectionMode=SelectionMode.Extended,Height=170};
+    public ComboBox RepeatsBox { get; }=new();
+    public ComboBox RestBox { get; }=new(){IsEditable=true};
+    public ComboBox RestModeBox { get; }=new();
     private readonly ImageJob _job;private readonly VideoOptions _video;
     private readonly TextBlock _summary=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4),Foreground=Brushes.Aquamarine};
     private readonly CheckBox _auto=new(){Content="효과 기준으로 구간 길이 자동 결정",Margin=new Thickness(4,8,4,8)};
@@ -56,7 +60,12 @@ public sealed class PlaybackWindow:Window
         precise.Children.Add(exitPrecise);
         Value("ExitDuration","퇴장 길이",Sections.ExitDuration,0,30,v=>Sections.ExitDuration=v);
         panel.Children.Add(new TextBlock{Text="WebM 반복 횟수 · OBS 브라우저는 계속 반복",Margin=new Thickness(4,8,4,3)});
-        var repeat=new ComboBox{IsEditable=false};foreach(var n in new[]{1,2,3,5,10,20,50,100})repeat.Items.Add(n);if(!repeat.Items.Contains(Sections.WebmRepeats))repeat.Items.Add(Sections.WebmRepeats);repeat.SelectedItem=Sections.WebmRepeats;repeat.SelectionChanged+=(_,_)=>Sections.WebmRepeats=(int)repeat.SelectedItem;panel.Children.Add(repeat);
+        var repeat=RepeatsBox;foreach(var n in new[]{1,2,3,5,10,20,50,100})repeat.Items.Add(n);if(!repeat.Items.Contains(Sections.WebmRepeats))repeat.Items.Add(Sections.WebmRepeats);repeat.SelectedItem=Sections.WebmRepeats;repeat.SelectionChanged+=(_,_)=>{Sections.WebmRepeats=(int)repeat.SelectedItem;RefreshSummary();};panel.Children.Add(repeat);
+        panel.Children.Add(new TextBlock{Text="반복 사이 쉬기 (초) · 마지막 WebM 반복 뒤에는 생략",Margin=new Thickness(4,8,4,3)});
+        foreach(var n in new[]{"0","0.25","0.5","1","2","3","5","10","30"})RestBox.Items.Add(n);RestBox.Text=Sections.LoopRest.ToString(System.Globalization.CultureInfo.InvariantCulture);panel.Children.Add(RestBox);
+        void ApplyRest(){if(double.TryParse(RestBox.Text,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var value)&&double.IsFinite(value)&&value is >=0 and <=30){Sections.LoopRest=TimelineRules.Snap(value,video.Fps);RefreshSummary();}else error.Text="사이 쉬기는 0~30초입니다.";}
+        RestBox.LostKeyboardFocus+=(_,_)=>ApplyRest();RestBox.SelectionChanged+=(_,_)=>Dispatcher.BeginInvoke(ApplyRest);
+        foreach(var label in new[]{"원본 유지 · 효과만 쉬기","마지막 모습 유지","전체 투명"})RestModeBox.Items.Add(label);RestModeBox.SelectedIndex=(int)Sections.RestMode;RestModeBox.SelectionChanged+=(_,_)=>{Sections.RestMode=(LoopRestMode)RestModeBox.SelectedIndex;RefreshSummary();};panel.Children.Add(RestModeBox);
         Flag(panel,"OBS 프로그램 전환 시 처음부터 재생",Sections.ReplayOnShow,v=>Sections.ReplayOnShow=v);
         ok.Click+=(_,_)=>{try{var p=SectionRules.Resolve(job,video);p.Validate();Sections.IntroEnd=p.IntroEnd;Sections.LoopEnd=p.LoopEnd;Sections.ExitDuration=p.ExitDuration;DialogResult=true;}catch(Exception ex){error.Text=ex.Message;}};
         RefreshClips();
@@ -68,7 +77,8 @@ public sealed class PlaybackWindow:Window
     private void RefreshSummary()
     {
         var p=SectionRules.Resolve(_job,_video);var count=SectionRules.Crossing(_job,_video).Count;
-        _summary.Text=$"등장 {p.IntroEnd:0.##}초 → 반복 {p.LoopEnd-p.IntroEnd:0.##}초"+(Sections.ExitEnabled!=false?$" → 퇴장 {p.ExitDuration:0.##}초":" · 퇴장 없음")+(count>0?$"\n⚠ 경계를 가로지르는 효과 {count}개 · 정렬하거나 분할해 확인하세요.":"");
+        string total;try{var plan=PlaybackPlan.Create(_job,_video);total=$"\nWebM {plan.WebmDuration:0.##}초 · {plan.WebmFrameCount:N0}프레임 · {plan.Repeats}회";}catch(InvalidDataException){total="\n등장 끝보다 반복 끝을 뒤로 지정하세요.";}
+        _summary.Text=$"등장 {p.IntroEnd:0.##}초 → 반복 {p.LoopEnd-p.IntroEnd:0.##}초 → 쉬기 {Sections.LoopRest:0.##}초"+(Sections.ExitEnabled!=false?$" → 퇴장 {p.ExitDuration:0.##}초":" · 퇴장 없음")+total+(count>0?$"\n⚠ 경계를 가로지르는 효과 {count}개 · 정렬하거나 분할해 확인하세요.":"");
         if(Values.Count==3&&Sections.ByEffects){_sync=true;Values["IntroEnd"].SetSilently(p.IntroEnd);Values["LoopEnd"].SetSilently(p.LoopEnd);Values["ExitDuration"].SetSilently(p.ExitDuration);_sync=false;}
     }
 }

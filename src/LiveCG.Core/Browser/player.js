@@ -9,6 +9,7 @@
     const assets = new Map(data.assets.map(a => [a.id, a]));
     const plan = data.plan, fps = data.fps;
     const A = plan.introFrames / fps, B = plan.loopEndFrame / fps, END = plan.endFrame / fps, LOOP = B - A;
+    const REST=(plan.restFrames??0)/fps, CYCLE=LOOP+REST;
     const entrances = new Set(["FadeIn", "RiseIn", "ZoomIn", "ZoomOutIn"]);
     const needsLayer = k => entrances.has(k) || ["Zoom", "Bounce", "Shake", "Float", "DigitRoll", "UserMotion"].includes(k);
     const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -208,7 +209,8 @@
         c.restore();const masks=maskCoverage(r,parent,time,r.id+"-masks");multiply(composed,masks);
         const f=frame.getContext("2d");f.globalCompositeOperation="destination-out";f.drawImage(masks,0,0);f.globalCompositeOperation="lighter";f.drawImage(composed,0,0);f.globalCompositeOperation="source-over";
     }
-    function render(time) {
+    function render(time,rest=false) {
+        if(rest&&plan.restMode!=="Hold"){ctx.clearRect(0,0,canvas.width,canvas.height);if(plan.restMode!=="Transparent")ctx.drawImage(image(data.source),0,0);return;}
         ctx.resetTransform(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image(data.source), 0, 0);
         const roots = data.regions.filter(r => !r.parentId);
@@ -246,7 +248,7 @@
             ctx.globalCompositeOperation = "destination-in"; ctx.globalAlpha = alpha; ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
         }
     }
-    let loaded = false, started = performance.now(), pausedAt = null, exitAt = null, lastFrame = -1, visible = true, manualTime = null;
+    let loaded = false, started = performance.now(), pausedAt = null, exitAt = null, lastFrame = -1, visible = true, manualTime = null, manualElapsed=null;
     const activeStorageKey="LiveCG.programActive:"+data.sourceName;
     function storedActive(){try{const v=window.sessionStorage?.getItem(activeStorageKey);return v==="true"?true:v==="false"?false:null;}catch{return null;}}
     // OBS sends activation edges, but a newly opened/reloaded page may not receive its current state.
@@ -256,18 +258,20 @@
     const sample = e => {
         if (!plan.enabled) return { time: Math.min(e, END - 1 / fps), phase: e >= END ? "완료" : "전체 재생" };
         if (exitAt !== null && e >= exitAt) return { time: Math.min(END, B + e - exitAt), phase: e - exitAt >= END - B ? "퇴장 완료" : "퇴장" };
-        return { time: e < A ? e : A + (e - A) % LOOP, phase: e < A ? "등장" : exitAt === null ? "반복" : "반복 끝 대기" };
+        const at=e<A?0:(e-A)%CYCLE, rest=e>=A&&REST>0&&at>=LOOP-1e-9;
+        return { time: e < A ? e : Math.min(B-1/fps,A+at), rest, phase: e < A ? "등장" : rest?"쉬기":exitAt === null ? "반복" : "반복 끝 대기" };
     };
     const api = {
-        restart() { waitingForProgram=false;started = performance.now(); pausedAt = null; exitAt = null; manualTime = null; lastFrame = -1; },
-        exit() { if(data.playback.exitEnabled===false)return; if (pausedAt !== null) api.resume(); const e = elapsed(); manualTime = null; if (exitAt === null) exitAt = data.playback.exitAtLoopEnd ? (e < A ? A + LOOP : A + (Math.floor((e - A) / LOOP + 1e-9) + 1) * LOOP) : e; },
+        restart() { waitingForProgram=false;started = performance.now(); pausedAt = null; exitAt = null; manualTime = null; manualElapsed=null;lastFrame = -1; },
+        exit() { if(data.playback.exitEnabled===false)return; if (pausedAt !== null) api.resume(); const e = elapsed(); manualTime = null; if (exitAt === null) exitAt = data.playback.exitAtLoopEnd ? (e < A ? A + LOOP : sample(e).rest?e:A + Math.floor((e - A) / CYCLE + 1e-9)*CYCLE+LOOP) : e; },
         pause() { if (pausedAt === null) pausedAt = performance.now(); },
-        resume() { if (pausedAt !== null) { started += performance.now() - pausedAt; pausedAt = null; } manualTime = null; },
+        resume() { if (pausedAt !== null) { started += performance.now() - pausedAt; pausedAt = null; } manualTime = null;manualElapsed=null; },
         togglePause() { pausedAt === null ? api.pause() : api.resume(); },
-        seek(seconds) { api.pause(); manualTime = clamp(Number(seconds) || 0, 0, END); lastFrame = -1; if (loaded) render(manualTime); },
-        status() { const s = sample(elapsed()); return { loaded, ...s, ...(waitingForProgram&&data.playback.replayOnShow?{phase:"프로그램 대기"}:{}), ...(manualTime !== null ? { time: manualTime, phase: "프레임 확인" } : {}), paused: pausedAt !== null, exitRequested: exitAt !== null, visible,programActive,waitingForProgram, error: api.error ?? null }; },
+        seek(seconds) { api.pause(); manualElapsed=null;manualTime = clamp(Number(seconds) || 0, 0, END); lastFrame = -1; if (loaded) render(manualTime); },
+        status() { const s = sample(manualElapsed??elapsed()); return { loaded, ...s, ...(waitingForProgram&&data.playback.replayOnShow?{phase:"프로그램 대기"}:{}), ...(manualTime !== null ? { time: manualTime, phase: "프레임 확인" } : {}), paused: pausedAt !== null, exitRequested: exitAt !== null, visible,programActive,waitingForProgram, error: api.error ?? null }; },
         // Deterministic frame rendering is also used by browser/native regression checks.
-        renderAt(seconds) { if (!loaded) throw new Error("이미지를 읽는 중입니다."); api.seek(seconds); return api.status(); }
+        renderAt(seconds) { if (!loaded) throw new Error("이미지를 읽는 중입니다."); api.seek(seconds); return api.status(); },
+        renderElapsedAt(seconds) { if(!loaded)throw new Error("이미지를 읽는 중입니다.");api.pause();manualTime=null;manualElapsed=Math.max(0,Number(seconds)||0);lastFrame=-1;const s=sample(manualElapsed);render(s.time,s.rest);return api.status(); }
     };
     window.LiveCG = api;
     window.addEventListener("keydown", e => { if (e.ctrlKey || e.altKey || e.metaKey) return; if (e.code === "KeyR") api.restart(); else if (e.code === "KeyE") api.exit(); else if (e.code === "Space") api.togglePause(); else return; e.preventDefault(); });
@@ -281,8 +285,8 @@
         document.title = "LiveCG-EFF · " + data.credit;
         function tick() {
             try {
-                const s = sample(elapsed()), time = manualTime ?? s.time, frame = Math.floor(time * fps + 1e-7);
-                if (frame !== lastFrame) { render(frame / fps); lastFrame = frame; }
+                const s = sample(manualElapsed??elapsed()), time = manualTime ?? s.time, frame = Math.floor(time * fps + 1e-7), rest=manualTime===null&&s.rest;
+                const key=frame+(rest?":rest":"");if (key !== lastFrame) { render(frame / fps,rest); lastFrame = key; }
                 const label = document.getElementById("status"); if (label) label.textContent = `${s.phase} · ${time.toFixed(2)}초`;
                 requestAnimationFrame(tick);
             } catch (error) { fail(error); }

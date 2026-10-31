@@ -20,7 +20,7 @@ public partial class MainWindow
     {for(var i=0;i<VisualTreeHelper.GetChildrenCount(item);i++){var c=VisualTreeHelper.GetChild(item,i);if(c is T t&&t.Name==name)return t;if(Child<T>(c,name) is { } nested)return nested;}return null;}
     private void InitializeLayerPanel()
     {
-        EditorGrid.SizeChanged+=(_,_)=>ApplyPanelSizes();
+        EditorGrid.SizeChanged+=(_,_)=>{ApplyPanelSizes();OutputSettingsScroll.MaxHeight=Math.Clamp(EditorGrid.ActualHeight*.52,280,430);};
         var menu=new ContextMenu();
         void Item(string text,Action<EffectRegion> action){var m=new MenuItem{Header=text};m.Click+=(_,_)=>{if(_layerMenuTarget is { } r&&!_busy)action(r);};menu.Items.Add(m);}
         Item("이름 변경  F2",BeginLayerRename);Item("표시 / 숨김",ToggleLayer);Item("위치 잠금 / 해제",ToggleLayerLock);

@@ -164,7 +164,7 @@ public sealed class TimelineControl : FrameworkElement
         if(_job?.Playback.Enabled!=true){Text(dc,"구간 설정에서 사용 · 경계는 드래그",new(LabelWidth+7,3),Brush("#7891A5"),10);return;}
         var plan=PlaybackPlan.Create(_job,_video);var a=LabelWidth+(double)plan.IntroFrames/plan.Fps*PixelsPerSecond;var b=LabelWidth+(double)plan.LoopEndFrame/plan.Fps*PixelsPerSecond;var end=LabelWidth+plan.Duration*PixelsPerSecond;
         void Part(double left,double right,string text,string color){if(right<=left)return;dc.DrawRectangle(Brush(color),null,new Rect(left,0,right-left,SectionHeight-1));if(right-left>30)Text(dc,text,new(left+5,3),Brushes.White,10,Math.Max(1,right-left-8));}
-        Part(LabelWidth,a,"등장 1회","#386D80");Part(a,b,"↻ 반복","#286D58");Part(b,end,"퇴장","#805368");
+        Part(LabelWidth,a,"등장 1회","#386D80");Part(a,b,$"↻ 반복{(plan.RestFrames>0?$" → 쉬기 {(double)plan.RestFrames/plan.Fps:0.##}초":"")}","#286D58");Part(b,end,"퇴장","#805368");
         foreach(var x in new[]{a,b,end}){dc.DrawRectangle(Brush("#E7EEE4"),null,new Rect(x-3,0,6,SectionHeight-1));dc.DrawLine(new Pen(Brush("#9AB7C7"),1){DashStyle=DashStyles.Dot},new(x,SectionHeight),new(x,Height));}
     }
     public void BeginPointer(Point point,bool control=false)

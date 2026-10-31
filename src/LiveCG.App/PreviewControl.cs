@@ -18,8 +18,10 @@ public sealed class ThumbnailConverter : IValueConverter
     {
         try
         {
-            var image = new BitmapImage(); image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad;
-            image.DecodePixelWidth = 180; image.UriSource = new Uri((string)value, UriKind.Absolute); image.EndInit(); image.Freeze(); return image;
+            using var source=SourceImage.Read((string)value);var scale=Math.Min(1,180d/Math.Max(source.Width,source.Height));using var small=new SKBitmap(Math.Max(1,(int)Math.Round(source.Width*scale)),Math.Max(1,(int)Math.Round(source.Height*scale)));
+            using(var canvas=new SKCanvas(small)){canvas.Clear(SKColors.Transparent);using var original=SKImage.FromBitmap(source);canvas.DrawImage(original,SKRect.Create(small.Width,small.Height),new SKSamplingOptions(SKFilterMode.Linear));}
+            using var encoded=SKImage.FromBitmap(small);using var png=encoded.Encode(SKEncodedImageFormat.Png,100);using var stream=new MemoryStream(png.ToArray());
+            var image = new BitmapImage(); image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad;image.StreamSource=stream;image.EndInit(); image.Freeze(); return image;
         }
         catch { return null; }
     }
@@ -53,6 +55,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     public event Action<SKColor>? ColorPicked;
     public double Time { get; set; }
     public double OutputOpacity { get; set; }=1;
+    public LoopRestMode? RestDisplay { get; set; }
     public EffectOptions NewRegionEffect { get; set; } = new();
     public event Action<EffectRegion?>? RegionSelected;
     public event Action<EffectRegion>? RegionCreated;
@@ -107,7 +110,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         CancelGesture();SelectedMask=null;CreatingMask=false; _scene?.Dispose(); _source?.Dispose(); _scene = null; _source = null; _job = job; SelectedRegion = null;
         if (job is not null)
         {
-            _source = SKBitmap.Decode(job.SourcePath) ?? throw new InvalidDataException("이미지를 읽을 수 없습니다.");
+            _source = SourceImage.Read(job) ?? throw new InvalidDataException("이미지를 읽을 수 없습니다.");
             _scene = new(_source);
             var minX = _source.Width; var minY = _source.Height; var maxX = 0; var maxY = 0;
             for (var y = 0; y < _source.Height; y += 4) for (var x = 0; x < _source.Width; x += 4)
@@ -126,7 +129,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     public void Fit(bool content) { Viewport.Fit(content); ViewChanged?.Invoke(); InvalidateVisual(); }
     public void NativeSize() { Viewport.Native(VisualTreeHelper.GetDpi(this).DpiScaleX); ViewChanged?.Invoke(); InvalidateVisual(); }
     public void SetBackground(string? path)
-    { _background?.Dispose(); _background = null; if (path is not null) { using var b = SKBitmap.Decode(path) ?? throw new InvalidDataException("배경을 읽을 수 없습니다."); _background = SKImage.FromBitmap(b); } InvalidateVisual(); }
+    { _background?.Dispose(); _background = null; if (path is not null) { using var b = SourceImage.Read(path) ?? throw new InvalidDataException("배경을 읽을 수 없습니다."); _background = SKImage.FromBitmap(b); } InvalidateVisual(); }
     public bool TrySampleColor(SKPoint screen,out SKColor color)
     {
         color=SKColors.Transparent;if(_source is null)return false;var p=Viewport.ToImage(screen);
@@ -160,7 +163,9 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         canvas.Save(); canvas.Translate(imageRect.Left, imageRect.Top); canvas.Scale((float)Viewport.Scale);
         if (_background is not null&&ComparisonBackground==4) canvas.DrawImage(_background, SKRect.Create(_source.Width, _source.Height));
         var renderRegions=SectionRules.RenderRegions(_job!);
-        if(ShowEffects&&OutputOpacity<1){using var fade=new SKPaint{Color=SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(OutputOpacity,0,1)*255))};canvas.SaveLayer(fade);_scene.Draw(canvas,renderRegions,Time,true);canvas.Restore();}
+        if(RestDisplay==LoopRestMode.Original)_scene.DrawSource(canvas);
+        else if(RestDisplay==LoopRestMode.Transparent){}
+        else if(ShowEffects&&OutputOpacity<1){using var fade=new SKPaint{Color=SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(OutputOpacity,0,1)*255))};canvas.SaveLayer(fade);_scene.Draw(canvas,renderRegions,Time,true);canvas.Restore();}
         else _scene.Draw(canvas,renderRegions,Time,ShowEffects);
         canvas.Restore(); canvas.Restore();
         DrawEyedropper(canvas);
@@ -231,7 +236,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         {
             if(_job.Regions.Count>=100){Message?.Invoke("영역은 파일당 최대 100개입니다.");return false;}
             GestureStarted?.Invoke();
-            _draft = new(){Name="영역 "+(_job.Regions.Count+1),Shape=NewShape,Bounds=new(normalized.X,normalized.Y,.00001,.00001)};
+            _draft = new(){Name="영역 "+(_job.Regions.Count+1),Shape=NewShape,ContentOnly=!CreatingMask,CutoutEnabled=true,Bounds=new(normalized.X,normalized.Y,.00001,.00001)};
             _pathPoints.Clear();if(NewShape==RegionShape.Freehand)_pathPoints.Add(_start);
             _before=_draft.Bounds;return true;
         }
@@ -290,7 +295,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     public void AddPathPoint(SKPoint screen,bool finish=false)
     {
         if(_source is null||_job is null||!ShowOverlays||!Viewport.ImageRect.Contains(screen))return;
-        if(_draft is null){if(_job.Regions.Count>=100)return;GestureStarted?.Invoke();_draft=new(){Name="영역 "+(_job.Regions.Count+1),Shape=RegionShape.Polygon};_pathPoints.Clear();}
+        if(_draft is null){if(_job.Regions.Count>=100)return;GestureStarted?.Invoke();_draft=new(){Name="영역 "+(_job.Regions.Count+1),Shape=RegionShape.Polygon,ContentOnly=!CreatingMask,CutoutEnabled=true};_pathPoints.Clear();}
         if(_draft.Shape!=RegionShape.Polygon)return;
         if(_pathPoints.Count>=3&&SKPoint.Distance(Viewport.ToScreen(_pathPoints[0]),screen)<8){FinishPath();return;}
         var at=Viewport.ToImage(screen);if(_pathPoints.Count<4096&&(_pathPoints.Count==0||SKPoint.Distance(_pathPoints[^1],at)>.5))_pathPoints.Add(at);

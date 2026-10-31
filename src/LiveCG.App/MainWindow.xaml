@@ -22,7 +22,7 @@
    <TextBlock x:Name="CreditText" HorizontalAlignment="Right" VerticalAlignment="Top" FontWeight="SemiBold" Margin="0,5"/>
   </Grid>
   <WrapPanel Grid.Row="1" Margin="-3,0,0,8">
-   <Button Content="＋ PNG" Click="AddFiles"/><Button Content="폴더" Click="AddFolder"/><Button Content="새 작업" Click="NewProject"/>
+   <Button Content="＋ 이미지" Click="AddFiles"/><Button Content="폴더" Click="AddFolder"/><Button Content="새 작업" Click="NewProject"/>
    <Button Content="작업 열기" Click="OpenProject"/><Button Content="작업 저장" Click="SaveProject"/>
    <Button Content="템플릿 저장" Click="SaveTemplate"/><Button Content="템플릿 적용" Click="ApplyTemplate"/>
    <Button Content="현재 옵션을 기본값으로 저장" Click="SaveDefaults"/><Button Content="기본값 복원" Click="ResetDefaults"/><Button Content="단축키 설정" Click="ConfigureShortcuts"/><Button Content="배치 초기화" Click="ResetWorkspace"/><Button Content="도움말" Click="ShowHelp"/>
@@ -32,7 +32,7 @@
    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="7"/><RowDefinition Height="280" MinHeight="260"/></Grid.RowDefinitions>
    <Border Grid.RowSpan="3" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="10">
     <Grid><Grid.RowDefinitions><RowDefinition Height="*" MinHeight="120"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DockPanel Grid.Row="0">
-     <StackPanel DockPanel.Dock="Top"><TextBlock Text="01  자료 / 출력 진행" FontSize="14" FontWeight="Bold"/><TextBlock x:Name="CountText" Text="PNG를 여러 개 드래그하세요" Foreground="#93AABA" FontSize="11" Margin="0,6"/>
+     <StackPanel DockPanel.Dock="Top"><TextBlock Text="01  자료 / 출력 진행" FontSize="14" FontWeight="Bold"/><TextBlock x:Name="CountText" Text="이미지를 여러 개 드래그하세요" Foreground="#93AABA" FontSize="11" Margin="0,6"/>
       <WrapPanel><Button Content="선택 제거" Click="RemoveFiles" Padding="9,5"/><Button Content="전체 선택" Click="SelectAllFiles" Padding="9,5"/></WrapPanel>
      </StackPanel>
      <TextBlock DockPanel.Dock="Bottom" Text="Ctrl / Shift: 여러 파일 선택&#10;가격 자동탐지 없이 직접 지정" Foreground="#93AABA" FontSize="10" Margin="2,8,0,0"/>
@@ -51,17 +51,25 @@
      </ListBox>
     </DockPanel>
     <Expander Grid.Row="1" x:Name="OutputExpander" Header="출력 설정 / 폴더" IsExpanded="True" Foreground="#DFE7EE" Margin="0,8,0,0">
-     <ScrollViewer MaxHeight="345" VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,5,0,0">
-      <TextBlock Text="출력 형식"/><ComboBox x:Name="OutputKindBox" SelectionChanged="OutputKindChanged"/><TextBlock Text="영상 길이 · 타임라인 자동" Foreground="#93AABA" FontSize="10"/>
-      <TextBlock x:Name="AutoDurationText" Text="1.00초 · 30프레임" Foreground="{StaticResource AccentBrush}" FontSize="14" FontWeight="Bold" Margin="3,4"/>
+     <ScrollViewer x:Name="OutputSettingsScroll" MaxHeight="430" VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,5,0,0">
+      <StackPanel.Resources><Style x:Key="OutputHeader" TargetType="TextBlock"><Setter Property="Foreground" Value="#80D7C0"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Margin" Value="3,10,3,5"/></Style></StackPanel.Resources>
+      <TextBlock Text="① 출력 방식" Style="{StaticResource OutputHeader}"/><ComboBox x:Name="OutputKindBox" SelectionChanged="OutputKindChanged"/>
+      <Separator Margin="3,7"/><TextBlock Text="② 반복 · 출력 길이" Style="{StaticResource OutputHeader}"/>
+      <UniformGrid Columns="2"><StackPanel><TextBlock Text="WebM 반복 횟수"/><ComboBox x:Name="WebmRepeatsBox" IsEditable="True" LostFocus="OutputTimingChanged" SelectionChanged="OutputTimingComboChanged"/></StackPanel><StackPanel><TextBlock Text="사이 쉬기 (초)"/><ComboBox x:Name="LoopRestBox" IsEditable="True" LostFocus="OutputTimingChanged" SelectionChanged="OutputTimingComboChanged"/></StackPanel></UniformGrid>
+      <ComboBox x:Name="RestModeBox" SelectionChanged="OutputTimingComboChanged" ToolTip="쉬는 동안 표시할 모습"/>
+      <TextBlock x:Name="AutoDurationText" Text="출력 길이 · 타임라인 자동" Foreground="{StaticResource AccentBrush}" FontSize="12" FontWeight="Bold" Margin="3,4" TextWrapping="Wrap"/>
+      <WrapPanel><Button Content="선택 파일에 적용" Click="ApplyOutputTiming" Padding="6,4"/><Button Content="1회 + 쉬기 확인" Click="PreviewSingleCycle" Padding="6,4"/></WrapPanel>
+      <Separator Margin="3,7"/><TextBlock Text="③ 영상 품질" Style="{StaticResource OutputHeader}"/>
       <UniformGrid Columns="2">
        <StackPanel><TextBlock Text="fps"/><ComboBox x:Name="FpsBox" IsEditable="True" LostFocus="VideoOptionsChanged" SelectionChanged="VideoComboChanged"/></StackPanel>
        <StackPanel><TextBlock Text="출력 화질"/><ComboBox x:Name="QualityBox" SelectionChanged="VideoComboChanged"/></StackPanel>
-       <StackPanel><TextBlock Text="끝 여유 (초)"/><ComboBox x:Name="EndHoldBox" IsEditable="True" LostFocus="VideoOptionsChanged" SelectionChanged="VideoComboChanged"/></StackPanel>
-       <StackPanel><TextBlock Text="출력 범위"/><ComboBox x:Name="ExportScopeBox"/></StackPanel>
       </UniformGrid>
+      <Expander Header="정밀 설정 · 타임라인 끝 여유" Foreground="#A9BDCC"><StackPanel><TextBlock Text="편집 끝 여유 · 반복 사이 쉬기와 별도" FontSize="10"/><ComboBox x:Name="EndHoldBox" IsEditable="True" LostFocus="VideoOptionsChanged" SelectionChanged="VideoComboChanged"/></StackPanel></Expander>
+      <Separator Margin="3,7"/><TextBlock Text="④ 저장 · 출력 대상" Style="{StaticResource OutputHeader}"/><ComboBox x:Name="ExportScopeBox"/>
       <TextBlock Text="출력 폴더" Margin="3,5,0,0"/><TextBox x:Name="OutputFolderBox" TextChanged="OutputFolderChanged" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}"/>
-      <WrapPanel><Button Content="폴더 선택" Click="ChooseOutput" Padding="8,6"/><Button Content="폴더 열기" Click="OpenOutputFolder" Padding="8,6"/></WrapPanel>
+      <WrapPanel><Button Content="폴더 선택" Click="ChooseOutput" Padding="8,6"/><Button Content="폴더 열기" Click="OpenOutputFolder" Padding="8,6"/><Button Content="OBS 파일 위치" Click="OpenBrowserEntry" Padding="8,6"/></WrapPanel>
+      <Button Content="출력 예정 목록 확인" Click="ShowOutputPlan"/>
+      <Separator Margin="3,7"/><TextBlock Text="⑤ 실행 · 진행" Style="{StaticResource OutputHeader}"/>
       <WrapPanel><Button x:Name="RetryButton" Content="재시도" Click="RetryFailed" Padding="8,7"/><Button x:Name="ExportButton" Content="WebM 출력" Click="ExportFiles" Background="{StaticResource AccentBrush}" Foreground="#10241D" FontWeight="Bold" Padding="10,7"/><Button x:Name="CancelButton" Content="취소" Click="CancelExport" IsEnabled="False" Padding="8,7"/></WrapPanel>
       <ProgressBar x:Name="ExportProgress" Height="10" Maximum="100" Background="#2B3F51" Foreground="{StaticResource AccentBrush}" BorderThickness="0" Margin="3,5"/>
       <TextBlock x:Name="ProgressText" Text="준비" Foreground="#93AABA" FontSize="10" Margin="3"/>
@@ -223,10 +231,10 @@
  </Grid>
 </Border>
    </Grid>
-   <GridSplitter x:Name="EffectsWidthSplitter" Grid.Column="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#365467" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" DragStarted="PanelResizeStarted" DragCompleted="EffectsWidthChanged" ToolTip="레이어·속성 패널 너비 조절"/>
-   <GridSplitter x:Name="TimelineSplitter" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="5" Background="#263C4C" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"/>
+   <GridSplitter x:Name="EffectsWidthSplitter" Grid.Column="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#365467" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" IsEnabled="False" IsHitTestVisible="False" Focusable="False" ToolTip="내부 패널 너비 고정"/>
+   <GridSplitter x:Name="TimelineSplitter" IsEnabled="False" IsHitTestVisible="False" Focusable="False" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="5" Background="#263C4C" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"/>
    <Border x:Name="TimelinePanel" Grid.Row="2" Grid.Column="2" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="8">
-    <DockPanel>
+    <DockPanel><ScrollViewer DockPanel.Dock="Top" Height="25" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel"><StackPanel x:Name="OutputSequenceStrip" Orientation="Horizontal" ToolTip="최종 출력 순서 · 편집 시간과 반복 출력 시간은 별도입니다."/></ScrollViewer>
      <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,3">
       <Button Content="복사" Click="CopyClip" ToolTip="Ctrl+C" Padding="7,5"/><Button Content="붙여넣기" Click="PasteClip" ToolTip="선택 영역의 현재 커서에 붙여넣기 · Ctrl+V" Padding="7,5"/>
       <Button x:Name="UndoButton" Content="되돌리기" Click="UndoEdit" ToolTip="Ctrl+Z" Padding="7,5"/><Button x:Name="RedoButton" Content="다시" Click="RedoEdit" ToolTip="Ctrl+Shift+Z" Padding="7,5"/>

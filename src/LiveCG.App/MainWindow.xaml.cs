@@ -64,7 +64,7 @@ public partial class MainWindow : Window
         TimelineEditor.MoveLayerRequested+=MoveLayer;TimelineEditor.ToggleLayerRequested+=ToggleLayer;
         _clock.Tick+=(_,_)=>TickPlayback();
         InitializePlayback();InitializeGroups();InitializeMouseProperties();InitializeSoftness();InitializeLayerPanel();LoadUserDefaults();_loading=false;ShowVideo();ShowEditorOptions();SelectRegion(null);TimelineEditor.SetJob(null,_video);ResetHistory();InitializeWorkspace();_clock.Start();
-        Loaded+=async(_,_)=>{var paths=Environment.GetCommandLineArgs().Skip(1).Where(p=>p.EndsWith(".png",StringComparison.OrdinalIgnoreCase)).ToArray();if(paths.Length>0)await ImportAsync(paths);};
+        Loaded+=async(_,_)=>{var paths=Environment.GetCommandLineArgs().Skip(1).Where(SourceImage.Supported).ToArray();if(paths.Length>0)await ImportAsync(paths);};
     }
     private VideoOptions ResolvedVideo=>_current is null?TimelineRules.Resolve([], _video):TimelineRules.Resolve(_current,_video);
     private static void Choices(ComboBox box,string[] values){foreach(var value in values)box.Items.Add(value);}
@@ -80,8 +80,8 @@ public partial class MainWindow : Window
         RecordEdit();
     }
     private void Error(Exception ex){Notify(ex.Message);MessageBox.Show(this,ex.Message,"LiveCG-EFF · 확인",MessageBoxButton.OK,MessageBoxImage.Warning);}
-    private void SetBusy(bool busy){_busy=busy;TimelinePanel.IsEnabled=!busy;FileList.IsEnabled=!busy;ExportButton.IsEnabled=!busy;RetryButton.IsEnabled=!busy;CancelButton.IsEnabled=busy;OutputKindBox.IsEnabled=!busy;OutputFolderBox.IsEnabled=!busy;ExportScopeBox.IsEnabled=!busy;FpsBox.IsEnabled=!busy;QualityBox.IsEnabled=!busy;EndHoldBox.IsEnabled=!busy;if(MouseProperties.TryGetValue("EndHoldBox",out var mouse))mouse.IsEnabled=!busy;SetWorkspaceBusy(busy);UpdateHistoryButtons();}
-    private void RefreshFiles()=>CountText.Text=$"{_jobs.Count}개 PNG · 직접 지정 / 파일별 진행 바";
+    private void SetBusy(bool busy){_busy=busy;TimelinePanel.IsEnabled=!busy;FileList.IsEnabled=!busy;ExportButton.IsEnabled=!busy;RetryButton.IsEnabled=!busy;CancelButton.IsEnabled=busy;OutputKindBox.IsEnabled=!busy;OutputFolderBox.IsEnabled=!busy;ExportScopeBox.IsEnabled=!busy;FpsBox.IsEnabled=!busy;QualityBox.IsEnabled=!busy;EndHoldBox.IsEnabled=!busy;if(MouseProperties.TryGetValue("EndHoldBox",out var mouse))mouse.IsEnabled=!busy;SetWorkspaceBusy(busy);RefreshOutputSettings();UpdateHistoryButtons();}
+    private void RefreshFiles()=>CountText.Text=$"{_jobs.Count}개 이미지 · 직접 지정 / 파일별 진행 바";
     private List<ImageJob> SelectedJobs()=>FileList.SelectedItems.Cast<ImageJob>().ToList();
     private void QueueEdit(Action action)
     {
@@ -90,22 +90,22 @@ public partial class MainWindow : Window
     }
 
     private async void AddFiles(object sender,RoutedEventArgs e)
-    {if(_busy)return;var dialog=new OpenFileDialog{Filter="PNG 이미지|*.png",Multiselect=true};if(dialog.ShowDialog(this)==true)await ImportAsync(dialog.FileNames);}
+    {if(_busy)return;var dialog=new OpenFileDialog{Filter=SourceImage.Filter,Multiselect=true};if(dialog.ShowDialog(this)==true)await ImportAsync(dialog.FileNames);}
     private async void AddFolder(object sender,RoutedEventArgs e)
-    {if(_busy)return;var dialog=new OpenFolderDialog{Title="PNG 폴더"};if(dialog.ShowDialog(this)==true)try{await ImportAsync(Directory.EnumerateFiles(dialog.FolderName,"*.png"));}catch(Exception ex){Error(ex);}}
+    {if(_busy)return;var dialog=new OpenFolderDialog{Title="이미지 폴더"};if(dialog.ShowDialog(this)==true)try{await ImportAsync(Directory.EnumerateFiles(dialog.FolderName).Where(SourceImage.Supported));}catch(Exception ex){Error(ex);}}
     private void FilesDragOver(object sender,DragEventArgs e){e.Effects=!_busy&&e.Data.GetDataPresent(DataFormats.FileDrop)?DragDropEffects.Copy:DragDropEffects.None;e.Handled=true;}
     private async void FilesDropped(object sender,DragEventArgs e)
     {
         if(_busy||!e.Data.GetDataPresent(DataFormats.FileDrop))return;
-        try{await ImportAsync(((string[])e.Data.GetData(DataFormats.FileDrop)).SelectMany(p=>Directory.Exists(p)?Directory.EnumerateFiles(p,"*.png"):[p]));}catch(Exception ex){Error(ex);}
+        try{await ImportAsync(((string[])e.Data.GetData(DataFormats.FileDrop)).SelectMany(p=>Directory.Exists(p)?Directory.EnumerateFiles(p).Where(SourceImage.Supported):[p]));}catch(Exception ex){Error(ex);}
     }
     private async Task ImportAsync(IEnumerable<string> paths)
     {
         if(_busy)return;
-        var files=paths.Where(p=>Path.GetExtension(p).Equals(".png",StringComparison.OrdinalIgnoreCase)).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase)
+        var files=paths.Where(SourceImage.Supported).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase)
             .Where(p=>!_jobs.Any(j=>j.SourcePath.Equals(p,StringComparison.OrdinalIgnoreCase))).ToArray();
         if(_jobs.Count+files.Length>1000){Notify("한 작업에 최대 1,000개까지 등록할 수 있습니다.");return;}
-        if(files.Length==0){Notify("추가할 새 PNG가 없습니다.");return;}
+        if(files.Length==0){Notify("추가할 새 이미지가 없습니다.");return;}
         SetBusy(true);StopPlayback();_workCts=new();var token=_workCts.Token;var failures=new List<string>();
         try
         {
@@ -114,11 +114,11 @@ public partial class MainWindow : Window
                 token.ThrowIfCancellationRequested();
                 try
                 {
-                    var job=await Task.Run(()=>{using var image=SKBitmap.Decode(path)??throw new InvalidDataException("PNG를 읽을 수 없습니다.");return new ImageJob{SourcePath=path,Width=image.Width,Height=image.Height,Playback=_defaultPlayback with{}};},token);
+                    var job=await Task.Run(()=>{using var image=SourceImage.Read(path)??throw new InvalidDataException("이미지를 읽을 수 없습니다.");return new ImageJob{SourcePath=path,Width=image.Width,Height=image.Height,Playback=_defaultPlayback with{}};},token);
                     _jobs.Add(job);_dirty=true;RefreshFiles();ResetHistory();
                 }catch(Exception ex)when(ex is not OperationCanceledException){failures.Add(Path.GetFileName(path)+": "+ex.Message);}
             }
-            Notify(failures.Count==0?"PNG 등록 완료 · 원하는 곳을 마우스로 드래그해 지정하세요.":string.Join(" / ",failures));
+            Notify(failures.Count==0?"이미지 등록 완료 · 원하는 곳을 마우스로 드래그해 지정하세요.":string.Join(" / ",failures));
         }
         catch(OperationCanceledException){Notify("등록을 취소했습니다. 이미 추가한 파일은 유지됩니다.");}
         finally
@@ -257,7 +257,7 @@ public partial class MainWindow : Window
     }
     private void AddRegion(object sender,RoutedEventArgs e)
     {
-        if(_busy||_current is null){Notify("먼저 PNG를 추가하세요.");return;}
+        if(_busy||_current is null){Notify("먼저 이미지를 추가하세요.");return;}
         SetDrawMode(!Preview.AddMode);
     }
     private void DuplicateRegion(object sender,RoutedEventArgs e)
@@ -311,7 +311,7 @@ public partial class MainWindow : Window
         var resolved=ResolvedVideo;var plan=_current is null?null:PlaybackPlan.Create(_current,_video);AutoDurationText.Text=$"{resolved.ActualDuration:0.00}초 · {resolved.FrameCount:N0}프레임"+(plan?.Enabled==true?$"\nWebM {plan.WebmDuration:0.##}초 · {plan.Repeats}회 / OBS 무한":"");
         Preview.OutputOpacity=plan?.Opacity(_time)??1;
         ExitPlaybackButton.IsEnabled=!_busy&&_current?.Playback.Enabled==true&&_current.Playback.ExitEnabled!=false;
-        TimelineEditor.SetVideo(_video);TimelineEditor.CursorTime=_time;TimelineEditor.InvalidateVisual();
+        RefreshOutputSettings();TimelineEditor.SetVideo(_video);TimelineEditor.CursorTime=_time;TimelineEditor.InvalidateVisual();
         TimeText.Text=$"{_time:0.00} / {resolved.ActualDuration:0.00}초";LoadContextLabels();Preview.InvalidateVisual();
     }
     private void ShowVideo()
@@ -331,7 +331,7 @@ public partial class MainWindow : Window
     private void VideoComboChanged(object sender,SelectionChangedEventArgs e)=>QueueEdit(()=>VideoOptionsChanged(sender,e));
     private void Seek(double time,bool effects)
     {
-        _time=Math.Max(0,time);Preview.Time=_time;Preview.OutputOpacity=_current is null?1:PlaybackPlan.Create(_current,_video).Opacity(_time);TimelineEditor.CursorTime=_time;
+        Preview.RestDisplay=null;_time=Math.Max(0,time);Preview.Time=_time;Preview.OutputOpacity=_current is null?1:PlaybackPlan.Create(_current,_video).Opacity(_time);TimelineEditor.CursorTime=_time;
         if(effects){EffectsPreviewCheck.IsChecked=true;Preview.ShowEffects=true;}
         TimeText.Text=$"{_time:0.00} / {ResolvedVideo.ActualDuration:0.00}초";Preview.InvalidateVisual();TimelineEditor.InvalidateVisual();
     }
@@ -344,7 +344,7 @@ public partial class MainWindow : Window
         else{_broadcastClock=null;_playStart=_time;}
         _playing=true;_playClock.Restart();PlayButton.Content="Ⅱ 일시정지";EffectsPreviewCheck.IsChecked=true;Preview.ShowEffects=true;
     }
-    private void StopPlayback(bool keepBroadcast=false){if(_playing&&_broadcastClock is not null)_broadcastElapsed=_playStart+_playClock.Elapsed.TotalSeconds;_playing=false;_playClock.Stop();if(!keepBroadcast){_broadcastClock=null;_broadcastElapsed=0;}PlayButton.Content="▶ 재생";}
+    private void StopPlayback(bool keepBroadcast=false){if(_playing&&_broadcastClock is not null)_broadcastElapsed=_playStart+_playClock.Elapsed.TotalSeconds;_playing=false;_playClock.Stop();if(!keepBroadcast){_broadcastClock=null;_broadcastElapsed=0;}PlayButton.Content="▶ 재생";_singleCycle=false;if(!keepBroadcast)Preview.RestDisplay=null;}
     private void Rewind(object sender,RoutedEventArgs e){StopPlayback();Seek(0,true);}
     private void PreviewModeChanged(object sender,RoutedEventArgs e){if(Preview is not null){Preview.ShowEffects=EffectsPreviewCheck.IsChecked==true;Preview.InvalidateVisual();}}
     private void UpdateViewLabel()
@@ -367,13 +367,18 @@ public partial class MainWindow : Window
     {
         try
         {
-            var defaults=File.Exists(DocumentStore.DefaultsPath)?DocumentStore.Load<AppDefaults>(DocumentStore.DefaultsPath):new(){Playback=new(){Enabled=true,ByEffects=true,ExitEnabled=false}};
+            var defaults=File.Exists(DocumentStore.DefaultsPath)?DocumentStore.Load<AppDefaults>(DocumentStore.DefaultsPath):new(){Playback=PlaybackSections.NewDefault()};
+            if(File.Exists(DocumentStore.DefaultsPath))
+            {
+                using var json=System.Text.Json.JsonDocument.Parse(File.ReadAllText(DocumentStore.DefaultsPath));
+                if(!json.RootElement.TryGetProperty("Playback",out var policy)||!policy.TryGetProperty("LoopRest",out _))defaults.Playback.LoopRest=1;
+            }
             _video=defaults.Video;_defaultPlayback=defaults.Playback with{};_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=defaults.Loop;_defaultLoopPeriod=defaults.LoopPeriod;_defaultMotion=defaults.Motion?.Copy();_editor=defaults.Editor;OutputFolderBox.Text=defaults.OutputDirectory;
-        }catch(Exception ex){_video=new();_defaultPlayback=new(){Enabled=true,ByEffects=true,ExitEnabled=false};_defaultEffect=new();_defaultClipDuration=1;OutputFolderBox.Text="";Notify("기본값을 읽지 못해 초기값을 사용합니다: "+ex.Message);}
+        }catch(Exception ex){_video=new();_defaultPlayback=PlaybackSections.NewDefault();_defaultEffect=new();_defaultClipDuration=1;OutputFolderBox.Text="";Notify("기본값을 읽지 못해 초기값을 사용합니다: "+ex.Message);}
     }
     private void SaveDefaults(object sender,RoutedEventArgs e)
     {
-        if(_busy||!CommitClip(true)||!CommitVideo(true))return;
+        if(_busy||!CommitClip(true)||!CommitVideo(true)||!CommitOutputTiming())return;
         try
         {
             var defaults=new AppDefaults{Video=_video with{},Playback=(_current?.Playback??_defaultPlayback) with{},Effect=(_clip?.Options??_defaultEffect).Current(),ClipDuration=_clip?.Duration??_defaultClipDuration,OutputDirectory=OutputFolderBox.Text.Trim(),Loop=_clip?.Loop??_defaultLoop,LoopPeriod=_clip?.LoopPeriod??_defaultLoopPeriod,Motion=_clip?.Motion?.Copy()??_defaultMotion?.Copy(),Editor=_editor with{}};
@@ -384,7 +389,7 @@ public partial class MainWindow : Window
     {
         if(_busy||MessageBox.Show(this,"저장된 기본값을 초기값으로 복원할까요? 현재 영역과 클립은 유지합니다.","기본값 복원",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;
         try
-        {var defaults=new AppDefaults{Playback=new(){Enabled=true,ByEffects=true,ExitEnabled=false}};DocumentStore.Save(DocumentStore.DefaultsPath,defaults);_video=defaults.Video;_defaultPlayback=defaults.Playback;_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=false;_defaultLoopPeriod=1;_defaultMotion=null;_editor=defaults.Editor;ShowVideo();ShowEditorOptions();LoadClipFields();Notify("기본값을 복원했습니다.");}
+        {var defaults=new AppDefaults{Playback=PlaybackSections.NewDefault()};DocumentStore.Save(DocumentStore.DefaultsPath,defaults);_video=defaults.Video;_defaultPlayback=defaults.Playback;_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=false;_defaultLoopPeriod=1;_defaultMotion=null;_editor=defaults.Editor;ShowVideo();ShowEditorOptions();LoadClipFields();Notify("기본값을 복원했습니다.");}
         catch(Exception ex){Error(ex);}
     }
     private bool SaveProjectInternal()
@@ -412,7 +417,7 @@ public partial class MainWindow : Window
         try
         {
             var doc=DocumentStore.Load<ProjectDocument>(dialog.FileName);var missing=doc.Jobs.Where(j=>!File.Exists(j.SourcePath)).ToList();
-            if(missing.Count>0)throw new FileNotFoundException("원본 PNG를 찾을 수 없습니다. 원래 위치로 복원한 뒤 다시 여세요.\n"+string.Join("\n",missing.Take(4).Select(j=>j.SourcePath)));
+            if(missing.Count>0)throw new FileNotFoundException("원본 이미지를 찾을 수 없습니다. 원래 위치로 복원한 뒤 다시 여세요.\n"+string.Join("\n",missing.Take(4).Select(j=>j.SourcePath)));
             ApplyDocument(doc);_projectPath=dialog.FileName;_dirty=false;Notify("영역·타임라인·영상 옵션을 복원했습니다.");
         }catch(Exception ex){Error(ex);}
     }
@@ -450,7 +455,7 @@ public partial class MainWindow : Window
     private async void RetryFailed(object sender,RoutedEventArgs e)=>await ExportAsync(_jobs.Where(j=>j.Status=="실패").ToList());
     private async Task ExportAsync(List<ImageJob> jobs)
     {
-        if(_busy||!CommitClip(true)||!CommitRegion(true)||!CommitMask(true)||!CommitVideo(true))return;
+        if(_busy||!CommitClip(true)||!CommitRegion(true)||!CommitMask(true)||!CommitVideo(true)||!CommitOutputTiming())return;
         if(jobs.Count==0){Notify("출력할 PNG가 없습니다.");return;}
         try
         {
@@ -525,5 +530,5 @@ public partial class MainWindow : Window
         "15. 구간 설정을 적용한 뒤 색상 바의 경계를 드래그합니다. 방송 재생은 등장 한 번·강조 반복·퇴장 버튼 순서입니다.\n"+
         "16. 좌측 출력 형식에서 WebM/OBS 브라우저/둘 다를 고릅니다. WebM은 지정 횟수 반복, 브라우저는 무한 반복합니다.\n"+
         "17. OBS 브라우저 소스에 index.html을 넣고 원본 크기/FPS로 설정합니다. 상호작용 R=재등장, E=퇴장, Space=일시정지입니다.\n"+
-        "원본 유지 배경은 의도적인 원본 잔상을 남깁니다. 원본 크기·파일명·투명·무음을 유지합니다. 사용안내/README.md를 참조하세요.\n\n"+ProductInfo.Credit,"v0.9 등장·반복·퇴장 사용법");
+        "원본 유지 배경은 의도적인 원본 잔상을 남깁니다. 원본 크기·파일명·투명·무음을 유지합니다. 사용안내/README.md를 참조하세요.\n\n"+ProductInfo.Credit,"사용법 · "+ProductInfo.Credit);
 }

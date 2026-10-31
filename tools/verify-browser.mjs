@@ -33,7 +33,7 @@ async function load(name, preview = false) {
     const packageDir = path.join(folder, name), manifest = JSON.parse((await fs.readFile(path.join(packageDir, "manifest.json"), "utf8")).replace(/^\uFEFF/, ""));
     await send("Emulation.setDeviceMetricsOverride", { width: manifest.width, height: manifest.height, deviceScaleFactor: 1, mobile: false }, session);
     await send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } }, session);
-    await send("Page.navigate", { url: pathToFileURL(path.join(packageDir, preview ? "preview.html" : "index.html")).href }, session);
+    await send("Page.navigate", { url: pathToFileURL(path.join(packageDir, preview ? (manifest.preview??"preview.html") : (manifest.entry??"index.html"))).href }, session);
     let state;
     for (let i = 0; i < 100; i++) { state = await evaluate("window.LiveCG?.status()").catch(() => null); if (state?.loaded || state?.error) break; await sleep(50); }
     check(state?.loaded && !state.error, name + " loads via local file with all PNGs and no runtime error");
@@ -66,6 +66,14 @@ try {
     await sleep(100);await evaluate("window.dispatchEvent(new CustomEvent('obsSourceVisibleChanged',{detail:{visible:true}}))");check((await evaluate("LiveCG.status()")).time >= .09, "duplicate visible event does not interrupt the entrance");
     await evaluate("LIVECG_DATA.playback.replayOnShow=false;window.dispatchEvent(new CustomEvent('obsSourceVisibleChanged',{detail:{visible:false}}));window.dispatchEvent(new CustomEvent('obsSourceVisibleChanged',{detail:{visible:true}}))");check((await evaluate("LiveCG.status()")).time >= .09, "optional no-replay policy preserves playback when source returns");
     await evaluate("LIVECG_DATA.playback.exitAtLoopEnd=false;LiveCG.restart();LiveCG.pause();LiveCG.exit()");check((await evaluate("LiveCG.status()")).time >= 1.5 && !(await evaluate("LiveCG.status().paused")), "immediate exit resumes paused playback and enters the exit section");
+    const restPackage=await load("v1-rest.obs");check(restPackage.manifest.entry.endsWith("_index.html"),"named source HTML is the primary browser entry");
+    check((await evaluate("LiveCG.renderElapsedAt(1.8)")).rest,"browser enters original rest after one emphasis pass");await sleep(80);
+    const restShot=await send("Page.captureScreenshot",{format:"png",captureBeyondViewport:true},session),restActual=path.join(restPackage.packageDir,"actual-rest.png");await fs.writeFile(restActual,Buffer.from(restShot.data,"base64"));captures.push({package:"v1 original rest",time:1.8,expected:path.join(restPackage.packageDir,"original.png"),actual:restActual});
+    check(restShot.data.length>100,"browser original-rest screenshot captured for native pixel comparison");
+    check(!(await evaluate("LiveCG.renderElapsedAt(2.5)")).rest&&(await evaluate("LiveCG.status()")).time===.5,"browser resumes emphasis after rest without replaying entrance");
+    for(const mode of ["Transparent","Hold"]){await evaluate(`LIVECG_DATA.plan.restMode='${mode}';LiveCG.renderElapsedAt(1.8)`);await sleep(80);const shot=await send("Page.captureScreenshot",{format:"png",captureBeyondViewport:true},session),actual=path.join(restPackage.packageDir,"actual-"+mode+".png");await fs.writeFile(actual,Buffer.from(shot.data,"base64"));captures.push({package:"v1 "+mode+" rest",time:1.8,expected:path.join(restPackage.packageDir,mode+".png"),actual});check(shot.data.length>80,"browser "+mode+" rest captured for native comparison");}
+    await evaluate("LIVECG_DATA.plan.restMode='Hold';LiveCG.renderElapsedAt(1.8)");check((await evaluate("LiveCG.status()")).time===1.4,"browser hold rest retains the final emphasis frame");
+    for(const name of ["v1/Jpeg.obs","v1/Webp.obs"]){await load(name);check(await evaluate("LiveCG.status().loaded&&!LiveCG.status().error"),name+" renders normalized PNG assets");}
     await load("한글 로컬 & 패키지.obs", true);check(await evaluate("document.getElementById('credit').textContent.includes('SunjooAn')&&document.querySelectorAll('button').length===3"), "separate preview exposes creator/version and live controls");
 } catch (error) { check(false, error.stack); }
 finally {

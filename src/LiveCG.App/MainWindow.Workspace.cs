@@ -47,7 +47,7 @@ public partial class MainWindow
     private Window FloatPanel(Grid host,FrameworkElement panel,string title,WindowPlacement? placement,Action<WindowPlacement> restored)
     {
         host.Children.Remove(panel);var dock=new DockPanel();var back=new Button{Content="메인 화면으로 돌리기",HorizontalAlignment=HorizontalAlignment.Right};DockPanel.SetDock(back,Dock.Top);dock.Children.Add(back);dock.Children.Add(panel);
-        var window=new Window{Title=title+" · "+ProductInfo.Credit,Content=dock,Width=title.StartsWith("효과")?850:1100,Height=820,MinWidth=480,MinHeight=420,Owner=this,Background=Background,Foreground=Foreground,WindowStartupLocation=WindowStartupLocation.CenterOwner};
+        var window=new Window{Title=title+" · "+ProductInfo.Credit,Content=dock,Width=title.StartsWith("효과")?850:1100,Height=820,MinWidth=480,MinHeight=420,ResizeMode=ResizeMode.NoResize,Owner=this,Background=Background,Foreground=Foreground,WindowStartupLocation=WindowStartupLocation.CenterOwner};
         back.Click+=(_,_)=>window.Close();window.PreviewKeyDown+=EditorKeyDown;
         WindowPlacement? beforeClose=null;window.Closing+=(_,_)=>beforeClose=WindowPlacement.Capture(window);
         window.Closed+=(_,_)=>{dock.Children.Remove(panel);host.Children.Add(panel);restored(beforeClose??WindowPlacement.Capture(window));};
@@ -102,7 +102,7 @@ public partial class MainWindow
     }
     private void PickBackgroundColor(object sender,RoutedEventArgs e)
     {
-        if(_busy||_region is null)return;_pickingEffectColor=false;HideOverlaysCheck.IsChecked=false;Preview.CancelGesture();Preview.PickColorMode=true;Preview.Focus();_previewWindow?.Activate();Notify("원본 PNG의 색을 클릭하세요. ESC로 취소합니다.");
+        if(_busy||_region is null)return;_pickingEffectColor=false;HideOverlaysCheck.IsChecked=false;Preview.CancelGesture();Preview.PickColorMode=true;Preview.Focus();_previewWindow?.Activate();Notify("원본 이미지의 색을 클릭하세요. ESC로 취소합니다.");
     }
     private void ChooseBackgroundColor(object sender,RoutedEventArgs e)
     {
@@ -117,7 +117,7 @@ public partial class MainWindow
     private void FitObject(object sender,RoutedEventArgs e)
     {
         if(_busy||_current is null||_region is null)return;
-        try{using var source=SKBitmap.Decode(_current.SourcePath)??throw new InvalidDataException("원본을 읽지 못했습니다.");var candidate=_region.Copy(false);candidate.CutoutEnabled=true;var dialog=new ObjectSelectionWindow(source,candidate){Owner=_previewWindow??this};
+        try{using var source=SourceImage.Read(_current.SourcePath)??throw new InvalidDataException("원본을 읽지 못했습니다.");var candidate=_region.Copy(false);candidate.CutoutEnabled=true;var dialog=new ObjectSelectionWindow(source,candidate){Owner=_previewWindow??this};
             if(dialog.ShowDialog()==true)ApplyObjectSelection(dialog.SelectedBounds,dialog.SelectedCutout,dialog.SelectedBackground,dialog.SelectedTolerance);}
         catch(Exception ex){Error(ex);}
     }
@@ -136,7 +136,7 @@ public partial class MainWindow
     {if(AssetList is null)return;var query=AssetSearchBox?.Text.Trim()??"";AssetList.ItemsSource=_assets.Where(a=>(a.Name+" "+a.Category).Contains(query,StringComparison.OrdinalIgnoreCase)).ToList();}
     private SKBitmap? CurrentObjectSample()
     {
-        if(_current is null||_region is null)return null;using var source=SKBitmap.Decode(_current.SourcePath);return source is null?null:ObjectExtractor.CropObject(source,_region);
+        if(_current is null||_region is null)return null;using var source=SourceImage.Read(_current.SourcePath);return source is null?null:ObjectExtractor.CropObject(source,_region);
     }
     private void OpenStudio(EffectAsset asset,bool useSource=true)
     {
