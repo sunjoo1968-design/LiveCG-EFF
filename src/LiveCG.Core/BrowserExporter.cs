@@ -34,10 +34,10 @@ public sealed class BrowserExporter
         {
             using var source=SKBitmap.Decode(job.SourcePath)??throw new InvalidDataException("PNG를 읽을 수 없습니다.");
             if(source.Width!=job.Width||source.Height!=job.Height)throw new InvalidDataException("PNG 크기가 작업을 저장한 뒤 달라졌습니다. 다시 가져오세요.");
-            using var scene=new EffectScene(source);scene.Validate(job.Regions);
+            using var scene=new EffectScene(source);scene.Validate(SectionRules.RenderRegions(job));
             File.Copy(job.SourcePath,Path.Combine(temporary,"original.png"));
             var assets=scene.WriteBrowserAssets(job.Regions,Path.Combine(temporary,"assets"),p=>progress?.Report(p*.8),cancellation);
-            var regions=LayerGraph.Copy(job.Regions,false);foreach(var r in regions)r.Cutout=null;
+            var regions=LayerGraph.Copy(SectionRules.RenderRegions(job),false);foreach(var r in regions)r.Cutout=null;
             var payload=new{version=ProductInfo.Version,credit=ProductInfo.Credit,sourceName=job.FileName,width=job.Width,height=job.Height,fps=video.Fps,source="original.png",plan,playback=job.Playback,regions,assets,
                 seeds=job.Regions.SelectMany(r=>r.Clips).GroupBy(c=>c.Id).ToDictionary(g=>g.Key.ToString(),g=>unchecked((uint)g.Key.GetHashCode()))};
             await File.WriteAllTextAsync(Path.Combine(temporary,"data.js"),"window.LIVECG_DATA = "+JsonSerializer.Serialize(payload,Json)+";\n",Utf8,cancellation);

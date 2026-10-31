@@ -170,6 +170,7 @@
     }
     function applyArea(frame, r, parent, time) {
         const a = assets.get(r.id), clips = effective(r.clips, time); if (!clips.length) return;
+        if(r.softness?.enabled||r.contentOnly){applySoftArea(frame,r,parent,time,a,clips);return;}
         const b = { x: r.bounds.x * data.width - parent.x, y: r.bounds.y * data.height - parent.y, width: r.bounds.width * data.width, height: r.bounds.height * data.height };
         const numeric = a.digits.length > 0 && clips.some(c => ["DigitRoll", "Bounce"].includes(c.options.kind) && time >= c.start && time < c.start + c.duration), s = motion(clips, time, b, numeric);
         const masks = maskCoverage(r, parent, time, r.id + "-masks");
@@ -196,6 +197,16 @@
         const decor = blank(r.id + "-decor", frame.width, frame.height), d = decor.getContext("2d"); d.save(); transform(d, b, s);crop(d,b,s); d.translate(b.x, b.y);
         for (const c of clips) if (time >= c.start && (time < c.start + c.duration || holds(c.options.kind))) decoration(d, r, b.width, b.height, c, progress(c, time), s.alpha);
         d.restore(); multiply(decor, masks); frame.getContext("2d").drawImage(decor, 0, 0);
+    }
+    function applySoftArea(frame,r,parent,time,a,clips){
+        const b={x:a.x-parent.x,y:a.y-parent.y,width:a.width,height:a.height},s=motion(clips,time,b,a.digits.length>0);
+        if(identity(s)&&!clips.some(c=>time>=c.start&&(time<c.start+c.duration||holds(c.options.kind))))return;
+        const composed=blank(r.id+"-soft-work",frame.width,frame.height),c=composed.getContext("2d");c.drawImage(frame,0,0);
+        c.globalCompositeOperation="destination-out";c.drawImage(image(a.erase),b.x,b.y);c.globalCompositeOperation="source-over";c.drawImage(image(a.fill),b.x,b.y);
+        c.save();transform(c,b,s);crop(c,b,s);c.globalAlpha=clamp(s.alpha);const number=blank(r.id+"-soft-number",a.width,a.height);if(digits(number.getContext("2d"),r,a,clips,time))c.drawImage(number,b.x,b.y);else c.drawImage(image(a.image),b.x,b.y);c.globalAlpha=1;c.translate(b.x,b.y);
+        for(const clip of clips)if(time>=clip.start&&(time<clip.start+clip.duration||holds(clip.options.kind)))decoration(c,r,b.width,b.height,clip,progress(clip,time),s.alpha);
+        c.restore();const masks=maskCoverage(r,parent,time,r.id+"-masks");multiply(composed,masks);
+        const f=frame.getContext("2d");f.globalCompositeOperation="destination-out";f.drawImage(masks,0,0);f.globalCompositeOperation="lighter";f.drawImage(composed,0,0);f.globalCompositeOperation="source-over";
     }
     function render(time) {
         ctx.resetTransform(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -249,7 +260,7 @@
     };
     const api = {
         restart() { waitingForProgram=false;started = performance.now(); pausedAt = null; exitAt = null; manualTime = null; lastFrame = -1; },
-        exit() { if (pausedAt !== null) api.resume(); const e = elapsed(); manualTime = null; if (exitAt === null) exitAt = data.playback.exitAtLoopEnd ? (e < A ? A + LOOP : A + (Math.floor((e - A) / LOOP + 1e-9) + 1) * LOOP) : e; },
+        exit() { if(data.playback.exitEnabled===false)return; if (pausedAt !== null) api.resume(); const e = elapsed(); manualTime = null; if (exitAt === null) exitAt = data.playback.exitAtLoopEnd ? (e < A ? A + LOOP : A + (Math.floor((e - A) / LOOP + 1e-9) + 1) * LOOP) : e; },
         pause() { if (pausedAt === null) pausedAt = performance.now(); },
         resume() { if (pausedAt !== null) { started += performance.now() - pausedAt; pausedAt = null; } manualTime = null; },
         togglePause() { pausedAt === null ? api.pause() : api.resume(); },

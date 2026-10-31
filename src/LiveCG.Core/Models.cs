@@ -80,6 +80,7 @@ public record EffectOptions
 
 public record EffectClip
 {
+    public ClipSection Section { get; set; }
     public Guid Id { get; set; } = Guid.NewGuid();
     public double Start { get; set; }
     public double Duration { get; set; } = 1;
@@ -104,6 +105,7 @@ public record EffectClip
     {
         if (!double.IsFinite(Start + Duration) || Start < 0 || Duration is < .016 or > 300 || End > 3600)
             throw new InvalidDataException("클립의 시작·길이를 확인하세요. 전체 길이는 최대 1시간입니다.");
+        if(!Enum.IsDefined(Section))throw new InvalidDataException("클립 구간이 올바르지 않습니다.");
         Options.Validate();
         if(!double.IsFinite(SourceOffset)||SourceOffset<0||SourceOffset>300||SourceDuration is { } total&&(!double.IsFinite(total)||total<.016||total>300))throw new InvalidDataException("분할 클립의 원본 구간이 올바르지 않습니다.");
         if(Options.Kind == EffectKind.UserMotion && Motion is null)throw new InvalidDataException("사용자 모션에 키프레임 정보가 없습니다.");
@@ -130,6 +132,9 @@ public record VideoOptions
 
 public record EffectRegion
 {
+    public RegionSoftness Softness { get; set; } = new();
+    public bool ContentOnly { get; set; }
+    public double ContentTolerance { get; set; } = 24;
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "영역";
     public RegionRole Role { get; set; }
@@ -150,10 +155,12 @@ public record EffectRegion
     [JsonPropertyName("Effect"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public EffectOptions? LegacyEffect { get; set; }
     [JsonIgnore] public string Label => $"{(Enabled?"◉":"— 숨김")} {(Role==RegionRole.Group?"▣ ":ParentId is not null?"↳ ":"")}{Name}{(Locked ? " 🔒" : "")} · {Clips.Count}개 효과";
-    public EffectRegion Copy(bool newIds = true) => this with { Id = newIds ? Guid.NewGuid() : Id, Clips = Clips.Select(c => c.Copy(newIds)).ToList(), Points=Points.Select(p=>p with{}).ToList(), Masks=Masks.Select(m=>m.Copy(newIds)).ToList(), Cutout = Cutout is null ? null : Cutout with{} };
+    public EffectRegion Copy(bool newIds = true) => this with { Id = newIds ? Guid.NewGuid() : Id, Softness=Softness with{}, Clips = Clips.Select(c => c.Copy(newIds)).ToList(), Points=Points.Select(p=>p with{}).ToList(), Masks=Masks.Select(m=>m.Copy(newIds)).ToList(), Cutout = Cutout is null ? null : Cutout with{} };
     public void Validate()
     {
         Bounds = Bounds.Clamp();
+        if(Softness is null)throw new InvalidDataException("경계 설정이 없습니다.");Softness.Validate();
+        if(!double.IsFinite(ContentTolerance)||ContentTolerance is <0 or >150)throw new InvalidDataException("배경 분리 허용오차는 0~150입니다.");
         Cutout?.Validate();
         if(!Enum.IsDefined(Role)||Masks is null||Masks.Count>100)throw new InvalidDataException("그룹/마스크 정보가 올바르지 않습니다.");foreach(var mask in Masks)mask.Validate();if(Masks.Select(m=>m.Id).Distinct().Count()!=Masks.Count)throw new InvalidDataException("중복된 마스크 ID입니다.");
         if(Points is null||Points.Count>4096||Points.Any(p=>p is null||!double.IsFinite(p.X+p.Y)||p.X<0||p.Y<0||p.X>1||p.Y>1)||(Shape is RegionShape.Freehand or RegionShape.Polygon&&Points.Count<3))throw new InvalidDataException("영역 경로는 유효한 포인트3~4096개가 필요합니다.");

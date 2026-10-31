@@ -88,7 +88,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         };
         MouseMove += (_, e) => { if(PickColorMode)HoverPointer(PointAt(e));else MovePointer(PointAt(e), Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)); };
         MouseLeave+=(_,_)=>{_pickPoint=null;InvalidateVisual();};
-        MouseUp += (_, e) => { if (_pointDragging||_dragRegion is not null || _draft is not null || _panning) { EndPointer(); ReleaseMouseCapture(); e.Handled = true; } };
+        MouseUp += (_, e) => { if (_softTarget is not null||_pointDragging||_dragRegion is not null || _draft is not null || _panning) { EndPointer(); ReleaseMouseCapture(); e.Handled = true; } };
         MouseWheel += (_, e) => { ZoomAt(e.Delta > 0 ? 1.25 : .8, PointAt(e)); e.Handled = true; };
         KeyDown += (_, e) =>
         {
@@ -99,7 +99,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
             else if(e.Key==Key.Delete&&SelectedMask is not null){MaskDeleteRequested?.Invoke();e.Handled=true;}
             else if (e.Key == Key.Delete && SelectedRegion is not null) { DeleteRequested?.Invoke(); e.Handled = true; }
         };
-        LostMouseCapture += (_, _) => { if (_pointDragging||_dragRegion is not null || _draft is {Shape:not RegionShape.Polygon} || _panning) CancelGesture(); };
+        LostMouseCapture += (_, _) => { if (_softTarget is not null||_pointDragging||_dragRegion is not null || _draft is {Shape:not RegionShape.Polygon} || _panning) CancelGesture(); };
     }
     private SKPoint PointAt(MouseEventArgs e) { var p = e.GetPosition(this); return new((float)p.X, (float)p.Y); }
     public void SetJob(ImageJob? job)
@@ -154,18 +154,21 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         canvas.Save(); canvas.ClipRect(imageRect);
         using var paint = new SKPaint { IsAntialias = true };
         paint.Color = new(30,40,51); canvas.DrawRect(imageRect, paint); paint.Color = new(44,57,70);
-        for (var y = 0; y < ActualHeight; y += 16) for (var x = 0; x < ActualWidth; x += 16)
+        if(ComparisonBackground==0)for (var y = 0; y < ActualHeight; y += 16) for (var x = 0; x < ActualWidth; x += 16)
             if (((int)x / 16 + (int)y / 16) % 2 == 0) canvas.DrawRect((float)x, (float)y, 16, 16, paint);
+        if(ComparisonBackground is 1 or 2 or 3){paint.Color=ComparisonBackground==2?SKColors.White:SKColors.Black;canvas.DrawRect(imageRect,paint);if(ComparisonBackground==3){paint.Color=SKColors.White;canvas.DrawRect(SKRect.Create(imageRect.MidX,imageRect.Top,imageRect.Width/2,imageRect.Height),paint);}}
         canvas.Save(); canvas.Translate(imageRect.Left, imageRect.Top); canvas.Scale((float)Viewport.Scale);
-        if (_background is not null) canvas.DrawImage(_background, SKRect.Create(_source.Width, _source.Height));
-        if(ShowEffects&&OutputOpacity<1){using var fade=new SKPaint{Color=SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(OutputOpacity,0,1)*255))};canvas.SaveLayer(fade);_scene.Draw(canvas,_job!.Regions,Time,true);canvas.Restore();}
-        else _scene.Draw(canvas, _job!.Regions, Time, ShowEffects);
+        if (_background is not null&&ComparisonBackground==4) canvas.DrawImage(_background, SKRect.Create(_source.Width, _source.Height));
+        var renderRegions=SectionRules.RenderRegions(_job!);
+        if(ShowEffects&&OutputOpacity<1){using var fade=new SKPaint{Color=SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(OutputOpacity,0,1)*255))};canvas.SaveLayer(fade);_scene.Draw(canvas,renderRegions,Time,true);canvas.Restore();}
+        else _scene.Draw(canvas,renderRegions,Time,ShowEffects);
         canvas.Restore(); canvas.Restore();
         DrawEyedropper(canvas);
         if (!ShowOverlays) return;
         for (var i = _job!.Regions.Count-1; i>=0; i--)if(LayerGraph.Visible(_job.Regions[i],_job.Regions))DrawRegion(canvas, _job.Regions[i], i, false);
         if(SelectedMask is { } mask)DrawRegion(canvas,new(){Id=mask.Id,Name="마스크 · "+mask.Name,Bounds=mask.Bounds,Shape=mask.Shape,Points=mask.Points},1,false);
         DrawPathHandles(canvas);
+        DrawSoftGuides(canvas);
         if (_draft is not null)
         {
             if(_pathPoints.Count>0){using var path=new SKPath();var points=_pathPoints.Select(Viewport.ToScreen).ToArray();path.AddPoly(points,_draft.Shape==RegionShape.Freehand&&points.Length>2);using var p=new SKPaint{Color=Colors[0],IsAntialias=true,Style=SKPaintStyle.Stroke,StrokeWidth=2};canvas.DrawPath(path,p);if(_draft.Shape==RegionShape.Polygon)foreach(var at in points){p.Style=SKPaintStyle.Fill;canvas.DrawCircle(at,4,p);}}
@@ -208,6 +211,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         if(!pan&&AddMode&&NewShape==RegionShape.Polygon){AddPathPoint(screen);return false;}
         _start = Viewport.ToImage(screen); _oldPan = Viewport.Pan;
         if (pan) { _panning=true;_start=screen;return true; }
+        if(TryBeginSoft(screen))return true;
         if(!AddMode&&PointEditMode&&TryBeginPathEdit(screen))return true;
         if(!AddMode&&SelectedMask is { } mask)
         {
@@ -239,6 +243,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     }
     public void MovePointer(SKPoint screen, bool constrain = false)
     {
+        if(_softTarget is not null){MoveSoft(screen);return;}
         if(_source is null)return;
         if(_panning){Viewport.Pan=new(_oldPan.X+screen.X-_start.X,_oldPan.Y+screen.Y-_start.Y);ViewChanged?.Invoke();InvalidateVisual();return;}
         if(_pointDragging){MovePathPoint(screen);return;}
@@ -267,6 +272,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     }
     public void EndPointer()
     {
+        if(EndSoft(true))return;
         if(_pointDragging){EndPathEdit(true);return;}
         if(_draft?.Shape==RegionShape.Polygon){_panning=false;return;}
         if(_draft?.Shape==RegionShape.Freehand){FinishPath();return;}
@@ -307,6 +313,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     }
     public void CancelGesture()
     {
+        if(EndSoft(false))return;
         if(_pointDragging)EndPathEdit(false);
         var edited=_draft is not null||_dragRegion is not null;
         if(_dragRegion is not null&&_before is not null)_dragRegion.Bounds=_before;
@@ -314,5 +321,5 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         _draft=null;_pathPoints.Clear();_dragRegion=null;_before=null;_panning=false;_handle=-1;AddMode=false;InvalidateVisual();ViewChanged?.Invoke();
         if(edited){RegionEdited?.Invoke();GestureEnded?.Invoke(false);}
     }
-    public void Dispose(){_scene?.Dispose();_source?.Dispose();_background?.Dispose();}
+    public void Dispose(){DisposeSoftGuides();_scene?.Dispose();_source?.Dispose();_background?.Dispose();}
 }

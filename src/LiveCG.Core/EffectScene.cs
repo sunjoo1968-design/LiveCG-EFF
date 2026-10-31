@@ -53,7 +53,7 @@ public sealed partial class EffectScene : IDisposable
     public void Draw(SKCanvas canvas,IReadOnlyList<EffectRegion> regions,double time,bool effects=true)
     {
         if(effects&&DrawStaticDecorations(canvas,regions,time))return;
-        if(regions.Any(r=>r.Role!=RegionRole.Object||r.Masks.Count>0)){DrawGrouped(canvas,regions,time,effects);return;}
+        if(regions.Any(r=>r.Role!=RegionRole.Object||r.Masks.Count>0||RegionRaster.Custom(r))){DrawGrouped(canvas,regions,time,effects);return;}
         var prepared=regions.Select((region,i)=>
         {
             var layer=GetLayer(region);var clips=ClipTiming.EffectiveClips(region.Clips,time);
@@ -276,13 +276,25 @@ public sealed partial class EffectScene : IDisposable
     private Layer GetLayer(EffectRegion region,IReadOnlyList<EffectRegion>? higher=null)
     {
         higher??=[];
-        var rect=ObjectExtractor.PixelRect(region.Bounds,Width,Height);
+        var rect=RegionRaster.Rect(region,Width,Height);
         if (_layers.TryGetValue(region.Id, out var old))
         {
             if(old.Bounds==(SKRect)rect&&SameGeometry(old.Geometry,region)&&old.Higher.Count==higher.Count&&old.Higher.Zip(higher).All(p=>SameGeometry(p.First,p.Second)))return old;
             old.Dispose(); _layers.Remove(region.Id);
         }
         var background = region.Background switch { BackgroundMode.Transparent => SKColors.Transparent, BackgroundMode.Solid => SKColor.Parse(region.BackgroundColor), _ => GuessBackground(rect) };
+        if(RegionRaster.Custom(region))
+        {
+            using var raw=RegionRaster.Raw(_source,region,rect,background);
+            using var shape=RegionRaster.Shape(region,rect,Width,Height);
+            var foreground=raw.Copy();Multiply(foreground,shape);var backingCustom=foreground.Copy();
+            var digitsCustom=DigitCells.Find(foreground,background);
+            using(var c=new SKCanvas(backingCustom))using(var paint=new SKPaint{Color=region.ContentOnly?SKColors.Transparent:background,BlendMode=SKBlendMode.Src})foreach(var digit in digitsCustom)c.DrawRect(digit,paint);
+            using var eraseCustom=RegionRaster.Shape(region,rect,Width,Height,false);
+            var custom=new Layer(foreground,backingCustom,rect,region.Background,region.BackgroundColor,background,DigitCells.InkColor(foreground,background),digitsCustom,region,higher,eraseCustom.Copy())
+            {RawImage=SKImage.FromBitmap(raw),ShapeImage=SKImage.FromBitmap(shape)};
+            _layers.Add(region.Id,custom);return custom;
+        }
         using var subset = new SKBitmap();
         if(!_source.ExtractSubset(subset,rect))throw new InvalidDataException("영역을 추출할 수 없습니다.");
         var bitmap = subset.Copy();
@@ -330,8 +342,8 @@ public sealed partial class EffectScene : IDisposable
         _layers.Add(region.Id, layer); return layer;
     }
 
-    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
-    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,Bounds=r.Bounds,Shape=r.Shape,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
+    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Softness==b.Softness&&a.ContentOnly==b.ContentOnly&&a.ContentTolerance==b.ContentTolerance&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
+    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,Bounds=r.Bounds,Shape=r.Shape,Softness=r.Softness with{},ContentOnly=r.ContentOnly,ContentTolerance=r.ContentTolerance,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
     private static SKBitmap Coverage(EffectRegion region,SKRectI rect)
     {
         var bitmap=new SKBitmap(rect.Width,rect.Height);bitmap.Erase(SKColors.Transparent);
@@ -382,6 +394,8 @@ public sealed partial class EffectScene : IDisposable
         public SKBitmap Bitmap { get; }
         public SKImage Image { get; }
         public SKImage BackingImage { get; }
+        public SKImage? RawImage { get; init; }
+        public SKImage? ShapeImage { get; init; }
         public SKImage? EraseImage { get; }
         public SKImage? FillImage { get; }
         public string? MaskData { get; }
@@ -393,7 +407,7 @@ public sealed partial class EffectScene : IDisposable
         public RegionShape Shape { get; }
         public SKPath Path { get; }
         public List<SKRect> Digits { get; }
-        public void Dispose() { EraseImage?.Dispose();FillImage?.Dispose();Path.Dispose();Image.Dispose();BackingImage.Dispose();bitmap.Dispose();backing.Dispose(); }
+        public void Dispose() { RawImage?.Dispose();ShapeImage?.Dispose();EraseImage?.Dispose();FillImage?.Dispose();Path.Dispose();Image.Dispose();BackingImage.Dispose();bitmap.Dispose();backing.Dispose(); }
     }
 }
 

@@ -43,7 +43,7 @@ async function load(name, preview = false) {
 try {
     const target = await send("Target.createTarget", { url: "about:blank" }); session = (await send("Target.attachToTarget", { targetId: target.targetId, flatten: true })).sessionId;
     await send("Page.enable", {}, session); await send("Runtime.enable", {}, session);
-    for (const name of ["한글 로컬 & 패키지.obs", "all-effects.obs", "group-masks.obs", "paths-cutout.obs", "broadcast-polish.obs"]) {
+    for (const name of ["한글 로컬 & 패키지.obs", "all-effects.obs", "group-masks.obs", "paths-cutout.obs", "broadcast-polish.obs","soft-inside.obs","soft-outside.obs","soft-both.obs","content-only.obs","soft-group.obs","soft-numeric.obs"]) {
         const { packageDir } = await load(name);
         const expected = await fs.readdir(path.join(packageDir, "expected"));
         for (const file of expected.filter(f => f.endsWith(".png"))) {
@@ -54,6 +54,7 @@ try {
             check(!(await evaluate("LiveCG.status().error")), name + " renders native comparison time " + time);
         }
     }
+    await load("content-only.obs");await evaluate("LiveCG.restart();LiveCG.pause();LiveCG.exit()");check(await evaluate("!LiveCG.status().exitRequested"),"disabled exit leaves browser emphasis running");await evaluate("window.dispatchEvent(new CustomEvent('obsSourceActiveChanged',{detail:{active:false}}));window.dispatchEvent(new CustomEvent('obsSourceActiveChanged',{detail:{active:true}}))");check((await evaluate("LiveCG.status()")).time<.2,"effect-derived no-exit package restarts at actual program activation");
     await load("한글 로컬 & 패키지.obs"); await evaluate("LiveCG.restart()"); await sleep(2250);
     let status = await evaluate("LiveCG.status()"); check(status.phase === "반복" && status.time >= .5 && status.time < 1.5, "after entrance and multiple cycles only the emphasis section repeats");
     await evaluate("LiveCG.pause()"); const paused = (await evaluate("LiveCG.status()")).time; await sleep(100);check((await evaluate("LiveCG.status()")).time === paused, "pause freezes the playback clock");

@@ -9,6 +9,8 @@ public enum OutputKind { Webm, Browser, Both }
 public record PlaybackSections
 {
     public bool Enabled { get; set; }
+    public bool ByEffects { get; set; }
+    public bool? ExitEnabled { get; set; }
     public double IntroEnd { get; set; }=1;
     public double LoopEnd { get; set; }=4;
     public double ExitDuration { get; set; }=1;
@@ -25,13 +27,14 @@ public record PlaybackSections
     {
         var total=TimelineRules.Resolve(job.Regions,video).ActualDuration;
         var entrance=job.Regions.SelectMany(r=>r.Clips).Where(c=>c.Enabled&&ProductInfo.IsEntrance(c.Options.Kind)).Select(c=>c.End).DefaultIfEmpty(Math.Min(1,total/3)).Max();
-        return new(){Enabled=true,IntroEnd=TimelineRules.Snap(Math.Min(entrance,Math.Max(0,total-1d/video.Fps)),video.Fps),LoopEnd=Math.Max(1d/video.Fps,TimelineRules.Snap(total,video.Fps))};
+        return new(){Enabled=true,ByEffects=true,ExitEnabled=false,IntroEnd=TimelineRules.Snap(Math.Min(entrance,Math.Max(0,total-1d/video.Fps)),video.Fps),LoopEnd=Math.Max(1d/video.Fps,TimelineRules.Snap(total,video.Fps))};
     }
 }
 
 /// <summary>All sections use half-open, integer-frame intervals. Editing time stays independent of repeated output time.</summary>
 public sealed record PlaybackPlan(int Fps,int IntroFrames,int LoopEndFrame,int EndFrame,bool Enabled,int Repeats,bool ExitFade)
 {
+    public bool ExitEnabled { get; init; }=true;
     public int LoopFrames=>LoopEndFrame-IntroFrames;
     public int ExitFrames=>EndFrame-LoopEndFrame;
     public int WebmFrameCount=>Enabled?checked(IntroFrames+LoopFrames*Repeats+ExitFrames):EndFrame;
@@ -40,13 +43,13 @@ public sealed record PlaybackPlan(int Fps,int IntroFrames,int LoopEndFrame,int E
     public static PlaybackPlan Create(ImageJob job,VideoOptions video)
     {
         video.Validate();job.Playback.Validate();
-        var end=TimelineRules.Resolve(job.Regions,video).FrameCount;var p=job.Playback;
+        var end=TimelineRules.Resolve(job.Regions,video).FrameCount;var p=SectionRules.Resolve(job,video);
         if(!p.Enabled)return new(video.Fps,0,end,end,false,1,false);
         var a=Math.Max(0,(int)Math.Round(p.IntroEnd*video.Fps,MidpointRounding.AwayFromZero));
         var b=Math.Max(a+1,(int)Math.Round(p.LoopEnd*video.Fps,MidpointRounding.AwayFromZero));
         var exit=Math.Max(0,(int)Math.Round(p.ExitDuration*video.Fps,MidpointRounding.AwayFromZero));
-        end=Math.Max(end,b+exit);
-        return new(video.Fps,a,b,end,true,p.WebmRepeats,p.ExitFade);
+        end=p.ExitEnabled==false?b:Math.Max(end,b+exit);
+        return new(video.Fps,a,b,end,true,p.WebmRepeats,p.ExitEnabled!=false&&p.ExitFade){ExitEnabled=p.ExitEnabled!=false};
     }
     public void ValidateWebm()
     {if(WebmDuration>3630)throw new InvalidDataException("반복을 포함한 WebM이 1시간30초를 넘습니다. 반복 횟수 또는 구간 길이를 줄이세요.");}
@@ -85,6 +88,7 @@ public sealed class PlaybackClock(PlaybackPlan plan,bool exitAtLoopEnd)
     public bool ExitRequested=>_exitAt is not null;
     public void RequestExit(double elapsed)
     {
+        if(!plan.ExitEnabled)return;
         if(_exitAt is not null)return;
         if(!plan.Enabled){_exitAt=elapsed;return;}
         var a=(double)plan.IntroFrames/plan.Fps;var loop=(double)plan.LoopFrames/plan.Fps;

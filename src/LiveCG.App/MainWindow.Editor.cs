@@ -98,6 +98,7 @@ public partial class MainWindow
         Item("효과 복사  Ctrl+C",CopyClip);Item("현재 커서에 붙여넣기  Ctrl+V",PasteClip);
         Item("선택 효과 삭제  Delete",DeleteClip);menu.Items.Add(new Separator());Item("되돌리기  Ctrl+Z",UndoEdit);Item("다시 실행  Ctrl+Shift+Z",RedoEdit);
         Item("✂ 커서에서 분할  Ctrl+K",SplitClips);
+        foreach(var section in new[]{ClipSection.Intro,ClipSection.Loop,ClipSection.Exit,ClipSection.Auto}){var s=section;Item(SectionRules.Name(s)+" 구간에 배정",(_,_)=>AssignTimelineSection(s));}
         TimelineEditor.ContextMenu=menu;
     }
     public static bool IsTextEditing(DependencyObject? element)

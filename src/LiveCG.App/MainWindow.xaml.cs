@@ -63,7 +63,7 @@ public partial class MainWindow : Window
         TimelineEditor.DeleteRequested+=()=>DeleteClip(this,new RoutedEventArgs());TimelineEditor.Message+=Notify;
         TimelineEditor.MoveLayerRequested+=MoveLayer;TimelineEditor.ToggleLayerRequested+=ToggleLayer;
         _clock.Tick+=(_,_)=>TickPlayback();
-        InitializePlayback();InitializeGroups();InitializeMouseProperties();LoadUserDefaults();_loading=false;ShowVideo();ShowEditorOptions();SelectRegion(null);TimelineEditor.SetJob(null,_video);ResetHistory();InitializeWorkspace();_clock.Start();
+        InitializePlayback();InitializeGroups();InitializeMouseProperties();InitializeSoftness();LoadUserDefaults();_loading=false;ShowVideo();ShowEditorOptions();SelectRegion(null);TimelineEditor.SetJob(null,_video);ResetHistory();InitializeWorkspace();_clock.Start();
         Loaded+=async(_,_)=>{var paths=Environment.GetCommandLineArgs().Skip(1).Where(p=>p.EndsWith(".png",StringComparison.OrdinalIgnoreCase)).ToArray();if(paths.Length>0)await ImportAsync(paths);};
     }
     private VideoOptions ResolvedVideo=>_current is null?TimelineRules.Resolve([], _video):TimelineRules.Resolve(_current,_video);
@@ -193,6 +193,7 @@ public partial class MainWindow : Window
         ClipLoopCheck.IsChecked=_clip?.Loop??_defaultLoop;LoopPeriodBox.Text=F(_clip?.LoopPeriod??_defaultLoopPeriod);
         EffectLabel.Text=_clip is null?$"{ProductInfo.EffectName(options.Kind)} · ＋버튼으로 클립 추가":$"{ProductInfo.EffectName(options.Kind)} · 선택 클립";
         ShowEffectColor();
+        LoadSoftnessFields();
         foreach(var thumbnail in _thumbnails){thumbnail.Selected=thumbnail.Kind==options.Kind;thumbnail.InvalidateVisual();}
         _loading=previous;
     }
@@ -309,6 +310,7 @@ public partial class MainWindow : Window
     {
         var resolved=ResolvedVideo;var plan=_current is null?null:PlaybackPlan.Create(_current,_video);AutoDurationText.Text=$"{resolved.ActualDuration:0.00}초 · {resolved.FrameCount:N0}프레임"+(plan?.Enabled==true?$"\nWebM {plan.WebmDuration:0.##}초 · {plan.Repeats}회 / OBS 무한":"");
         Preview.OutputOpacity=plan?.Opacity(_time)??1;
+        ExitPlaybackButton.IsEnabled=!_busy&&_current?.Playback.Enabled==true&&_current.Playback.ExitEnabled!=false;
         TimelineEditor.SetVideo(_video);TimelineEditor.CursorTime=_time;TimelineEditor.InvalidateVisual();
         TimeText.Text=$"{_time:0.00} / {resolved.ActualDuration:0.00}초";Preview.InvalidateVisual();
     }
@@ -358,16 +360,16 @@ public partial class MainWindow : Window
     private void TimelineZoomIn(object sender,RoutedEventArgs e)=>TimelineEditor.Zoom(1.25);
     private void TimelineZoomOut(object sender,RoutedEventArgs e)=>TimelineEditor.Zoom(.8);
     private void ChooseBackground(object sender,RoutedEventArgs e)
-    {var dialog=new OpenFileDialog{Filter="이미지|*.png;*.jpg;*.jpeg;*.bmp"};if(dialog.ShowDialog(this)==true)try{Preview.SetBackground(dialog.FileName);}catch(Exception ex){Error(ex);}}
-    private void ClearBackground(object sender,RoutedEventArgs e)=>Preview.SetBackground(null);
+    {var dialog=new OpenFileDialog{Filter="이미지|*.png;*.jpg;*.jpeg;*.bmp"};if(dialog.ShowDialog(this)==true)try{Preview.SetBackground(dialog.FileName);CompareBackgroundBox.SelectedIndex=4;}catch(Exception ex){Error(ex);}}
+    private void ClearBackground(object sender,RoutedEventArgs e){Preview.SetBackground(null);CompareBackgroundBox.SelectedIndex=0;}
 
     private void LoadUserDefaults()
     {
         try
         {
-            var defaults=File.Exists(DocumentStore.DefaultsPath)?DocumentStore.Load<AppDefaults>(DocumentStore.DefaultsPath):new();
+            var defaults=File.Exists(DocumentStore.DefaultsPath)?DocumentStore.Load<AppDefaults>(DocumentStore.DefaultsPath):new(){Playback=new(){Enabled=true,ByEffects=true,ExitEnabled=false}};
             _video=defaults.Video;_defaultPlayback=defaults.Playback with{};_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=defaults.Loop;_defaultLoopPeriod=defaults.LoopPeriod;_defaultMotion=defaults.Motion?.Copy();_editor=defaults.Editor;OutputFolderBox.Text=defaults.OutputDirectory;
-        }catch(Exception ex){_video=new();_defaultPlayback=new();_defaultEffect=new();_defaultClipDuration=1;OutputFolderBox.Text="";Notify("기본값을 읽지 못해 초기값을 사용합니다: "+ex.Message);}
+        }catch(Exception ex){_video=new();_defaultPlayback=new(){Enabled=true,ByEffects=true,ExitEnabled=false};_defaultEffect=new();_defaultClipDuration=1;OutputFolderBox.Text="";Notify("기본값을 읽지 못해 초기값을 사용합니다: "+ex.Message);}
     }
     private void SaveDefaults(object sender,RoutedEventArgs e)
     {
@@ -382,7 +384,7 @@ public partial class MainWindow : Window
     {
         if(_busy||MessageBox.Show(this,"저장된 기본값을 초기값으로 복원할까요? 현재 영역과 클립은 유지합니다.","기본값 복원",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;
         try
-        {var defaults=new AppDefaults();DocumentStore.Save(DocumentStore.DefaultsPath,defaults);_video=defaults.Video;_defaultPlayback=defaults.Playback;_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=false;_defaultLoopPeriod=1;_defaultMotion=null;_editor=defaults.Editor;ShowVideo();ShowEditorOptions();LoadClipFields();Notify("기본값을 복원했습니다.");}
+        {var defaults=new AppDefaults{Playback=new(){Enabled=true,ByEffects=true,ExitEnabled=false}};DocumentStore.Save(DocumentStore.DefaultsPath,defaults);_video=defaults.Video;_defaultPlayback=defaults.Playback;_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=false;_defaultLoopPeriod=1;_defaultMotion=null;_editor=defaults.Editor;ShowVideo();ShowEditorOptions();LoadClipFields();Notify("기본값을 복원했습니다.");}
         catch(Exception ex){Error(ex);}
     }
     private bool SaveProjectInternal()

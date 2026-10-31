@@ -13,10 +13,10 @@ public sealed partial class EffectScene
         string Bitmap(SKBitmap bitmap,string name){using var image=SKImage.FromBitmap(bitmap);return Save(image,name);}
         foreach(var region in regions)
         {
-            token.ThrowIfCancellationRequested();var layer=GetLayer(region);var rect=ObjectExtractor.PixelRect(region.Bounds,Width,Height);var prefix=region.Id.ToString("N");
+            token.ThrowIfCancellationRequested();var layer=GetLayer(region);var rect=RegionRaster.Rect(region,Width,Height);var prefix=region.Id.ToString("N");
             using var raw=RawCrop(region,rect);using var shape=ShapeCoverage(region,rect.Width,rect.Height);
             var parent=region.ParentId is { } id?regions.First(r=>r.Id==id):region;
-            var parentRect=ObjectExtractor.PixelRect(parent.Bounds,Width,Height);var masks=new List<object>();
+            var parentRect=RegionRaster.Rect(parent,Width,Height);var masks=new List<object>();
             foreach(var mask in region.Masks)
             {
                 token.ThrowIfCancellationRequested();var m=mask.Copy(false);m.Start=0;m.Duration=1;m.Opacity=1;m.Invert=false;m.Motion=null;m.EndMode=MaskEndMode.Hold;

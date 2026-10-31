@@ -52,7 +52,7 @@ public sealed class WebmExporter(string executable)
         var temporary=Path.Combine(Path.GetDirectoryName(target)!, "."+Path.GetFileNameWithoutExtension(target)+"."+Guid.NewGuid().ToString("N")+".partial.webm");
         using var source=SKBitmap.Decode(job.SourcePath)??throw new InvalidDataException("PNG를 읽을 수 없습니다.");
         using var scene = new EffectScene(source);
-        scene.Validate(job.Regions);
+        var renderRegions=SectionRules.RenderRegions(job);scene.Validate(renderRegions);
         using var process=new Process { StartInfo=new ProcessStartInfo(executable) {UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardError=true} };
         string[] args=["-hide_banner","-loglevel","error","-y","-f","rawvideo","-pixel_format","bgra","-video_size",$"{source.Width}x{source.Height}",
             "-framerate",video.Fps.ToString(),"-i","pipe:0","-an","-c:v","libvpx-vp9","-pix_fmt","yuva420p","-b:v","0","-crf",video.Crf.ToString(),
@@ -71,7 +71,7 @@ public sealed class WebmExporter(string executable)
                 {
                     cancellation.ThrowIfCancellationRequested();
                     var sourceTime=(double)plan.WebmSourceFrame(frame)/video.Fps;
-                    using var rendered=scene.Render(job.Regions,video,sourceTime);
+                    using var rendered=scene.Render(renderRegions,video,sourceTime);
                     PlaybackPlan.ApplyOpacity(rendered,plan.Opacity(sourceTime));
                     using var image=SKImage.FromBitmap(rendered);
                     if(!image.ReadPixels(straight.Info,straight.GetPixels(),straight.RowBytes,0,0))throw new IOException("영상 프레임 알파 변환 실패");

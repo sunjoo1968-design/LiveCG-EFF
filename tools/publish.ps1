@@ -16,6 +16,17 @@ Copy-Item -LiteralPath (Join-Path $taskVendor 'LICENSE'),(Join-Path $taskVendor 
 $taskGuide = Join-Path $taskPublish '사용안내'
 New-Item -ItemType Directory -Path $taskGuide -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $taskRoot 'README.md'),(Join-Path $taskRoot 'THIRD_PARTY_NOTICES.md') -Destination $taskGuide -Force
+$taskGuideDocs=Join-Path $taskGuide 'docs'
+New-Item -ItemType Directory -Path $taskGuideDocs -Force | Out-Null
+foreach($taskDocFolder in @('01-plan','02-design','03-analysis','04-report','images')) {
+    Copy-Item -LiteralPath (Join-Path $taskRoot "docs/$taskDocFolder") -Destination $taskGuideDocs -Recurse -Force
+}
+foreach($taskVerification in Get-ChildItem -LiteralPath (Join-Path $taskRoot 'docs/verification') -Directory){
+    $taskEvidence=Join-Path $taskGuideDocs ("verification/"+$taskVerification.Name)
+    New-Item -ItemType Directory -Path $taskEvidence -Force | Out-Null
+    Get-ChildItem -LiteralPath $taskVerification.FullName -File | Where-Object {$_.Name -in @('summary.json','render-comparison.json')} | Copy-Item -Destination $taskEvidence -Force
+}
+Copy-Item -LiteralPath (Join-Path $taskRoot 'docs/ROADMAP.md'),(Join-Path $taskRoot 'docs/PROJECT_LAYOUT.md') -Destination $taskGuideDocs -Force
 New-Item -ItemType Directory -Path (Join-Path $taskPublish 'licenses') -Force | Out-Null
 Get-ChildItem -LiteralPath (Join-Path $taskRoot 'licenses') -File | Where-Object { $_.Name -match '^(SkiaSharp|OpenTK|GLWpfControl)' } | Copy-Item -Destination (Join-Path $taskPublish 'licenses') -Force
 $taskDotnetLicense = Join-Path $taskPublish 'licenses\dotnet'

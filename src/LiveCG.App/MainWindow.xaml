@@ -91,7 +91,7 @@
       <WrapPanel><CheckBox x:Name="EffectsPreviewCheck" Content="효과 미리보기" Checked="PreviewModeChanged" Unchecked="PreviewModeChanged"/>
        <CheckBox x:Name="HideOverlaysCheck" Content="선택 표시 숨김" ToolTip="방송에 보이는 효과만 확인합니다. 체크를 해제하면 영역을 편집할 수 있습니다." Checked="EditorOptionsChanged" Unchecked="EditorOptionsChanged"/>
        <CheckBox x:Name="ShowAllRegionsCheck" Content="모든 영역 이름" Checked="EditorOptionsChanged" Unchecked="EditorOptionsChanged"/>
-       <Button Content="배경 이미지" Click="ChooseBackground" Padding="8,5"/><Button Content="투명 배경 확인" Click="ClearBackground" Padding="8,5"/></WrapPanel>
+       <Button Content="소프트·배경 고정" Click="ShowSoftnessProperties" Padding="8,5"/><Button Content="배경 이미지" Click="ChooseBackground" Padding="8,5"/><Button Content="투명 배경 확인" Click="ClearBackground" Padding="8,5"/><ComboBox x:Name="CompareBackgroundBox" Width="150" SelectionChanged="CompareBackgroundChanged" ToolTip="편집 확인용 배경 · 출력에는 포함되지 않습니다."/></WrapPanel>
       <TextBlock Grid.Row="1" x:Name="SelectedRegionText" Text="선택 영역 없음 · 마우스로 드래그해 지정하세요" Foreground="{StaticResource AccentBrush}" FontSize="10" Margin="3,5"/>
      </Grid>
      <local:PreviewControl x:Name="Preview"/>
@@ -141,6 +141,7 @@
         <WrapPanel><CheckBox x:Name="ClipLoopCheck" Content="클립 안 반복" Checked="ClipOptionsChanged" Unchecked="ClipOptionsChanged"/>
          <StackPanel><TextBlock Text="반복 주기 (초)"/><ComboBox x:Name="LoopPeriodBox" IsEditable="True" Width="110" SelectionChanged="ClipComboChanged" LostFocus="ClipOptionsChanged"/></StackPanel></WrapPanel>
         <TextBlock Text="클립 전체 길이 안에서 이 주기로 반복합니다." Foreground="#93AABA" FontSize="10" Margin="4"/>
+        <StackPanel x:Name="SoftnessPanel"/>
         <Expander Header="영역 배경 처리" Foreground="#C6D5DE" Margin="3,6">
          <StackPanel><ComboBox x:Name="BackgroundBox" SelectionChanged="BackgroundChanged"/>
           <WrapPanel><Border x:Name="ColorSwatch" Width="24" Height="24" Background="White" BorderBrush="#7891A5" BorderThickness="1" Margin="3"/>
@@ -194,7 +195,7 @@
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <WrapPanel><Button x:Name="PlayButton" Content="▶ 재생" Click="TogglePlayback" Padding="10,5"/><Button Content="처음" Click="Rewind" Padding="8,5"/>
        <TextBlock x:Name="TimeText" Text="0.00 / 1.00초" Margin="8,0" Foreground="#B9D0DD"/>
-       <CheckBox x:Name="LoopPreviewCheck" Content="전체 반복" IsChecked="True"/><Button x:Name="SectionsButton" Content="구간 설정" Click="ConfigurePlayback" Padding="8,5"/>
+       <CheckBox x:Name="LoopPreviewCheck" Content="전체 반복" IsChecked="True"/><Button x:Name="SectionsButton" Content="구간 설정" Click="ConfigurePlayback" Padding="8,5"/><Button Content="반복 연결 확인" Click="CompareLoopEdges" Padding="8,5"/>
        <CheckBox x:Name="BroadcastPreviewCheck" Content="방송 재생" ToolTip="등장 한 번 → 반복 구간 유지 → 퇴장 버튼 · 처음 버튼으로 재등장 준비" Checked="BroadcastModeChanged" Unchecked="BroadcastModeChanged"/><Button x:Name="ExitPlaybackButton" Content="퇴장" Click="ExitPlayback" Padding="8,5"/></WrapPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top"><Button Content="−" Click="TimelineZoomOut" Padding="10,5"/><Button Content="＋" Click="TimelineZoomIn" Padding="10,5"/></StackPanel>
      </Grid>

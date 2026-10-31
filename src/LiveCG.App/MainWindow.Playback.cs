@@ -6,7 +6,7 @@ namespace LiveCG.App;
 
 public partial class MainWindow
 {
-    private PlaybackSections _defaultPlayback=new();
+    private PlaybackSections _defaultPlayback=new(){Enabled=true,ByEffects=true,ExitEnabled=false};
     private PlaybackClock? _broadcastClock;
     private double _broadcastElapsed;
     private void InitializePlayback()
@@ -18,7 +18,7 @@ public partial class MainWindow
         if(_busy||_current is null){Notify("먼저 PNG를 선택하세요.");return;}
         StopPlayback();var candidate=_current.Snapshot();if(!candidate.Playback.Enabled)candidate.Playback=PlaybackSections.FromTimeline(candidate,_video);
         var dialog=new PlaybackWindow(candidate,_video,_time){Owner=this};
-        if(dialog.ShowDialog()==true){_current.Playback=dialog.Sections with{};MarkEdited();RefreshTimeline();}
+        if(dialog.ShowDialog()==true){_current.Playback=dialog.Sections with{};_current.Regions=LayerGraph.Copy(candidate.Regions,false);SelectRegion(_current.Regions.FirstOrDefault(r=>r.Id==_region?.Id));MarkEdited();RefreshTimeline();}
     }
     private void OutputKindChanged(object sender,SelectionChangedEventArgs e)
     {
@@ -39,6 +39,7 @@ public partial class MainWindow
     }
     private void ExitPlayback(object sender,RoutedEventArgs e)
     {
+        if(_current?.Playback.ExitEnabled==false){Notify("퇴장 사용을 켜면 퇴장할 수 있습니다.");return;}
         if(_current?.Playback.Enabled!=true){Notify("구간 설정에서 등장·반복·퇴장을 먼저 켜세요.");return;}
         BroadcastPreviewCheck.IsChecked=true;
         if(!_playing)TogglePlayback(this,new RoutedEventArgs());

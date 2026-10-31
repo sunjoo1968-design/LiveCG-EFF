@@ -116,9 +116,10 @@ public sealed class TimelineControl : FrameworkElement
             foreach(var clip in region.Clips.OrderBy(c=>c.Start))
             {
                 var r=ClipRect(region,clip);var selected=SelectedClipIds.Contains(clip.Id);
-                dc.DrawRoundedRectangle(clip.Enabled&&region.Enabled?ClipBrushes[(int)clip.Options.Kind%ClipBrushes.Length]:Brush("#3A4550"),new Pen(selected?Brush("#75FFCD"):Brush("#64818C"),selected?2.5:1),r,4,4);
+                var exitOff=_job?.Playback.ExitEnabled==false&&clip.Section==ClipSection.Exit;
+                dc.DrawRoundedRectangle(clip.Enabled&&region.Enabled&&!exitOff?ClipBrushes[(int)clip.Options.Kind%ClipBrushes.Length]:Brush("#3A4550"),new Pen(selected?Brush("#75FFCD"):Brush("#64818C"),selected?2.5:1),r,4,4);
                 dc.PushClip(new RectangleGeometry(new Rect(r.Left+5,r.Top,r.Width-8>0?r.Width-8:1,r.Height)));
-                Text(dc,clip.DisplayName+(clip.Loop?" ↻":""),new(r.Left+7,r.Top+5),Brushes.White,11);
+                Text(dc,(_job?.Playback.ByEffects==true?"["+SectionRules.Name(SectionRules.Effective(clip))+(exitOff?" 꺼짐":"")+"] ":"")+clip.DisplayName+(clip.Loop?" ↻":""),new(r.Left+7,r.Top+5),Brushes.White,11);
                 dc.Pop();
                 if(selected&&SelectedClipIds.Count==1)
                 {
@@ -159,7 +160,7 @@ public sealed class TimelineControl : FrameworkElement
     private double TimeAt(double x)=>Math.Max(0,TimelineRules.Snap((x-LabelWidth)/PixelsPerSecond,_video.Fps));
     private void DrawSections(DrawingContext dc)
     {
-        Text(dc,"등장 · 반복 · 퇴장",new(10,3),Brush("#ABC3D5"),10);
+        Text(dc,_job?.Playback.ExitEnabled==false?"등장 · 반복":"등장 · 반복 · 퇴장",new(10,3),Brush("#ABC3D5"),10);
         if(_job?.Playback.Enabled!=true){Text(dc,"구간 설정에서 사용 · 경계는 드래그",new(LabelWidth+7,3),Brush("#7891A5"),10);return;}
         var plan=PlaybackPlan.Create(_job,_video);var a=LabelWidth+(double)plan.IntroFrames/plan.Fps*PixelsPerSecond;var b=LabelWidth+(double)plan.LoopEndFrame/plan.Fps*PixelsPerSecond;var end=LabelWidth+plan.Duration*PixelsPerSecond;
         void Part(double left,double right,string text,string color){if(right<=left)return;dc.DrawRectangle(Brush(color),null,new Rect(left,0,right-left,SectionHeight-1));if(right-left>30)Text(dc,text,new(left+5,3),Brushes.White,10,Math.Max(1,right-left-8));}
@@ -169,7 +170,7 @@ public sealed class TimelineControl : FrameworkElement
     public void BeginPointer(Point point,bool control=false)
     {
         _startX=point.X;_resize=0;
-        if(point.Y<SectionHeight&&point.X>=LabelWidth-6&&_job?.Playback.Enabled==true)
+        if(point.Y<SectionHeight&&point.X>=LabelWidth-6&&_job?.Playback.Enabled==true&&!_job.Playback.ByEffects)
         {
             var plan=PlaybackPlan.Create(_job,_video);var edges=new[]{(double)plan.IntroFrames/plan.Fps,(double)plan.LoopEndFrame/plan.Fps,plan.Duration};
             var hit=edges.Select((t,i)=>(Distance:Math.Abs(point.X-(LabelWidth+t*PixelsPerSecond)),Index:i+1)).OrderBy(x=>x.Distance).First();
