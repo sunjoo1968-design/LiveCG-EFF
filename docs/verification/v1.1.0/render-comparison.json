@@ -1,0 +1,464 @@
+[
+  {
+    "Package": "\uD55C\uAE00 \uB85C\uCEEC \u0026 \uD328\uD0A4\uC9C0.obs",
+    "Time": 0,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "\uD55C\uAE00 \uB85C\uCEEC \u0026 \uD328\uD0A4\uC9C0.obs",
+    "Time": 0.2,
+    "Mean": 0.09896875,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "\uD55C\uAE00 \uB85C\uCEEC \u0026 \uD328\uD0A4\uC9C0.obs",
+    "Time": 0.5,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "\uD55C\uAE00 \uB85C\uCEEC \u0026 \uD328\uD0A4\uC9C0.obs",
+    "Time": 1,
+    "Mean": 0.01875,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "\uD55C\uAE00 \uB85C\uCEEC \u0026 \uD328\uD0A4\uC9C0.obs",
+    "Time": 1.9,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "all-effects.obs",
+    "Time": 0,
+    "Mean": 0.04552829273123388,
+    "Fraction": 0.000994949494949495,
+    "Passed": true
+  },
+  {
+    "Package": "all-effects.obs",
+    "Time": 0.6,
+    "Mean": 0.3109523981644342,
+    "Fraction": 0.003101010101010101,
+    "Passed": true
+  },
+  {
+    "Package": "all-effects.obs",
+    "Time": 1.4,
+    "Mean": 0.20905531788488044,
+    "Fraction": 0.0027003367003367003,
+    "Passed": true
+  },
+  {
+    "Package": "all-effects.obs",
+    "Time": 1.6,
+    "Mean": 0.003068597742127152,
+    "Fraction": 6.734006734006734E-06,
+    "Passed": true
+  },
+  {
+    "Package": "group-masks.obs",
+    "Time": 0,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "group-masks.obs",
+    "Time": 0.6,
+    "Mean": 0.09960352380009252,
+    "Fraction": 0.002043771043771044,
+    "Passed": true
+  },
+  {
+    "Package": "group-masks.obs",
+    "Time": 1.2,
+    "Mean": 0.21699009869973515,
+    "Fraction": 0.0014006734006734008,
+    "Passed": true
+  },
+  {
+    "Package": "group-masks.obs",
+    "Time": 2.1,
+    "Mean": 2.5931370780554583E-18,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "paths-cutout.obs",
+    "Time": 0.1,
+    "Mean": 0.006579921766686479,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "paths-cutout.obs",
+    "Time": 0.6,
+    "Mean": 0.006579921766686479,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "paths-cutout.obs",
+    "Time": 1.6,
+    "Mean": 2.5931370780554583E-18,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "broadcast-polish.obs",
+    "Time": 0.2,
+    "Mean": 0.027049019607843124,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "broadcast-polish.obs",
+    "Time": 0.6,
+    "Mean": 5.9865307155959614E-18,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "broadcast-polish.obs",
+    "Time": 1.4,
+    "Mean": 0.05996537990196082,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "broadcast-polish.obs",
+    "Time": 2.5,
+    "Mean": 0.008812500000000008,
+    "Fraction": 0.000125,
+    "Passed": true
+  },
+  {
+    "Package": "broadcast-polish.obs",
+    "Time": 3.5,
+    "Mean": 5.9865307155959614E-18,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "broadcast-polish.obs",
+    "Time": 4.5,
+    "Mean": 4.718447854656916E-19,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-inside.obs",
+    "Time": 0.3,
+    "Mean": 0.04114583333333333,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-inside.obs",
+    "Time": 0.7,
+    "Mean": 0.04893229166666667,
+    "Fraction": 5.208333333333334E-05,
+    "Passed": true
+  },
+  {
+    "Package": "soft-inside.obs",
+    "Time": 0,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-inside.obs",
+    "Time": 1,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-outside.obs",
+    "Time": 0.3,
+    "Mean": 0.036822916666666664,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-outside.obs",
+    "Time": 0.7,
+    "Mean": 0.04388020833333333,
+    "Fraction": 5.208333333333334E-05,
+    "Passed": true
+  },
+  {
+    "Package": "soft-outside.obs",
+    "Time": 0,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-outside.obs",
+    "Time": 1,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-both.obs",
+    "Time": 0.3,
+    "Mean": 0.03986979166666667,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-both.obs",
+    "Time": 0.7,
+    "Mean": 0.04388020833333333,
+    "Fraction": 5.208333333333334E-05,
+    "Passed": true
+  },
+  {
+    "Package": "soft-both.obs",
+    "Time": 0,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-both.obs",
+    "Time": 1,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "content-only.obs",
+    "Time": 0.3,
+    "Mean": 0.036822916666666664,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "content-only.obs",
+    "Time": 0.7,
+    "Mean": 0.046484375,
+    "Fraction": 5.208333333333334E-05,
+    "Passed": true
+  },
+  {
+    "Package": "content-only.obs",
+    "Time": 0,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "content-only.obs",
+    "Time": 1,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-group.obs",
+    "Time": 0.25,
+    "Mean": 0.22375,
+    "Fraction": 0.007291666666666667,
+    "Passed": true
+  },
+  {
+    "Package": "soft-group.obs",
+    "Time": 0.6,
+    "Mean": 0.07213541666666666,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-group.obs",
+    "Time": 1.5,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-group.obs",
+    "Time": 1,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-numeric.obs",
+    "Time": 0.25,
+    "Mean": 1.9190234375,
+    "Fraction": 0.021979166666666668,
+    "Passed": true
+  },
+  {
+    "Package": "soft-numeric.obs",
+    "Time": 0.6,
+    "Mean": 0.0265234375,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "soft-numeric.obs",
+    "Time": 1.5,
+    "Mean": 0.4609375,
+    "Fraction": 0.0069791666666666665,
+    "Passed": true
+  },
+  {
+    "Package": "soft-numeric.obs",
+    "Time": 1,
+    "Mean": 1.744140625,
+    "Fraction": 0.020677083333333332,
+    "Passed": true
+  },
+  {
+    "Package": "manual-separation.obs",
+    "Time": 0.25,
+    "Mean": 0.13333333333333333,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "manual-separation.obs",
+    "Time": 0.6,
+    "Mean": 0.03333333333333333,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "manual-separation.obs",
+    "Time": 1,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "inactive-manual-group.obs",
+    "Time": 0.25,
+    "Mean": 0.22166666666666668,
+    "Fraction": 0.004583333333333333,
+    "Passed": true
+  },
+  {
+    "Package": "inactive-manual-group.obs",
+    "Time": 0.6,
+    "Mean": 0.053828125,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "inactive-manual-group.obs",
+    "Time": 1,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "text-strokes.obs",
+    "Time": 0.3,
+    "Mean": 0.39447916666666666,
+    "Fraction": 3.472222222222222E-05,
+    "Passed": true
+  },
+  {
+    "Package": "text-strokes.obs",
+    "Time": 0.6,
+    "Mean": 0.40166666666666667,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "v1 original rest",
+    "Time": 1.8,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "v1 Transparent rest",
+    "Time": 1.8,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "v1 Hold rest",
+    "Time": 1.8,
+    "Mean": 0.011625,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS 33",
+    "Time": 1.4,
+    "Mean": 0.06352892156862744,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS 33",
+    "Time": 3.5,
+    "Mean": 0.050592647058823534,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS soft-outside",
+    "Time": 0.3,
+    "Mean": 0.036822916666666664,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS soft-group",
+    "Time": 0.25,
+    "Mean": 0.22375,
+    "Fraction": 0.007291666666666667,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS content-only",
+    "Time": 0.7,
+    "Mean": 0.046484375,
+    "Fraction": 5.208333333333334E-05,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS manual-separation",
+    "Time": 0.6,
+    "Mean": 0.03333333333333333,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS inactive-manual-group",
+    "Time": 0.6,
+    "Mean": 0.053828125,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS text strokes",
+    "Time": 0.6,
+    "Mean": 0.40166666666666667,
+    "Fraction": 0,
+    "Passed": true
+  },
+  {
+    "Package": "Actual OBS v1 original rest",
+    "Time": 1.8,
+    "Mean": 0,
+    "Fraction": 0,
+    "Passed": true
+  }
+]

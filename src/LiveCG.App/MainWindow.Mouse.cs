@@ -18,7 +18,7 @@ public partial class MainWindow
             },()=>{before=CaptureState();BeginGesture();},commit=>{EndGesture(commit);if(!commit&&before is not null)RestoreEdit(before);before=null;});
             MouseProperties[name]=mouse;
         }
-        void Clip(){if(CommitClip(true)){MarkEdited();RefreshClipList();RefreshTimeline();}}
+        void Clip(){if(CommitClip(true)){MarkEdited();RefreshTimeline();}}
         void Mask(){MaskPropertiesChanged(this,new RoutedEventArgs());}
         Add("ClipStartBox",0,60,"초",Clip);Add("ClipDurationBox",1d/60,30,"초",Clip);
         Add("EffectSpeedBox",.25,4,"배",Clip);Add("LoopPeriodBox",1d/60,30,"초",Clip);

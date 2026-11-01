@@ -43,7 +43,7 @@ async function load(name, preview = false) {
 try {
     const target = await send("Target.createTarget", { url: "about:blank" }); session = (await send("Target.attachToTarget", { targetId: target.targetId, flatten: true })).sessionId;
     await send("Page.enable", {}, session); await send("Runtime.enable", {}, session);
-    for (const name of ["한글 로컬 & 패키지.obs", "all-effects.obs", "group-masks.obs", "paths-cutout.obs", "broadcast-polish.obs","soft-inside.obs","soft-outside.obs","soft-both.obs","content-only.obs","soft-group.obs","soft-numeric.obs","manual-separation.obs","inactive-manual-group.obs"]) {
+    for (const name of ["한글 로컬 & 패키지.obs", "all-effects.obs", "group-masks.obs", "paths-cutout.obs", "broadcast-polish.obs","soft-inside.obs","soft-outside.obs","soft-both.obs","content-only.obs","soft-group.obs","soft-numeric.obs","manual-separation.obs","inactive-manual-group.obs","text-strokes.obs"]) {
         const { packageDir } = await load(name);
         const expected = await fs.readdir(path.join(packageDir, "expected"));
         for (const file of expected.filter(f => f.endsWith(".png"))) {

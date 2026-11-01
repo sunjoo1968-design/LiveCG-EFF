@@ -10,7 +10,7 @@ public partial class MainWindow
     private sealed record GroupChoice(Guid Id,string Name){public override string ToString()=>Name;}
     private void InitializeGroups()
     {
-        Choices(CreationRoleBox,["자동 연결","새 전체 묶음","묶음 안 부분 효과","독립 객체"]);CreationRoleBox.SelectedIndex=0;Choices(RegionRoleBox,["독립 객체 · 따로 움직임","전체 묶음 (그룹)","묶음 안 부분 효과"]);Choices(MaskOperationBox,["보일 곳 더하기","이 부분 가리기 (빼기)","겹친 곳만 보이기"]);Choices(MaskEndBox,["마지막 모양 유지","마스크 적용 해제","대상 영역 숨김 (범위 비움)"]);
+        Choices(CreationRoleBox,["자동 연결","새 전체 묶음","묶음 안 부분 효과","독립 객체"]);CreationRoleBox.SelectedIndex=0;Choices(MaskOperationBox,["보일 곳 더하기","이 부분 가리기 (빼기)","겹친 곳만 보이기"]);Choices(MaskEndBox,["마지막 모양 유지","마스크 적용 해제","대상 영역 숨김 (범위 비움)"]);
         Choices(MaskStartBox,["0","0.5","1","2"]);Choices(MaskDurationBox,["1","2","3","5","10"]);Choices(MaskOpacityBox,["0","25","50","75","100"]);Choices(MaskFeatherBox,["0","0.5","1","2","4","8"]);Choices(MaskExpandBox,["-4","-2","-1","0","1","2","4","8"]);
         Preview.MaskCreated+=MaskCreated;Preview.MaskEdited+=()=>{MarkEdited();LoadMaskFields();RefreshTimeline();};Preview.MaskDeleteRequested+=()=>DeleteMask(this,new RoutedEventArgs());
         Preview.RegionCreated+=ConfigureNewRegion;
@@ -31,7 +31,7 @@ public partial class MainWindow
     private void ClearMaskSelection(){_selectedMask=null;Preview.SelectedMask=null;Preview.CreatingMask=false;TimelineEditor.SelectedMask=null;}
     private void LoadGroupFields()
     {
-        if(RegionRoleBox is null)return;var prior=_loading;_loading=true;RegionRoleBox.SelectedIndex=(int)(_region?.Role??RegionRole.Group);
+        if(ParentGroupBox is null)return;var prior=_loading;_loading=true;
         ParentGroupBox.ItemsSource=_current?.Regions.Where(g=>g.Role==RegionRole.Group&&g.Id!=_region?.Id).Select(g=>new GroupChoice(g.Id,g.Name)).ToList();ParentGroupBox.SelectedItem=ParentGroupBox.Items.Cast<GroupChoice>().FirstOrDefault(g=>g.Id==_region?.ParentId);
         MaskList.ItemsSource=_region?.Masks.ToList();MaskList.SelectedItem=_selectedMask;GroupRelationText.Text=_region is null?"목록이나 타임라인에서 영역을 고르세요.":_region.Role==RegionRole.Group?"▣ "+_region.Name+" · 전체 묶음":_region.ParentId is { } id?"▣ "+(_current?.Regions.FirstOrDefault(r=>r.Id==id)?.Name??"")+"  ›  ◇ "+_region.Name:"◇ "+_region.Name+" · 독립 객체";_loading=prior;LoadMaskFields();LoadContextLabels();
     }
@@ -43,7 +43,6 @@ public partial class MainWindow
         try{LayerGraph.Validate(_current.Regions);}catch(Exception ex){region.Role=before.Role;region.ParentId=before.ParentId;error=ex.Message;return false;}
         ClearMaskSelection();SelectRegion(region);RefreshRegionList();RefreshTimeline();MarkEdited();return true;
     }
-    private void ApplyRegionRelation(object sender,RoutedEventArgs e){if(_busy||_region is null)return;if(!SetRegionRelation(_region,(RegionRole)Math.Max(0,RegionRoleBox.SelectedIndex),(ParentGroupBox.SelectedItem as GroupChoice)?.Id,out var error))Notify(error);}
     private void ToggleCollapse(EffectRegion region){CommitMask(false);region.Collapsed=!region.Collapsed;ClearMaskSelection();SelectRegion(region,null,false);RefreshRegionList();RefreshTimeline();MarkEdited();}
     private void CollapseSelectedGroup(object sender,RoutedEventArgs e){if(_region is not null)ToggleCollapse(_region);}
     public void SelectMask(EffectRegion owner,MaskTrack mask)

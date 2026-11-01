@@ -13,6 +13,7 @@ public partial class MainWindow
     private readonly CheckBox _softEnabled=new(){Content="소프트",VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(4)};
     private readonly CheckBox _softSeparate=new(){Content="위·오른쪽·아래·왼쪽 개별 조절"};
     private readonly ComboBox _contentMode=new(){Width=140,VerticalAlignment=VerticalAlignment.Center};
+    private readonly ComboBox _separationTarget=new(){Width=118,VerticalAlignment=VerticalAlignment.Center,ToolTip="분리 대상 · 글자는 획을 줄이지 않고 안쪽 배경을 제거합니다."};
     private readonly TextBlock _separationState=new(){VerticalAlignment=VerticalAlignment.Center,Foreground=Brushes.Aquamarine,Margin=new Thickness(5),FontSize=10};
     private readonly ComboBox _softDirection=new(){Width=80,VerticalAlignment=VerticalAlignment.Center};
     public readonly TextBlock SelectedRegionText=new(){Width=78,TextTrimming=TextTrimming.CharacterEllipsis,Foreground=Brushes.Aquamarine,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(3)};
@@ -25,6 +26,7 @@ public partial class MainWindow
     private void InitializeSoftness()
     {
         RegisterName("SelectedRegionText",SelectedRegionText);RegisterName("ColorSwatch",ColorSwatch);RegisterName("AreaContentMode",_contentMode);RegisterName("AreaSoftEnabled",_softEnabled);
+        RegisterName("AreaSeparationTarget",_separationTarget);
         Panel row=SoftnessPanel;row.Children.Add(SelectedRegionText);row.Children.Add(_softEnabled);
         Choices(_softDirection,["안쪽","바깥쪽","양쪽"]);
         void Change(Action<EffectRegion> edit){if(_loading||_softSync||_busy||_region is null)return;edit(_region);MarkEdited();LoadContextLabels();Preview.InvalidateVisual();}
@@ -40,10 +42,11 @@ public partial class MainWindow
         }
         Number(row,"Width","경계 폭",0,256,"px",(r,v)=>r.Softness=r.Softness with{Width=v},true);row.Children.Add(_softDirection);
         var details=new Button{Content="세부 설정",VerticalAlignment=VerticalAlignment.Center};details.Click+=(_,_)=>AreaDetailsPopup.IsOpen=!AreaDetailsPopup.IsOpen;row.Children.Add(details);
-        Panel content=row;Choices(_contentMode,["영역 전체","배경 고정·내용만"]);content.Children.Add(_contentMode);content.Children.Add(ColorSwatch);
+        Panel content=row;Choices(_contentMode,["영역 전체","배경 고정·내용만"]);content.Children.Add(_contentMode);content.Children.Add(_separationTarget);content.Children.Add(ColorSwatch);
         void Button(string text,RoutedEventHandler action){var b=new Button{Content=text,Padding=new Thickness(7,4,7,4),VerticalAlignment=VerticalAlignment.Center};b.Click+=action;content.Children.Add(b);}
-        Button("스포이드",PickBackgroundColor);Button("색상표",ChooseBackgroundColor);Button("정밀 보정",FitObject);row.Children.Remove(details);row.Children.Add(details);
-        _contentMode.SelectionChanged+=(_,_)=>Change(r=>{var on=_contentMode.SelectedIndex==1;r.ContentOnly=on;r.CutoutEnabled=on;});
+        Button("배경 스포이드",PickBackgroundColor);Button("배경 색상표",ChooseBackgroundColor);Choices(_separationTarget,["일반 오브젝트","글자 · 획 보존"]);Button("정밀 분리·보정",FitObject);row.Children.Remove(details);row.Children.Add(details);
+        _separationTarget.SelectionChanged+=(_,_)=>{Change(r=>{r.SeparationTarget=(SeparationTarget)Math.Max(0,_separationTarget.SelectedIndex);if(r.SeparationTarget==SeparationTarget.Text){r.ContentOnly=true;r.CutoutEnabled=true;r.Softness=r.Softness with{Enabled=false};}});if(!_loading&&!_softSync){LoadSoftnessFields();if(_region?.Cutout is not null)Notify("분리 대상 변경 · 수동 보정은 유지합니다. 정밀 분리에서 다시 계산하면 새 방식이 적용됩니다.");}};
+        _contentMode.SelectionChanged+=(_,_)=>{Change(r=>{var on=_contentMode.SelectedIndex==1;r.ContentOnly=on;r.CutoutEnabled=on;});if(!_loading&&!_softSync)LoadSoftnessFields();};
         Number(SoftDetailsPanel,"Strength","영역 경계 부드러움 강도",10,300,"%",(r,v)=>r.Softness=r.Softness with{Strength=v/100});
         SoftDetailsPanel.Children.Add(_softSeparate);SoftDetailsPanel.Children.Add(_softSides);
         _softSeparate.Checked+=(_,_)=>{Change(r=>r.Softness=r.Softness with{SeparateSides=true});_softSides.Visibility=Visibility.Visible;};_softSeparate.Unchecked+=(_,_)=>{Change(r=>r.Softness=r.Softness with{SeparateSides=false});_softSides.Visibility=Visibility.Collapsed;};
@@ -59,6 +62,8 @@ public partial class MainWindow
         if(_softValues.Count==0)return;_softSync=true;
         var s=_region?.Softness??new();_softEnabled.IsChecked=s.Enabled;_softDirection.SelectedIndex=(int)s.Direction;_softSeparate.IsChecked=s.SeparateSides;_softSides.Visibility=s.SeparateSides?Visibility.Visible:Visibility.Collapsed;
         _contentMode.SelectedIndex=_region is not null&&(_region.ContentOnly||RegionRaster.ActiveCutout(_region) is not null)?1:0;
+        _separationTarget.SelectedIndex=(int)(_region?.SeparationTarget??SeparationTarget.Object);var textMode=_region?.SeparationTarget==SeparationTarget.Text&&_region.ContentOnly;_softEnabled.IsEnabled=!textMode;_softValues["Width"].IsEnabled=!textMode;_softDirection.IsEnabled=!textMode;_softValues["Tolerance"].IsEnabled=!textMode;
+        _softEnabled.ToolTip=textMode?"글자 모드는 원본 획을 보존하기 위해 영역 경계를 축소하거나 흐리지 않습니다.":"선택틀 경계에 소프트 적용";
         foreach(var (k,v) in new Dictionary<string,double>{{"Width",s.Width},{"Strength",s.Strength*100},{"Top",s.Top},{"Right",s.Right},{"Bottom",s.Bottom},{"Left",s.Left},{"Tolerance",_region?.ContentTolerance??24}}){_softValues[k].SetSilently(v);_softInputs[k].Text=v.ToString("0.###",CultureInfo.InvariantCulture);}
         SoftnessPanel.IsEnabled=_region is not null&&!_busy;_softSync=false;LoadContextLabels();
     }
@@ -70,7 +75,7 @@ public partial class MainWindow
     {
         if(_busy||_current is null)return;var clips=TimelineEditor.SelectedClips.Select(x=>x.Clip).ToList();if(clips.Count==0&&_clip is not null)clips.Add(_clip);
         if(clips.Count==0)return;foreach(var clip in clips)clip.Section=section;_current.Playback.ByEffects=true;_current.Playback.Enabled=true;if(section==ClipSection.Exit)_current.Playback.ExitEnabled=true;
-        MarkEdited();RefreshClipList();RefreshTimeline();Notify($"{clips.Count}개 효과를 {SectionRules.Name(section)} 구간에 배정했습니다.");
+        MarkEdited();RefreshTimeline();Notify($"{clips.Count}개 효과를 {SectionRules.Name(section)} 구간에 배정했습니다.");
     }
     public Window? CreateLoopComparison()
     {

@@ -154,6 +154,7 @@ await BroadcastChecks.Run(folder,Check);
 await SoftEdgeChecks.Run(folder,Check);
 await ContextChecks.Run(folder,Check);
 await V1Checks.Run(folder,Check);
+await TextChecks.Run(folder,Check);
 Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");
 File.WriteAllText(Path.Combine(folder,"result.txt"),$"{count-failures.Count}/{count} passed\n"+string.Join("\n",failures));
 return failures.Count==0?0:1;
@@ -166,5 +167,3 @@ static async Task<string> Run(string executable,params string[] args)
     if(process.ExitCode!=0)throw new IOException(await error);return await output;
 }
 internal sealed class ImmediateProgress(Action<double> action):IProgress<double>{public void Report(double value)=>action(value);}
-
-

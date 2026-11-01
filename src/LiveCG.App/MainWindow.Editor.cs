@@ -32,7 +32,7 @@ public partial class MainWindow
         _gestureActive=false;
         if(commit&&_gestureJson!=CaptureState().Json)MarkEdited();else _dirty=_gestureDirtyBefore;
         _gestureJson=null;
-        RefreshRegionList();RefreshClipList();LoadClipFields();LoadGroupFields();RefreshTimeline();UpdateSelectionLabel();UpdateHistoryButtons();
+        RefreshRegionList();LoadClipFields();LoadGroupFields();RefreshTimeline();UpdateSelectionLabel();UpdateHistoryButtons();
     }
     private void RestoreEdit(EditorState? state)
     {

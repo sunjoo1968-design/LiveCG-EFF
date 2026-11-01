@@ -130,8 +130,12 @@ public record VideoOptions
     }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum SeparationTarget { Object, Text }
 public record EffectRegion
 {
+    public SeparationTarget SeparationTarget { get; set; }
+    public string TextInkColor { get; set; }="";
     public RegionSoftness Softness { get; set; } = new();
     public bool ContentOnly { get; set; }
     public double ContentTolerance { get; set; } = 24;
@@ -160,6 +164,7 @@ public record EffectRegion
     public void Validate()
     {
         Bounds = Bounds.Clamp();
+        if(!Enum.IsDefined(SeparationTarget)||TextInkColor is null||(TextInkColor.Length>0&&!SKColor.TryParse(TextInkColor,out _)))throw new InvalidDataException("분리 대상/글자 보호 색상을 확인하세요.");
         if(Softness is null)throw new InvalidDataException("경계 설정이 없습니다.");Softness.Validate();
         if(!double.IsFinite(ContentTolerance)||ContentTolerance is <0 or >150)throw new InvalidDataException("배경 분리 허용오차는 0~150입니다.");
         Cutout?.Validate();
@@ -268,4 +273,3 @@ public record EditorPreferences
             throw new InvalidDataException("영역 단축키는 서로 다른 영문자 A~Z로 지정하세요.");
     }
 }
-

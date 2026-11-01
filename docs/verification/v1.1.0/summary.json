@@ -1,0 +1,31 @@
+{
+  "Version": "1.1.0",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-01",
+  "Core": 480,
+  "Wpf": 412,
+  "Chromium": 96,
+  "ProgramClock": 5,
+  "ActualObs": 28,
+  "RenderComparisons": 66,
+  "Passed": 1087,
+  "Total": 1087,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "TextRecompositionMaxChannelError": 1,
+  "OriginalNonBackgroundSupportPreserved": true,
+  "OnePixelStrokesPreserved": true,
+  "ExistingSourceAlphaPreserved": true,
+  "NoTextErosionOrFeather": true,
+  "OutputStripRemoved": true,
+  "InternalPanelLocksAndLayerHeightRetained": true,
+  "Limitations": [
+    "Exact solid background removal; compression noise and ambiguous pixels are retained",
+    "Existing manual masks remain until an explicit recalculation",
+    "Re-export OBS packages to use new text separation and section timing"
+  ],
+  "PackageSHA256": "74016E378BE71AA81FD2C47389DD63079B84D70396D3FF75E68ACA12E7DD9A72",
+  "PackageMiB": 174.2,
+  "PackageEntries": 501,
+  "PackageBytes": 182642717
+}

@@ -344,8 +344,8 @@ public sealed partial class EffectScene : IDisposable
         _layers.Add(region.Id, layer); return layer;
     }
 
-    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Softness==b.Softness&&a.ContentOnly==b.ContentOnly&&a.ContentTolerance==b.ContentTolerance&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.CutoutEnabled==b.CutoutEnabled&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
-    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,Bounds=r.Bounds,Shape=r.Shape,Softness=r.Softness with{},ContentOnly=r.ContentOnly,ContentTolerance=r.ContentTolerance,CutoutEnabled=r.CutoutEnabled,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
+    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Softness==b.Softness&&a.ContentOnly==b.ContentOnly&&a.ContentTolerance==b.ContentTolerance&&a.SeparationTarget==b.SeparationTarget&&a.TextInkColor==b.TextInkColor&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.CutoutEnabled==b.CutoutEnabled&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
+    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,Bounds=r.Bounds,Shape=r.Shape,Softness=r.Softness with{},ContentOnly=r.ContentOnly,ContentTolerance=r.ContentTolerance,SeparationTarget=r.SeparationTarget,TextInkColor=r.TextInkColor,CutoutEnabled=r.CutoutEnabled,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
     private static SKBitmap Coverage(EffectRegion region,SKRectI rect)
     {
         var bitmap=new SKBitmap(rect.Width,rect.Height);bitmap.Erase(SKColors.Transparent);

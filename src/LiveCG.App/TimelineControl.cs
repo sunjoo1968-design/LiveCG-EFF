@@ -10,7 +10,7 @@ namespace LiveCG.App;
 public sealed class TimelineControl : FrameworkElement
 {
     public const double LabelWidth=250, RulerHeight=54, RowHeight=48, SectionHeight=22;
-    private int _sectionDrag;private PlaybackSections? _sectionBefore;
+    private int _sectionDrag;private PlaybackSections? _sectionBefore,_sectionResolved;private bool _sectionMoved;
     private ImageJob? _job;
     private VideoOptions _video=new();
     private EffectClip? _dragClip;
@@ -160,21 +160,27 @@ public sealed class TimelineControl : FrameworkElement
     private double TimeAt(double x)=>Math.Max(0,TimelineRules.Snap((x-LabelWidth)/PixelsPerSecond,_video.Fps));
     private void DrawSections(DrawingContext dc)
     {
-        Text(dc,_job?.Playback.ExitEnabled==false?"등장 · 반복":"등장 · 반복 · 퇴장",new(10,3),Brush("#ABC3D5"),10);
+        Text(dc,_sectionMoved&&_job is not null?$"등장 {_job.Playback.IntroEnd:0.##}초 · 반복 {_job.Playback.LoopEnd-_job.Playback.IntroEnd:0.##}초":_job?.Playback.ByEffects==true?"구간 · 효과에 맞춤":"구간 · 직접 조절",new(10,3),Brush("#ABC3D5"),10,LabelWidth-15);
         if(_job?.Playback.Enabled!=true){Text(dc,"구간 설정에서 사용 · 경계는 드래그",new(LabelWidth+7,3),Brush("#7891A5"),10);return;}
         var plan=PlaybackPlan.Create(_job,_video);var a=LabelWidth+(double)plan.IntroFrames/plan.Fps*PixelsPerSecond;var b=LabelWidth+(double)plan.LoopEndFrame/plan.Fps*PixelsPerSecond;var end=LabelWidth+plan.Duration*PixelsPerSecond;
         void Part(double left,double right,string text,string color){if(right<=left)return;dc.DrawRectangle(Brush(color),null,new Rect(left,0,right-left,SectionHeight-1));if(right-left>30)Text(dc,text,new(left+5,3),Brushes.White,10,Math.Max(1,right-left-8));}
         Part(LabelWidth,a,"등장 1회","#386D80");Part(a,b,$"↻ 반복{(plan.RestFrames>0?$" → 쉬기 {(double)plan.RestFrames/plan.Fps:0.##}초":"")}","#286D58");Part(b,end,"퇴장","#805368");
-        foreach(var x in new[]{a,b,end}){dc.DrawRectangle(Brush("#E7EEE4"),null,new Rect(x-3,0,6,SectionHeight-1));dc.DrawLine(new Pen(Brush("#9AB7C7"),1){DashStyle=DashStyles.Dot},new(x,SectionHeight),new(x,Height));}
+        foreach(var x in (plan.ExitEnabled?new[]{a,b,end}:new[]{a,b}).Distinct()){dc.DrawRoundedRectangle(Brush("#E7EEE4"),null,new Rect(x-4,1,8,SectionHeight-3),2,2);dc.DrawLine(new Pen(Brush("#9AB7C7"),1){DashStyle=DashStyles.Dot},new(x,SectionHeight),new(x,Height));}
+    }
+    private int SectionHit(Point point)
+    {
+        if(point.Y<0||point.Y>=SectionHeight||point.X<LabelWidth-10||_job?.Playback.Enabled!=true)return 0;
+        var p=PlaybackPlan.Create(_job,_video);var a=LabelWidth+(double)p.IntroFrames/p.Fps*PixelsPerSecond;var b=LabelWidth+(double)p.LoopEndFrame/p.Fps*PixelsPerSecond;
+        var edges=p.ExitEnabled?new[]{a,b,LabelWidth+p.Duration*PixelsPerSecond}:new[]{a,b};var hit=edges.Select((x,i)=>(Distance:Math.Abs(point.X-x),Index:i+1)).OrderBy(t=>t.Distance).First();
+        return hit.Distance<=10?hit.Index:point.X>a&&point.X<b?4:0;
     }
     public void BeginPointer(Point point,bool control=false)
     {
         _startX=point.X;_resize=0;
-        if(point.Y<SectionHeight&&point.X>=LabelWidth-6&&_job?.Playback.Enabled==true&&!_job.Playback.ByEffects)
+        var sectionHit=SectionHit(point);
+        if(sectionHit>0&&_job is not null)
         {
-            var plan=PlaybackPlan.Create(_job,_video);var edges=new[]{(double)plan.IntroFrames/plan.Fps,(double)plan.LoopEndFrame/plan.Fps,plan.Duration};
-            var hit=edges.Select((t,i)=>(Distance:Math.Abs(point.X-(LabelWidth+t*PixelsPerSecond)),Index:i+1)).OrderBy(x=>x.Distance).First();
-            if(hit.Distance<=7){GestureStarted?.Invoke();_sectionBefore=_job.Playback with{};_sectionDrag=hit.Index;InvalidateVisual();return;}
+            GestureStarted?.Invoke();_sectionBefore=_job.Playback with{};_sectionResolved=SectionRules.Resolve(_job,_video);_sectionDrag=sectionHit;_sectionMoved=false;InvalidateVisual();return;
         }
         var index=(int)((point.Y-RulerHeight)/RowHeight);
         var region=point.Y>=RulerHeight&&_job is not null&&index>=0&&index<Rows.Count?Rows[index].Region:null;
@@ -217,14 +223,20 @@ public sealed class TimelineControl : FrameworkElement
     }
     public void MovePointer(Point point,bool bypassSnap=false)
     {
+        if(_sectionDrag==0&&_dragClip is null&&_dragMask is null&&_rowDrag is null&&!_scrub){var hit=SectionHit(point);Cursor=hit==4?Cursors.SizeAll:hit>0?Cursors.SizeWE:Cursors.Arrow;}
         if(_sectionDrag!=0&&_job is not null)
         {
+            if(!_sectionMoved&&Math.Abs(point.X-_startX)<1)return;
             var t=TimeAt(point.X);SnapGuide=null;
+            var initial=_sectionResolved!;
+            if(_sectionDrag==4)t=initial.IntroEnd+(point.X-_startX)/PixelsPerSecond;
             if(SnapEnabled&&!bypassSnap){var targets=_job.Regions.SelectMany(r=>r.Clips.SelectMany(c=>new[]{c.Start,c.End}).Concat(r.Masks.SelectMany(m=>new[]{m.Start,m.End}))).Append(CursorTime).Append(0);var near=targets.OrderBy(v=>Math.Abs(v-t)).First();if(Math.Abs(near-t)*PixelsPerSecond<=8){t=TimelineRules.Snap(near,_video.Fps);SnapGuide=t;}}
+            if(!_sectionMoved){_job.Playback=initial with{ByEffects=false};_sectionMoved=true;}
             var p=_job.Playback;var step=1d/_video.Fps;
             if(_sectionDrag==1)p.IntroEnd=Math.Clamp(t,0,Math.Max(0,p.LoopEnd-step));
             else if(_sectionDrag==2)p.LoopEnd=Math.Clamp(t,p.IntroEnd+step,3600);
-            else p.ExitDuration=Math.Clamp(t-p.LoopEnd,0,30);
+            else if(_sectionDrag==3)p.ExitDuration=Math.Clamp(t-p.LoopEnd,0,30);
+            else{var length=initial.LoopEnd-initial.IntroEnd;p.IntroEnd=TimelineRules.Snap(Math.Clamp(t,0,3600-length),_video.Fps);p.LoopEnd=TimelineRules.Snap(p.IntroEnd+length,_video.Fps);}
             Edited?.Invoke();Refresh();return;
         }
         if(_rowDrag is not null){_dropRow=Math.Clamp((int)((point.Y-RulerHeight)/RowHeight),0,Math.Max(0,Rows.Count-1));InvalidateVisual();return;}
@@ -269,6 +281,6 @@ public sealed class TimelineControl : FrameworkElement
     }
     private void RestoreTimings()
     {if(_job is not null)foreach(var clip in _job.Regions.SelectMany(r=>r.Clips))if(_before.TryGetValue(clip.Id,out var old)){clip.Start=old.Start;clip.Duration=old.Duration;}}
-    public void EndPointer(){if(_sectionDrag!=0){_sectionDrag=0;_sectionBefore=null;SnapGuide=null;Edited?.Invoke();GestureEnded?.Invoke(true);Refresh();return;}if(_rowDrag is { } row){_rowDrag=null;var target=Rows[Math.Clamp(_dropRow,0,Rows.Count-1)].Region;var siblings=_job!.Regions.Where(r=>r.ParentId==row.ParentId).ToList();var at=siblings.IndexOf(target);if(at>=0)MoveLayerRequested?.Invoke(row,at-siblings.IndexOf(row));Refresh();return;}var edited=_dragClip is not null||_dragMask is not null;_dragMask=null;_dragClip=null;_scrub=false;SnapGuide=null;_before.Clear();if(edited){Edited?.Invoke();GestureEnded?.Invoke(true);}Refresh();}
-    public void CancelGesture(){if(_sectionDrag!=0&&_job is not null&&_sectionBefore is not null){_job.Playback=_sectionBefore;_sectionDrag=0;_sectionBefore=null;SnapGuide=null;Edited?.Invoke();GestureEnded?.Invoke(false);Refresh();return;}_rowDrag=null;var edited=_dragClip is not null||_dragMask is not null;if(_dragMask is { } mask){mask.Start=_maskStart;mask.Duration=_maskDuration;_dragMask=null;Edited?.Invoke();}if(_dragClip is not null){RestoreTimings();Edited?.Invoke();}_dragClip=null;_scrub=false;SnapGuide=null;_before.Clear();if(edited)GestureEnded?.Invoke(false);Refresh();}
+    public void EndPointer(){if(_sectionDrag!=0){_sectionDrag=0;_sectionBefore=null;_sectionMoved=false;_sectionResolved=null;SnapGuide=null;Edited?.Invoke();GestureEnded?.Invoke(true);Refresh();return;}if(_rowDrag is { } row){_rowDrag=null;var target=Rows[Math.Clamp(_dropRow,0,Rows.Count-1)].Region;var siblings=_job!.Regions.Where(r=>r.ParentId==row.ParentId).ToList();var at=siblings.IndexOf(target);if(at>=0)MoveLayerRequested?.Invoke(row,at-siblings.IndexOf(row));Refresh();return;}var edited=_dragClip is not null||_dragMask is not null;_dragMask=null;_dragClip=null;_scrub=false;SnapGuide=null;_before.Clear();if(edited){Edited?.Invoke();GestureEnded?.Invoke(true);}Refresh();}
+    public void CancelGesture(){if(_sectionDrag!=0&&_job is not null&&_sectionBefore is not null){_job.Playback=_sectionBefore;_sectionDrag=0;_sectionBefore=null;_sectionMoved=false;_sectionResolved=null;SnapGuide=null;Edited?.Invoke();GestureEnded?.Invoke(false);Refresh();return;}_rowDrag=null;var edited=_dragClip is not null||_dragMask is not null;if(_dragMask is { } mask){mask.Start=_maskStart;mask.Duration=_maskDuration;_dragMask=null;Edited?.Invoke();}if(_dragClip is not null){RestoreTimings();Edited?.Invoke();}_dragClip=null;_scrub=false;SnapGuide=null;_before.Clear();if(edited)GestureEnded?.Invoke(false);Refresh();}
 }

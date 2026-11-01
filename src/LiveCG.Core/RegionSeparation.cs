@@ -21,7 +21,9 @@ public static class RegionSeparation
         var original=ObjectExtractor.PixelRect(region.Bounds,source.Width,source.Height);
         if(RegionRaster.ActiveCutout(region) is { } saved&&saved.Width==original.Width&&saved.Height==original.Height)return MaskBuffer.Decode(saved);
         var rect=RegionRaster.Rect(region,source.Width,source.Height);using var crop=new SKBitmap();if(!source.ExtractSubset(crop,rect))throw new InvalidDataException("분리 영역을 읽지 못했습니다.");
-        var mask=ObjectExtractor.Extract(crop,Options(region,Background(source,region)));
+        MaskBuffer mask;
+        if(region.SeparationTarget==SeparationTarget.Text){using var text=TextSeparation.Extract(crop,Background(source,region),SKColor.TryParse(region.TextInkColor,out var ink)?ink:null);mask=text.Mask;}
+        else mask=ObjectExtractor.Extract(crop,Options(region,Background(source,region)));
         return mask.Crop(new(original.Left-rect.Left,original.Top-rect.Top,original.Right-rect.Left,original.Bottom-rect.Top));
     }
 }

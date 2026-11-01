@@ -58,7 +58,7 @@ public partial class MainWindow : Window
         Preview.DeleteRequested+=()=>DeleteRegion(this,new RoutedEventArgs());
         TimelineEditor.SelectionChanged+=(region,clip)=>{Preview.CancelGesture();StopPlayback();SelectRegion(region,clip,false);};
         TimelineEditor.Seeked+=time=>{StopPlayback();Seek(time,true);};
-        TimelineEditor.Edited+=()=>{MarkEdited();RefreshTimeline();LoadClipFields();LoadMaskFields();RefreshClipList();};
+        TimelineEditor.Edited+=()=>{MarkEdited();RefreshTimeline();LoadClipFields();LoadMaskFields();};
         TimelineEditor.GestureStarted+=BeginGesture;TimelineEditor.GestureEnded+=EndGesture;AddTimelineMenu();
         TimelineEditor.DeleteRequested+=()=>DeleteClip(this,new RoutedEventArgs());TimelineEditor.Message+=Notify;
         TimelineEditor.MoveLayerRequested+=MoveLayer;TimelineEditor.ToggleLayerRequested+=ToggleLayer;
@@ -155,10 +155,6 @@ public partial class MainWindow : Window
     {
         var previous=_loading;_loading=true;RegionList.Tag=_current?.SourcePath??"";LayerCountText.Text=(_current?.Regions.Count??0)+"개";RegionList.ItemsSource=LayerGraph.Rows(_current?.Regions??[]).Where(r=>r.Mask is null).Select(r=>r.Region).ToList();RegionList.SelectedItem=_region;_loading=previous;
     }
-    private void RefreshClipList()
-    {
-        var previous=_loading;_loading=true;ClipList.ItemsSource=_region?.Clips.OrderBy(c=>c.Start).ToList();ClipList.SelectedItem=_clip;_loading=previous;
-    }
     private void SelectRegion(EffectRegion? region,EffectClip? clip=null,bool chooseFirst=true)
     {
         if(_clip is not null)CommitClip(false);CommitRegion(false);
@@ -173,17 +169,10 @@ public partial class MainWindow : Window
         if(SKColor.TryParse(region?.BackgroundColor??"#FFFFFF",out var swatch))ColorSwatch.Background=new SolidColorBrush(Color.FromArgb(swatch.Alpha,swatch.Red,swatch.Green,swatch.Blue));
         ShapeBox.SelectedIndex=(int)_editor.NewShape;
         Preview.SelectedRegion=region;TimelineEditor.SelectedRegion=region;TimelineEditor.SelectedClip=_clip;
-        _loading=false;RefreshClipList();LoadClipFields();LoadGroupFields();UpdateSelectionLabel();TimelineEditor.InvalidateVisual();Preview.InvalidateVisual();
+        _loading=false;LoadClipFields();LoadGroupFields();UpdateSelectionLabel();TimelineEditor.InvalidateVisual();Preview.InvalidateVisual();
         if(!_restoring&&!_gestureActive)_history.UpdateSelection(CaptureState());
     }
     private void RegionSelectionChanged(object sender,SelectionChangedEventArgs e){if(!_loading){Preview.CancelGesture();SelectRegion(RegionList.SelectedItem as EffectRegion);}}
-    private void ClipSelectionChanged(object sender,SelectionChangedEventArgs e)
-    {
-        if(_loading)return;
-        if(_clip is not null)CommitClip(false);_clip=ClipList.SelectedItem as EffectClip;_selectionEpoch++;
-        TimelineEditor.SelectedClip=_clip;LoadClipFields();TimelineEditor.InvalidateVisual();
-        if(_clip is not null)Seek(_clip.Start+_clip.Duration*.45,true);
-    }
     private void LoadClipFields()
     {
         var previous=_loading;_loading=true;
@@ -245,7 +234,7 @@ public partial class MainWindow : Window
         }catch(Exception ex){if(report)Error(ex);return false;}
     }
     private void ClipOptionsChanged(object sender,RoutedEventArgs e)
-    {if(_loading)return;if(CommitClip(true)){MarkEdited();LoadClipFields();RefreshClipList();RefreshTimeline();}}
+    {if(_loading)return;if(CommitClip(true)){MarkEdited();LoadClipFields();RefreshTimeline();}}
     private void ClipComboChanged(object sender,SelectionChangedEventArgs e)=>QueueEdit(()=>ClipOptionsChanged(sender,e));
     private void SelectEffect(EffectKind kind)
     {
@@ -253,7 +242,7 @@ public partial class MainWindow : Window
         if(_clip is not null)_clip.Options=_clip.Options with {Kind=kind};
         else _defaultEffect=_defaultEffect with {Kind=kind};
         if(_region is not null&&_clip is null)AddNewClip(false);
-        else{MarkEdited();LoadClipFields();RefreshClipList();RefreshTimeline();if(_clip is not null)Seek(_clip.Start+_clip.Duration*.45,true);}
+        else{MarkEdited();LoadClipFields();RefreshTimeline();if(_clip is not null)Seek(_clip.Start+_clip.Duration*.45,true);}
     }
     private void AddRegion(object sender,RoutedEventArgs e)
     {
@@ -282,20 +271,20 @@ public partial class MainWindow : Window
         clip.Loop=_clip?.Loop??_defaultLoop;clip.LoopPeriod=_clip?.LoopPeriod??_defaultLoopPeriod;
         if(clip.Options.Kind==EffectKind.UserMotion)clip.Motion=_clip?.Motion?.Copy()??_defaultMotion?.Copy()??MotionDefinition.Example();
         if(atCursor)TimelineRules.SetTiming(clip,_time,clip.Duration,_video.Fps);
-        _clip=clip;_selectionEpoch++;RefreshClipList();LoadClipFields();TimelineEditor.SelectedClip=clip;MarkEdited();RefreshRegionList();UpdateSelectionLabel();RefreshTimeline();
+        _clip=clip;_selectionEpoch++;LoadClipFields();TimelineEditor.SelectedClip=clip;MarkEdited();RefreshRegionList();UpdateSelectionLabel();RefreshTimeline();
         Seek(clip.Start+clip.Duration*.45,true);
     }
     private void DuplicateClip(object sender,RoutedEventArgs e)
     {
         if(_busy||_region is null||_clip is null||!CommitClip(true))return;
         var clone=_clip.Copy();if(clone.SequenceId is not null)clone.SequenceId=Guid.NewGuid();clone.Start=_region.Clips.Select(c=>c.End).DefaultIfEmpty(0).Max();clone.Validate();
-        _region.Clips.Add(clone);_clip=clone;_selectionEpoch++;RefreshClipList();LoadClipFields();TimelineEditor.SelectedClip=clone;MarkEdited();RefreshRegionList();RefreshTimeline();
+        _region.Clips.Add(clone);_clip=clone;_selectionEpoch++;LoadClipFields();TimelineEditor.SelectedClip=clone;MarkEdited();RefreshRegionList();RefreshTimeline();
     }
     private void DeleteClip(object sender,RoutedEventArgs e)
     {
         if(_selectedMask is not null){DeleteMask(sender,e);return;}
         if(_busy||_region is null||_clip is null)return;TimelineEditor.CancelGesture();var selected=TimelineEditor.SelectedClips.ToList();if(selected.Count==0)selected.Add((_region,_clip));foreach(var item in selected)item.Region.Clips.Remove(item.Clip);_clip=_region.Clips.OrderBy(c=>c.Start).FirstOrDefault();_selectionEpoch++;
-        RefreshClipList();LoadClipFields();TimelineEditor.SelectedClip=_clip;MarkEdited();RefreshRegionList();UpdateSelectionLabel();RefreshTimeline();
+        LoadClipFields();TimelineEditor.SelectedClip=_clip;MarkEdited();RefreshRegionList();UpdateSelectionLabel();RefreshTimeline();
     }
     private void ApplyRegions(object sender,RoutedEventArgs e)
     {
@@ -308,7 +297,7 @@ public partial class MainWindow : Window
 
     private void RefreshTimeline()
     {
-        var resolved=ResolvedVideo;var plan=_current is null?null:PlaybackPlan.Create(_current,_video);AutoDurationText.Text=$"{resolved.ActualDuration:0.00}초 · {resolved.FrameCount:N0}프레임"+(plan?.Enabled==true?$"\nWebM {plan.WebmDuration:0.##}초 · {plan.Repeats}회 / OBS 무한":"");
+        var previousLoading=_loading;_loading=true;SectionModeBox.SelectedIndex=_current?.Playback.ByEffects==false?1:0;_loading=previousLoading;var resolved=ResolvedVideo;var plan=_current is null?null:PlaybackPlan.Create(_current,_video);AutoDurationText.Text=$"{resolved.ActualDuration:0.00}초 · {resolved.FrameCount:N0}프레임"+(plan?.Enabled==true?$"\nWebM {plan.WebmDuration:0.##}초 · {plan.Repeats}회 / OBS 무한":"");
         Preview.OutputOpacity=plan?.Opacity(_time)??1;
         ExitPlaybackButton.IsEnabled=!_busy&&_current?.Playback.Enabled==true&&_current.Playback.ExitEnabled!=false;
         RefreshOutputSettings();TimelineEditor.SetVideo(_video);TimelineEditor.CursorTime=_time;TimelineEditor.InvalidateVisual();

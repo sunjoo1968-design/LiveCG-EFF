@@ -35,7 +35,7 @@ public static class RegionRaster
     {
         var b=new SKBitmap(rect.Width,rect.Height);b.Erase(SKColors.Transparent);
         using(var c=new SKCanvas(b))using(var p=new SKPaint{Color=SKColors.White,IsAntialias=true})using(var path=Path(r,rect,w,h))c.DrawPath(path,p);
-        if(soft&&r.Softness.Enabled&&r.Softness.Maximum>0)
+        if(soft&&!(r.SeparationTarget==SeparationTarget.Text&&r.ContentOnly)&&r.Softness.Enabled&&r.Softness.Maximum>0)
         {
             var width=b.Width;var height=b.Height;var n=width*height;var inside=new bool[n];
             for(var y=0;y<height;y++)for(var x=0;x<width;x++)inside[y*width+x]=b.GetPixel(x,y).Alpha>=128;
@@ -61,7 +61,12 @@ public static class RegionRaster
         using var crop=new SKBitmap();if(!source.ExtractSubset(crop,rect))throw new InvalidDataException("영역을 읽을 수 없습니다.");var output=crop.Copy();
         using(var corrected=ActiveCutout(r)?.DecodeForeground())if(corrected is not null){using var c=new SKCanvas(output);c.Clear(SKColors.Transparent);using var image=SKImage.FromBitmap(corrected);var original=ObjectExtractor.PixelRect(r.Bounds,source.Width,source.Height);c.DrawImage(image,SKRect.Create(original.Left-rect.Left,original.Top-rect.Top,original.Width,original.Height));}
         if(r.ContentOnly&&ActiveCutout(r) is null)
-        {var mask=ObjectExtractor.Extract(output,RegionSeparation.Options(r,background));using var alpha=mask.Bitmap();Multiply(output,alpha);}
+        {
+            MaskBuffer mask;
+            if(r.SeparationTarget==SeparationTarget.Text){using var text=TextSeparation.Extract(output,background,SKColor.TryParse(r.TextInkColor,out var ink)?ink:null);output.Dispose();output=text.Foreground.Copy();mask=text.Mask;}
+            else mask=ObjectExtractor.Extract(output,RegionSeparation.Options(r,background));
+            using var alpha=mask.Bitmap();Multiply(output,alpha);
+        }
         return output;
     }
     public static void Multiply(SKBitmap target,SKBitmap mask)
