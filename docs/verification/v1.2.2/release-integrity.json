@@ -1,0 +1,11 @@
+{
+  "Version": "1.2.2",
+  "Tag": "v1.2.2",
+  "Creator": "SunjooAn",
+  "Asset": "LiveCG-EFF-1.2.2-win-x64.zip",
+  "Bytes": 183126042,
+  "SHA256": "8874FD44BD11FF1D97FC41053BEBE9559E6FD8B336051F5B67640065EF75A987",
+  "ZipEntries": 524,
+  "ReleaseUrl": "https://github.com/sunjoo1968-design/LiveCG-EFF/releases/tag/v1.2.2",
+  "Verification": "Local final package metadata; compare GitHub asset size and sha256 digest with this record."
+}

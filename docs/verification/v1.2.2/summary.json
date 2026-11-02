@@ -1,0 +1,31 @@
+{
+  "Version": "1.2.2",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-02",
+  "Core": 595,
+  "Wpf": 483,
+  "Chromium": 168,
+  "ProgramClock": 5,
+  "ActualObs": 62,
+  "RenderComparisons": 140,
+  "Passed": 1453,
+  "Total": 1453,
+  "FeatureCoreSubset": 28,
+  "FeatureWpfSubset": 16,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "OptionalLocalPriceScreenshotChecks": 0,
+  "SourceImagesPublished": false,
+  "NumericRepro": {
+    "MissingBefore": 2426,
+    "FinalChecks": 4,
+    "MissingAfter": 0,
+    "ReferenceInkPixels": 6232
+  },
+  "Limitations": [
+    "Same or ambiguous background and ink colors may need manual inclusion/exclusion; uncertain edge samples are retained rather than eroded",
+    "Stop durations snap to output frames within a fixed total route budget; impossible stop budgets are rejected",
+    "Rendering comparisons use mean channel error <3 and fraction of pixels exceeding 20 <3.5%, not exact cross-engine pixel identity",
+    "Existing precision masks require recomputation with the numeric preset to regenerate their faint edge protection; OBS packages must be exported again"
+  ]
+}

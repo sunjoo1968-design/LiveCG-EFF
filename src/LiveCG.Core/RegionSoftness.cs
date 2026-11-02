@@ -31,7 +31,7 @@ public static class RegionRaster
     {var b=ObjectExtractor.PixelRect(r.Bounds,w,h);var p=(int)Math.Ceiling(r.Softness.Padding)+((r.Softness.Padding>0)?2:0);return new(Math.Max(0,b.Left-p),Math.Max(0,b.Top-p),Math.Min(w,b.Right+p),Math.Min(h,b.Bottom+p));}
     public static SKPath Path(EffectRegion r,SKRectI rect,int w,int h)
     {var b=r.Bounds.Pixels(w,h);b.Offset(-rect.Left,-rect.Top);return RegionMask.Create(r.Shape,b,r.Points);}
-    public static SKBitmap Shape(EffectRegion r,SKRectI rect,int w,int h,bool soft=true)
+    public static SKBitmap Shape(EffectRegion r,SKRectI rect,int w,int h,bool soft=true,bool includeCutout=true)
     {
         var b=new SKBitmap(rect.Width,rect.Height);b.Erase(SKColors.Transparent);
         using(var c=new SKCanvas(b))using(var p=new SKPaint{Color=SKColors.White,IsAntialias=true})using(var path=Path(r,rect,w,h))c.DrawPath(path,p);
@@ -52,7 +52,7 @@ public static class RegionRaster
                 b.SetPixel(x,y,SKColors.White.WithAlpha((byte)Math.Round(a*255)));
             }
         }
-        if(ActiveCutout(r) is { } cutout)
+        if(includeCutout&&ActiveCutout(r) is { } cutout)
         {using var decoded=!soft&&!string.IsNullOrEmpty(cutout.ErasePng)?SKBitmap.Decode(Convert.FromBase64String(cutout.ErasePng)):cutout.Decode();using var image=SKImage.FromBitmap(decoded);using var mask=new SKBitmap(rect.Width,rect.Height);mask.Erase(SKColors.Transparent);using(var c=new SKCanvas(mask)){var original=ObjectExtractor.PixelRect(r.Bounds,w,h);c.DrawImage(image,SKRect.Create(original.Left-rect.Left,original.Top-rect.Top,original.Width,original.Height));}Multiply(b,mask);}
         return b;
     }

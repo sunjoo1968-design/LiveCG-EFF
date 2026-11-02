@@ -122,7 +122,7 @@
         let sample={x:points[0].x,y:points[0].y,angle:segments.length?Math.atan2(segments[0].y[1]-points[0].y,segments[0].x[1]-points[0].x):0,distance:0,point:0,stopped:true,icon:points[0].icon??route.icon},completed=0,icon=sample.icon;
         if(seconds>=points[0].stop)for(let i=0;i<segments.length;i++){
             const s=segments[i],point=points[i+1];icon=points[i].icon??icon;
-            if(seconds<=s.start+s.duration){const f=clamp((seconds-s.start)/s.duration),d=f*s.length;let j=1;while(j<s.distance.length-1&&s.distance[j]<d)j++;const mix=(d-s.distance[j-1])/Math.max(1e-12,s.distance[j]-s.distance[j-1]);sample={x:s.x[j-1]+(s.x[j]-s.x[j-1])*mix,y:s.y[j-1]+(s.y[j]-s.y[j-1])*mix,angle:Math.atan2(s.y[j]-s.y[j-1],s.x[j]-s.x[j-1]),distance:completed+d,point:i,stopped:false,icon};break;}
+            if(seconds<s.start+s.duration){const f=clamp((seconds-s.start)/s.duration),d=f*s.length;let j=1;while(j<s.distance.length-1&&s.distance[j]<d)j++;const mix=(d-s.distance[j-1])/Math.max(1e-12,s.distance[j]-s.distance[j-1]);sample={x:s.x[j-1]+(s.x[j]-s.x[j-1])*mix,y:s.y[j-1]+(s.y[j]-s.y[j-1])*mix,angle:Math.atan2(s.y[j]-s.y[j-1],s.x[j]-s.x[j-1]),distance:completed+d,point:i,stopped:false,icon};break;}
             completed+=s.length;if(seconds<s.start+s.duration+point.stop||i===segments.length-1){sample={x:point.x,y:point.y,angle:Math.atan2(s.y.at(-1)-s.y.at(-2),s.x.at(-1)-s.x.at(-2)),distance:completed,point:i+1,stopped:true,icon:point.icon??icon};break;}
         }
         const full=new Path2D(),past=new Path2D();let used=0;
@@ -132,7 +132,8 @@
         if(route.outline>0){x.strokeStyle=compiled.outlineColor;x.lineWidth=route.lineWidth+route.outline*2;x.stroke(past);}x.lineWidth=route.lineWidth;x.strokeStyle=compiled.color;
         if(route.lineStyle==='Dashed')x.setLineDash([12,8]);else if(route.lineStyle==='Dotted')x.setLineDash([1,route.lineWidth*2]);x.stroke(past);x.setLineDash([]);
         if(route.lineStyle==='Arrows'){used=0;for(const s of segments){for(let j=8;j<s.x.length;j+=16){if(used+s.distance[j]>sample.distance)continue;x.save();x.translate(s.x[j]*w,s.y[j]*h);x.rotate(Math.atan2((s.y[j]-s.y[j-1])*h,(s.x[j]-s.x[j-1])*w));x.beginPath();x.moveTo(-7,-5);x.lineTo(0,0);x.lineTo(-7,5);x.stroke();x.restore();}used+=s.length;}}
-        if(route.arrival&&sample.stopped&&sample.point===points.length-1){x.globalAlpha=200/255*route.opacity*opacity;x.lineWidth=2;x.beginPath();x.arc(sample.x*w,sample.y*h,route.iconSize*.65,0,Math.PI*2);x.stroke();}
+        const stopStart=sample.point===0?0:segments[sample.point-1].start+segments[sample.point-1].duration;
+        if(route.arrival&&sample.stopped&&points[sample.point].stop>0&&seconds>=stopStart&&seconds<stopStart+points[sample.point].stop){x.globalAlpha=200/255*route.opacity*opacity;x.lineWidth=2;x.beginPath();x.arc(sample.x*w,sample.y*h,route.iconSize*.65,0,Math.PI*2);x.stroke();}
         x.globalAlpha=opacity;x.translate(sample.x*w,sample.y*h);const angle=Math.atan2(Math.sin(sample.angle)*h,Math.cos(sample.angle)*w),left=Math.cos(angle)<-1e-9;let rotation=0,flip=false;if(route.direction==='Horizontal')flip=left;else if(route.direction==='Follow'){rotation=angle;if(left&&Math.abs(Math.cos(angle))>=Math.abs(Math.sin(angle))-1e-9){rotation+=angle>0?-Math.PI:Math.PI;flip=true;}}x.rotate(rotation);if(flip)x.scale(-1,1);
         if(route.animate&&!sample.stopped){x.translate(0,Math.sin(p*duration*8)*2);x.rotate(Math.sin(p*duration*6)*3*Math.PI/180);}const sprite=image(compiled.icons[sample.icon]);const scale=Math.min(route.iconSize/sprite.width,route.iconSize/sprite.height);x.drawImage(sprite,-sprite.width*scale/2,-sprite.height*scale/2,sprite.width*scale,sprite.height*scale);x.restore();
     }
@@ -177,7 +178,7 @@
         const bounce = clips.filter(c => c.options.kind === "Bounce" && time >= c.start && time < c.start + c.duration).at(-1);
         if ((!roll && !bounce) || !a.digits.length) return false;
         const foreground = prepared?.image ?? image(a.image), backing = prepared?.backing ?? image(a.backing);
-        x.save(); if (roll) x.clip(shape(r, local(a)), "evenodd"); x.drawImage(backing, 0, 0); x.fillStyle = a.ink; x.textAlign = "center"; x.textBaseline = "alphabetic";
+        x.save(); if (roll) x.clip(shape(r, local(a)), "evenodd"); x.drawImage(backing, 0, 0); x.fillStyle = a.ink; x.textAlign = "left"; x.textBaseline = "alphabetic";
         a.digits.forEach((cell, i) => {
             const p = bounce ? progress(bounce, time) : 0, delayed = clamp((p - i / a.digits.length * .35) / .65), offset = bounce ? -Math.sin(delayed * Math.PI) * cell.height * .75 * power(bounce) : 0;
             const y = cell.y + offset;
@@ -185,7 +186,7 @@
             else {
                 const turns = (1 - (1 - progress(roll, time)) ** 2) * 45 * roll.options.speed, tick = Math.floor(turns), number = (((data.seeds[roll.id] + i * 17 + tick * 71) >>> 0) % 10), shift = (turns - tick) * cell.height;
                 x.save(); x.beginPath(); x.rect(cell.x, y, cell.width, cell.height); x.clip(); x.font = `bold ${cell.height / .74}px Arial`;
-                for (let row = -1; row <= 0; row++) { const text = String((number - row + 10) % 10), metrics = x.measureText(text); const baseline = (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2; x.fillText(text, cell.x + cell.width / 2, y + cell.height / 2 + baseline + shift + row * cell.height); }
+                for (let row = -1; row <= 0; row++) { const text = String((number - row + 10) % 10), metrics = x.measureText(text); const baseline = (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2,center=(metrics.actualBoundingBoxRight-metrics.actualBoundingBoxLeft)/2; x.fillText(text, cell.x + cell.width / 2-center, y + cell.height / 2 + baseline + shift + row * cell.height); }
                 x.restore();
             }
         }); x.restore(); return true;
@@ -254,8 +255,9 @@
                 const frame = blank(r.id + "-frame", a.width, a.height), f = frame.getContext("2d"); f.drawImage(image(a.raw), 0, 0);
                 if (r.role === "Group") for (const child of data.regions.filter(c => c.parentId === r.id && c.enabled).slice().reverse()) applyArea(frame, child, a, time);
                 const number = blank(r.id + "-number", a.width, a.height);
-                if (digits(number.getContext("2d"), r, a, clips, time)) { f.clearRect(0, 0, a.width, a.height); f.drawImage(number, 0, 0); }
-                multiply(frame, image(a.shape)); const masks = maskCoverage(r, a, time, r.id + "-masks"); multiply(frame, masks);
+                const numeric=digits(number.getContext("2d"), r, a, clips, time);
+                if (numeric) { f.clearRect(0, 0, a.width, a.height); f.drawImage(number, 0, 0); }
+                multiply(frame, image(numeric?(a.numericShape??a.shape):a.shape)); const masks = maskCoverage(r, a, time, r.id + "-masks"); multiply(frame, masks);
                 ctx.save(); ctx.translate(a.x, a.y); transform(ctx, local(a), s);crop(ctx,local(a),s); ctx.globalAlpha = clamp(s.alpha); ctx.drawImage(frame, 0, 0); ctx.globalAlpha = 1;
                 if (r.masks.some(m => m.enabled)) {
                     const decor = blank(r.id + "-decor", a.width, a.height), d = decor.getContext("2d");
@@ -301,7 +303,7 @@
     window.addEventListener("obsSourceActiveChanged",e=>{if(typeof e.detail?.active!=="boolean")return;obsHost=true;const next=e.detail.active;try{window.sessionStorage?.setItem(activeStorageKey,String(next));}catch{}if(next===programActive)return;programActive=next;if(!data.playback.replayOnShow){waitingForProgram=false;return;}api.restart();waitingForProgram=!next;});
     window.addEventListener("LiveCGControl", e => { const v = e.detail ?? {}; if (v.target && v.target !== "all" && v.target !== data.sourceName) return; if (["restart", "exit", "pause", "resume"].includes(v.command)) api[v.command](); });
     const names = new Set([data.source]);
-    for (const a of data.assets) { for (const key of ["raw", "shape", "image", "backing", "erase", "fill"]) names.add(a[key]); for (const m of a.masks) names.add(m.image);for(const route of a.routes??[])for(const icon of Object.values(route.icons))names.add(icon); }
+    for (const a of data.assets) { for (const key of ["raw", "shape", "numericShape", "image", "backing", "erase", "fill"]) if(a[key])names.add(a[key]); for (const m of a.masks) names.add(m.image);for(const route of a.routes??[])for(const icon of Object.values(route.icons))names.add(icon); }
     Promise.all([...names].map(name => new Promise((resolve, reject) => { const img = new Image(); img.onload = () => { images.set(name, img); resolve(); }; img.onerror = () => reject(new Error("이미지 로드 실패: " + name)); img.src = name; }))).then(() => {
         loaded = true; api.restart();waitingForProgram=obsHost&&data.playback.replayOnShow&&programActive===false; const credit = document.getElementById("credit"); if (credit) credit.textContent = data.credit;
         document.title = "LiveCG-EFF · " + data.credit;

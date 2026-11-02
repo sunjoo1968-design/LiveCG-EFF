@@ -1,0 +1,6 @@
+PASS OBS preview waits at entrance frame instead of consuming it
+PASS preview to program restarts at first entrance frame
+PASS duplicate activation does not restart during program playback
+PASS preview visibility change cannot restart a program-active source
+PASS each return from preview to program replays entrance
+RESULT 5/5 passed

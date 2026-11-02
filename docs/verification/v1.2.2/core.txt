@@ -1,0 +1,604 @@
+PASS 21 distinct effects including the travel editor without per-video duplicates
+PASS five named strength levels
+PASS region identity stays stable during spatial and name edits
+PASS clip identity stays stable during timeline edits
+PASS automatic price detection removed
+PASS append effects sequentially to one region
+PASS duration derives from last end plus tail hold
+PASS clip drag timing snaps to frames
+PASS moving final clip extends output automatically
+PASS disabled clip excluded from output length
+PASS negative clip timing rejected
+PASS invalid strength rejected
+PASS invalid fps rejected
+PASS same-stem collision rejected
+PASS export snapshot preserves deterministic effect identity
+PASS snapshot options do not alias original
+PASS new defaults round-trip all three-level / timing options
+PASS single-frame clip duration can be saved as default
+PASS multi-track project round-trip
+PASS saved project independent of global defaults
+PASS template retains multiple regions and clips
+PASS invalid save rejected
+PASS invalid save preserves previous defaults
+PASS v0.1 repeating effect migrates to timeline clips
+PASS migration retains strong effect and original duration
+PASS legacy intensity maps to weak / medium / strong
+PASS corrupt JSON rejected
+PASS regions without clips leave source pixels unchanged
+PASS Sweep: visible effect at active time
+PASS Sweep: dimensions and untouched transparent canvas
+PASS Sweep: settles to original pixels
+PASS Glow: visible effect at active time
+PASS Glow: dimensions and untouched transparent canvas
+PASS Glow: settles to original pixels
+PASS Sparkle: visible effect at active time
+PASS Sparkle: dimensions and untouched transparent canvas
+PASS Sparkle: settles to original pixels
+PASS Border: visible effect at active time
+PASS Border: dimensions and untouched transparent canvas
+PASS Border: settles to original pixels
+PASS Zoom: visible effect at active time
+PASS Zoom: dimensions and untouched transparent canvas
+PASS Zoom: settles to original pixels
+PASS Bounce: visible effect at active time
+PASS Bounce: dimensions and untouched transparent canvas
+PASS Bounce: settles to original pixels
+PASS FadeIn: visible effect at active time
+PASS FadeIn: dimensions and untouched transparent canvas
+PASS FadeIn: settles to original pixels
+PASS RiseIn: visible effect at active time
+PASS RiseIn: dimensions and untouched transparent canvas
+PASS RiseIn: settles to original pixels
+PASS ZoomIn: visible effect at active time
+PASS ZoomIn: dimensions and untouched transparent canvas
+PASS ZoomIn: settles to original pixels
+PASS ZoomOutIn: visible effect at active time
+PASS ZoomOutIn: dimensions and untouched transparent canvas
+PASS ZoomOutIn: settles to original pixels
+PASS Shake: visible effect at active time
+PASS Shake: dimensions and untouched transparent canvas
+PASS Shake: settles to original pixels
+PASS Float: visible effect at active time
+PASS Float: dimensions and untouched transparent canvas
+PASS Float: settles to original pixels
+PASS Highlight: visible effect at active time
+PASS Highlight: dimensions and untouched transparent canvas
+PASS Ripple: visible effect at active time
+PASS Ripple: dimensions and untouched transparent canvas
+PASS Ripple: settles to original pixels
+PASS Rays: visible effect at active time
+PASS Rays: dimensions and untouched transparent canvas
+PASS Rays: settles to original pixels
+PASS OrbitBurst: visible effect at active time
+PASS OrbitBurst: dimensions and untouched transparent canvas
+PASS OrbitBurst: settles to original pixels
+PASS DigitRoll: visible effect at active time
+PASS DigitRoll: dimensions and untouched transparent canvas
+PASS DigitRoll: settles to original pixels
+PASS WipeRight: visible effect at active time
+PASS WipeRight: dimensions and untouched transparent canvas
+PASS WipeRight: settles to original pixels
+PASS FallIn: visible effect at active time
+PASS FallIn: dimensions and untouched transparent canvas
+PASS FallIn: settles to original pixels
+PASS Underline: visible effect at active time
+PASS Underline: dimensions and untouched transparent canvas
+PASS preview / export share deterministic rolling frames
+PASS three strengths produce distinct, stronger zoom impact
+PASS entrance hides region before its clip
+PASS rise entrance moves upwards with fading
+PASS entrance stays revealed after clip
+PASS slow entrance still completes within its timeline clip
+PASS per-file progress / status notifications
+PASS VP9 WebM with no audio
+PASS odd source dimensions retained
+PASS encoded duration follows timeline exactly: 1.5 seconds / 20 fps
+PASS live encoder progress reaches complete
+PASS decoded alpha preserved outside effect
+PASS cancel before export throws
+PASS pre-cancel preserves existing output
+PASS cancel after first frame throws
+PASS mid-export cancel preserves existing output
+PASS no incomplete output left behind
+PASS four-region demo: automatic 5-second timeline / 150 frames
+PASS Sweep: loop repeats identical phase inside fixed clip
+PASS Sweep: loop ends on original image
+PASS Glow: loop repeats identical phase inside fixed clip
+PASS Glow: loop ends on original image
+PASS Sparkle: loop repeats identical phase inside fixed clip
+PASS Sparkle: loop ends on original image
+PASS Border: loop repeats identical phase inside fixed clip
+PASS Border: loop ends on original image
+PASS Zoom: loop repeats identical phase inside fixed clip
+PASS Zoom: loop ends on original image
+PASS Bounce: loop repeats identical phase inside fixed clip
+PASS Bounce: loop ends on original image
+PASS FadeIn: loop repeats identical phase inside fixed clip
+PASS FadeIn: loop ends on original image
+PASS RiseIn: loop repeats identical phase inside fixed clip
+PASS RiseIn: loop ends on original image
+PASS ZoomIn: loop repeats identical phase inside fixed clip
+PASS ZoomIn: loop ends on original image
+PASS ZoomOutIn: loop repeats identical phase inside fixed clip
+PASS ZoomOutIn: loop ends on original image
+PASS Shake: loop repeats identical phase inside fixed clip
+PASS Shake: loop ends on original image
+PASS Float: loop repeats identical phase inside fixed clip
+PASS Float: loop ends on original image
+PASS Highlight: loop repeats identical phase inside fixed clip
+PASS Ripple: loop repeats identical phase inside fixed clip
+PASS Ripple: loop ends on original image
+PASS Rays: loop repeats identical phase inside fixed clip
+PASS Rays: loop ends on original image
+PASS OrbitBurst: loop repeats identical phase inside fixed clip
+PASS OrbitBurst: loop ends on original image
+PASS DigitRoll: loop repeats identical phase inside fixed clip
+PASS DigitRoll: loop ends on original image
+PASS WipeRight: loop repeats identical phase inside fixed clip
+PASS WipeRight: loop ends on original image
+PASS FallIn: loop repeats identical phase inside fixed clip
+PASS FallIn: loop ends on original image
+PASS Underline: loop repeats identical phase inside fixed clip
+PASS loop cycle boundary and final endpoint are distinct
+PASS loop never expands the timeline duration
+PASS Rectangle: hidden entrance erases inside mask
+PASS Rectangle: settled mask preserves all original pixels
+PASS Rectangle: hit test includes center
+PASS Ellipse: hidden entrance erases inside mask
+PASS Ellipse: bounding-box corner outside mask remains untouched
+PASS Ellipse: settled mask preserves all original pixels
+PASS Ellipse: hit test includes center
+PASS Ellipse: hit test excludes corner
+PASS RoundedRectangle: hidden entrance erases inside mask
+PASS RoundedRectangle: bounding-box corner outside mask remains untouched
+PASS RoundedRectangle: settled mask preserves all original pixels
+PASS RoundedRectangle: hit test includes center
+PASS RoundedRectangle: hit test excludes corner
+PASS ripple is a complete circle for a wide rectangle
+PASS ripple has one ring with a thick line
+PASS ripple edit preserves gap and intentionally overlapping clips
+PASS shortening shifts only the old following sequence
+PASS out-of-range ripple edit rolls back every clip atomically
+PASS magnet catches another region start within screen tolerance
+PASS magnet aligns moving clip end to another start
+PASS magnet does not attract outside eight pixels
+PASS disabled magnet retains frame snapping only
+PASS trim end snaps to playhead
+PASS schema6 round trip retains mask and per-clip loop
+PASS schema2 upgrades without losing timeline
+PASS defaults retain looping and editor shortcut preferences
+PASS duplicate region shortcuts rejected
+PASS Ellipse: fixed numeric rolling never writes outside its mask
+PASS RoundedRectangle: fixed numeric rolling never writes outside its mask
+PASS later hidden region remains hidden over an earlier restored region
+PASS ripple followers can be excluded from moving snap anchors
+PASS empty key channels preserve neutral defaults
+PASS linear key interpolation and independent channels
+PASS hold key changes only at next frame
+PASS ease-in changes interpolation curve
+PASS ease-out changes interpolation curve
+PASS smooth interpolation has eased endpoints
+PASS motion copies isolate track and key edits
+PASS fps change preserves actual timing by resampling frame positions
+PASS fps frame-preserving option keeps key frame numbers
+PASS zero motion length rejected
+PASS invalid opacity key rejected
+PASS duplicate key positions and identities rejected
+PASS user-created fade hides original object at first key
+PASS user-created fade reaches full opacity at authored frame
+PASS custom movement erases original position and holds final position
+PASS nonuniform scale and anchor channels reach renderer
+PASS user keyframe loop uses the same phase as native effects
+PASS export snapshot isolates custom keyframes while preserving clip identity
+PASS user motion asset persists in local library
+PASS asset import creates a reusable independent asset
+PASS asset insertion has new clip and group identities at project timing
+PASS inserted asset edits do not change saved source asset
+PASS invalid asset save rejected
+PASS failed asset validation preserves prior file
+PASS user asset delete preserves a recoverable trash copy
+PASS default settings preserve authored custom motion
+PASS background separation keeps object and removes approximate surrounding area
+PASS object fit crops selection and mask to actual object bounds
+PASS encoded object contour round-trips its alpha
+PASS exclude brush and prior mask copy are independent
+PASS include brush can protect manually chosen image areas
+PASS feather option produces soft contour edges
+PASS cutout removes only object while preserving pixels outside its contour
+PASS cutout entrance returns exactly to original pixels at identity state
+PASS studio sample contains the extracted object without background
+PASS damaged contour data rejected before rendering
+PASS project stores object contour independently of reusable motion assets
+PASS v0.3 projects upgrade to schema6
+PASS transparent PNG uses original alpha without multiplying it twice
+PASS actual custom WebM preserves animated displacement and alpha
+PASS independent upper motion leaves the lower original content intact
+PASS independent objects keep their source crop without implicit ownership masks
+PASS changing layer order invalidates ownership and changes the top surface
+PASS hidden upper independent layer preserves lower original crop
+PASS hidden independent layer never auto-cuts a lower crop
+PASS hidden lower layer is removed while visible upper layer remains
+PASS visible identity layers settle on exact original pixels
+PASS point path hit testing follows the actual polygon rather than its bounds
+PASS polygon hide removes only its path in the common renderer
+PASS custom path copies isolate point edits
+PASS unfinished custom paths cannot be saved
+PASS schema4 migration preserves old last-layer priority as first-row priority
+PASS schema5 templates preserve custom path points and visibility
+PASS outside-connected background extraction preserves same-color interior lettering by default
+PASS interior protection can be disabled for global color removal
+PASS one pixel contraction removes the outer rim without erasing the interior
+PASS border contraction keeps protected lettering inside the object
+PASS edge cleanup removes white matte color while recovering fractional coverage
+PASS fitted correction image keeps exact crop dimensions when reopened
+PASS legacy single-precision bounds do not gain an extra mask pixel
+PASS fit stores independent corrected color and original-source erase coverage
+PASS source erase coverage removes the original one-pixel fringe after contraction and motion
+PASS matte cleanup and fitting never modify original PNG pixels
+PASS subpixel selections retain a valid one-pixel raster extent
+PASS background guess uses outside pixels even when object fills its selected box
+PASS correction and erase masks survive document serialization
+PASS FadeIn: scissors preserve source window and continuation identity
+PASS FadeIn: split fragments evaluate identically across the cut without restart or double entrance
+PASS RiseIn: scissors preserve source window and continuation identity
+PASS RiseIn: split fragments evaluate identically across the cut without restart or double entrance
+PASS Zoom: scissors preserve source window and continuation identity
+PASS Zoom: split fragments evaluate identically across the cut without restart or double entrance
+PASS Highlight: scissors preserve source window and continuation identity
+PASS Highlight: split fragments evaluate identically across the cut without restart or double entrance
+PASS UserMotion: scissors preserve source window and continuation identity
+PASS UserMotion: split fragments evaluate identically across the cut without restart or double entrance
+PASS loop split preserves its original phase on the right fragment
+PASS scissors ignore clip boundaries instead of creating zero-length pieces
+PASS repeated cuts accumulate the original source offset
+PASS asset insertion remaps split sequences as an independent coherent group
+PASS follow magnet closes the front gap while preserving later block spacing
+PASS follow magnet pulls the trailing block back on mouse shrink
+PASS actual WebM at 0.5s preserves custom layer path, independent crop and split playback
+PASS actual WebM at 1.5s preserves custom layer path, independent crop and split playback
+PASS graph rows show group above its local effect regardless of serialized order
+PASS local group effect replaces the old badge and creates one moved badge
+PASS local replacement exposes exactly one badge without duplicating its source layer
+PASS disabling a local effect restores the untouched group including its badge
+PASS parent translation is applied once after the child replacement
+PASS hidden group suppresses its local effects and owned source
+PASS scheduled local entrance stays hidden until its start
+PASS subtract mask uses parent-local coordinates
+PASS first additive mask initializes transparent coverage
+PASS intersection starts with the full parent
+PASS inverted mask reverses its coverage
+PASS mask opacity controls alpha rather than darkening its colors
+PASS mask has zero coverage before its start
+PASS mask holds its final coverage by default
+PASS released mask restores full coverage after its end
+PASS zero end mode closes the intersected output
+PASS positive expansion grows the mask boundary
+PASS negative expansion contracts the mask by source pixels
+PASS feather produces fractional edge coverage
+PASS mask position keys interpolate within the timeline interval
+PASS mask animation opacity multiplies static opacity
+PASS explicit group subtract mask cuts only when requested
+PASS local subtract mask excludes the child operation instead of cutting its parent source
+PASS deep graph duplication remaps parent and mask identities
+PASS group copies isolate mask mutations
+PASS export snapshots preserve graph identities without aliasing
+PASS orphan effect areas are rejected
+PASS duplicate group IDs are rejected
+PASS invalid mask opacity rejected
+PASS zero mask duration rejected
+PASS collapsed group hides its descendants in the row model
+PASS schema6 persists group relationships and timeline masks
+PASS schema5 migration preserves independent regions and their order
+PASS enabled mask end participates in automatic video duration
+PASS hidden group and its child masks do not extend output
+PASS Rectangle / Object: white-on-white transformed edges have no black or alpha seam
+PASS Rectangle / Group: white-on-white transformed edges have no black or alpha seam
+PASS Ellipse / Object: white-on-white transformed edges have no black or alpha seam
+PASS Ellipse / Group: white-on-white transformed edges have no black or alpha seam
+PASS RoundedRectangle / Object: white-on-white transformed edges have no black or alpha seam
+PASS RoundedRectangle / Group: white-on-white transformed edges have no black or alpha seam
+PASS Freehand / Object: white-on-white transformed edges have no black or alpha seam
+PASS Freehand / Group: white-on-white transformed edges have no black or alpha seam
+PASS Polygon / Object: white-on-white transformed edges have no black or alpha seam
+PASS Polygon / Group: white-on-white transformed edges have no black or alpha seam
+PASS premultiplied semitransparent samples preserve white foreground hue
+EDGE Rectangle: max RGB error 1; samples
+PASS Rectangle: dark background stays within 2/255 color quantization without an alpha seam
+EDGE Ellipse: max RGB error 2; samples (79, 51, #ff261a42)
+PASS Ellipse: dark background stays within 2/255 color quantization without an alpha seam
+EDGE RoundedRectangle: max RGB error 1; samples
+PASS RoundedRectangle: dark background stays within 2/255 color quantization without an alpha seam
+EDGE Freehand: max RGB error 1; samples
+PASS Freehand: dark background stays within 2/255 color quantization without an alpha seam
+EDGE Polygon: max RGB error 1; samples
+PASS Polygon: dark background stays within 2/255 color quantization without an alpha seam
+PASS group local numeric rolling remains active and settles to exact original
+PASS actual grouped WebM preserves transparent canvas and an explicit subtract-mask hole
+PASS actual WebM preserves source size, parent transform and one local badge
+PASS 1080p group and feather mask render within a bounded smoke-test interval
+PASS new mask leaves its parent unchanged before its in-point
+PASS new mask is applied inside its dragged interval
+PASS new mask releases its parent after its out-point
+PASS legacy mask preserves its pre-start zero-coverage behavior
+PASS long parent mask and in-point option round-trip without a new schema
+PASS actual WebM 0.5s matches the mask in/out interval
+PASS actual WebM 1.5s matches the mask in/out interval
+PASS actual WebM 2.3s matches the mask in/out interval
+PASS sections become exact half-open frame ranges and three finite cycles
+PASS WebM maps each loop without duplicating its boundary frame
+PASS editing duration stays distinct from finite repeated WebM duration
+PASS broadcast loop stays within the emphasis section after many cycles
+PASS fade starts fully visible and reaches zero on the last exit frame
+PASS exit waits until current loop finishes then plays the tail once
+PASS early exit request preserves entrance and first loop
+PASS optional immediate exit jumps to exit in-point
+PASS reversed section boundaries rejected
+PASS nonfinite section boundary rejected
+PASS unbounded WebM repetitions rejected
+PASS oversized finite WebM rejected before rendering
+PASS disabled sections preserve the old timeline and no fade
+PASS sections and both-output preference round-trip project JSON
+PASS template retains playback sections
+PASS defaults retain section policy
+PASS export snapshot does not alias playback settings
+PASS actual WebM has the repeated frame count and original size
+PASS WebM 0.0s preserves single entrance, repeated emphasis and transparent exit
+PASS WebM 0.5s preserves single entrance, repeated emphasis and transparent exit
+PASS WebM 1.5s preserves single entrance, repeated emphasis and transparent exit
+PASS WebM 2.5s preserves single entrance, repeated emphasis and transparent exit
+PASS WebM 3.9s preserves single entrance, repeated emphasis and transparent exit
+PASS local browser package contains original PNG, source and separate controls
+PASS browser package is PNG/Canvas rather than wrapped video
+PASS browser refuses overwrite and preserves previous output
+PASS mid-export browser cancellation preserves existing package
+PASS unrelated directory is never replaced by browser output
+PASS browser cancellation removes temporary files
+PASS completed package atomically replaces an earlier LiveCG package
+PASS group package includes native feathered mask rasters and local-effect assets
+PASS browser exports separate extraction and geometric masks for ellipses and even-odd freehand/pen paths
+PASS sweep keeps transparent PNG padding transparent
+PASS completed zoom then ripple preserves original circle edge (max difference 0)
+PASS five ordered strengths retain legacy powers and extend both ends
+PASS legacy enum values and UI choices stay independent
+PASS new motion starts fully visible with no sample animation keys
+PASS CropTop: keyframe crops only the chosen side
+PASS CropBottom: keyframe crops only the chosen side
+PASS CropLeft: keyframe crops only the chosen side
+PASS CropRight: keyframe crops only the chosen side
+PASS left-to-right entrance reveals by crop without fading visible pixels
+PASS new top entrance moves downward from above
+PASS ripple accepts a custom cyan color outside the object
+PASS underline marker remains beneath the text after its clip
+PASS color, crop keys and new strengths survive project save/load
+PASS effect sections derive boundaries and optional exit excludes end hold
+PASS disabled exit is filtered non-destructively from preview and both output formats
+PASS changing a clip length updates effect-derived section boundary
+PASS disabled exit cannot stop emphasis playback
+PASS optional exit includes its assigned effect
+PASS missing new JSON fields preserve legacy seconds and exit policy
+PASS explicit section overrides effect type and survives clip copying
+PASS cross-boundary effects are reported
+PASS boundary split preserves source motion while assigning phase pieces
+PASS explicit arrange puts loop effects after entrance
+PASS Rectangle/Inside softens boundary while retaining opaque center
+PASS Rectangle/Inside source padding matches direction
+PASS Rectangle/Outside softens boundary while retaining opaque center
+PASS Rectangle/Outside source padding matches direction
+PASS Rectangle/Both softens boundary while retaining opaque center
+PASS Rectangle/Both source padding matches direction
+PASS Ellipse/Inside softens boundary while retaining opaque center
+PASS Ellipse/Inside source padding matches direction
+PASS Ellipse/Outside softens boundary while retaining opaque center
+PASS Ellipse/Outside source padding matches direction
+PASS Ellipse/Both softens boundary while retaining opaque center
+PASS Ellipse/Both source padding matches direction
+PASS RoundedRectangle/Inside softens boundary while retaining opaque center
+PASS RoundedRectangle/Inside source padding matches direction
+PASS RoundedRectangle/Outside softens boundary while retaining opaque center
+PASS RoundedRectangle/Outside source padding matches direction
+PASS RoundedRectangle/Both softens boundary while retaining opaque center
+PASS RoundedRectangle/Both source padding matches direction
+PASS Freehand/Inside softens boundary while retaining opaque center
+PASS Freehand/Inside source padding matches direction
+PASS Freehand/Outside softens boundary while retaining opaque center
+PASS Freehand/Outside source padding matches direction
+PASS Freehand/Both softens boundary while retaining opaque center
+PASS Freehand/Both source padding matches direction
+PASS Polygon/Inside softens boundary while retaining opaque center
+PASS Polygon/Inside source padding matches direction
+PASS Polygon/Outside softens boundary while retaining opaque center
+PASS Polygon/Outside source padding matches direction
+PASS Polygon/Both softens boundary while retaining opaque center
+PASS Polygon/Both source padding matches direction
+PASS side widths keep top hard and soften only bottom
+PASS softness copy is independent for undo and templates
+PASS content-only removes connected background without redrawing foreground
+PASS content-only protects enclosed white lettering matching background
+PASS soft-inside shares native raster assets with browser output
+PASS soft-outside shares native raster assets with browser output
+PASS soft-both shares native raster assets with browser output
+PASS content-only shares native raster assets with browser output
+PASS new region and section settings survive validated JSON round trip
+PASS soft-group handles soft child composition or original-pixel numeric effects
+PASS soft-numeric handles soft child composition or original-pixel numeric effects
+PASS real no-exit WebM contains entrance plus two loops at unchanged PNG size
+PASS precision initial mask is the exact quick mask with outer soft padding removed
+PASS manual mask preserves white pixels without a second automatic background extraction
+PASS manual partial coverage is applied exactly once
+PASS motion-studio sample respects the same single-pass manual coverage
+PASS precision foreground and source-erasure coverage stay separate to prevent contour ghosts
+PASS whole-region mode bypasses precision mask non-destructively
+PASS re-enabling manual separation reuses saved alpha without recalculating it
+PASS inactive manual mask and enable state survive project save/load
+PASS missing enabled flag retains legacy cutout semantics
+PASS manual separation is exported through the shared native/browser raster path
+PASS disabled saved masks retain correct browser child composition mode
+PASS finite WebM includes exactly N-1 rests and skips the final rest
+PASS rest boundaries are half-open integer frames
+PASS each repeat restarts at the emphasis in-point after its rest
+PASS one finite repeat never appends a rest
+PASS broadcast clock repeats effect plus rest without repeating entrance
+PASS original rest restores all source pixels instead of frozen animation or hidden layers
+PASS transparent rest clears the output alpha
+PASS hold rest renders the last loop frame exactly
+PASS exit at loop end skips the next rest
+PASS exit requested during rest begins immediately
+PASS project persists repeat rest options
+PASS old project without rest property keeps gap-free timing
+PASS new-work defaults use a one-second original rest
+PASS invalid rest rejected
+PASS invalid rest rejected
+PASS invalid rest rejected
+PASS Png source preserves original size
+PASS Png browser asset is encoded as real PNG
+PASS browser package names both HTML entry points after the original source
+PASS Jpeg source preserves original size
+PASS Jpeg browser asset is encoded as real PNG
+PASS browser package names both HTML entry points after the original source
+PASS Webp source preserves original size
+PASS Webp browser asset is encoded as real PNG
+PASS browser package names both HTML entry points after the original source
+PASS BMP source is accepted by the shared decoder
+PASS JPEG EXIF orientation is applied before editing and output
+PASS import extensions accept static graphic formats case-insensitively
+PASS changed source dimensions are detected before preview or export
+PASS same basename across PNG and JPG is rejected before output
+PASS actual encoded WebM contains the computed rest-inclusive frame count
+PASS actual WebM rest displays the original foreground and background
+PASS text mode removes closed circular and rectangular background counters
+PASS every original non-background text pixel retains nonzero coverage while exact background is removed
+PASS one-pixel vertical text strokes survive without erosion
+PASS separated text recomposes on its original background within one byte without thinning
+PASS all antialias coverage levels including alpha1 remain exact
+PASS existing transparent PNG edge alpha is preserved exactly without double masking
+PASS incompatible protected ink colors retain original colored strokes conservatively
+PASS general-object mode still protects enclosed interior colors
+PASS hole picker selects only the clicked background component
+PASS hole removal cannot modify non-candidate stroke pixels
+PASS clicking an ink stroke never selects it as removable background
+PASS automatic content-only renderer uses the shared text matte and protects strokes from selection softness
+PASS text target and protected ink color survive project JSON
+PASS legacy documents without a separation target retain general-object semantics
+PASS browser export retains text configuration and shared raster assets
+PASS changing separation target invalidates native/browser layer caches
+PASS changing protected ink color invalidates cached edge correction
+PASS joined dark price digits on a white background split into five rolling cells
+PASS separated white price digits on a dark background remain five cells
+PASS range separation retains every original ink support pixel on a two-tone pattern
+PASS multiple background samples clear both texture colors including closed counters
+PASS text range mode preserves one-pixel strokes without contour erosion
+PASS range settings do not alias snapshot background colors
+PASS bulk mask rendering preserves every premultiplied alpha byte
+PERF mask bitmap fast=6.96ms reference=450.59ms
+PASS bulk mask conversion avoids the per-pixel graphics-call cost
+PASS new work defaults to OBS browser without changing persisted enum values
+PASS appending a travel effect initializes a valid route before timing validation
+PASS route duration sums movement and per-waypoint stops
+PASS departure dwell holds the first point
+PASS movement advances by arc length between stops
+PASS waypoint dwell holds its exact location
+PASS waypoint transport override controls the next leg
+PASS arrival retains the final position after route completion
+PASS route copies preserve independent waypoint timings
+PASS smooth mode alone preserves straight route geometry
+PASS Plane travel icon has visible transparent artwork
+PASS Car travel icon has visible transparent artwork
+PASS Camper travel icon has visible transparent artwork
+PASS Bicycle travel icon has visible transparent artwork
+PASS Custom travel icon has visible transparent artwork
+PASS travel overlay leaves the source map untouched outside its graphics
+PASS travel icon and visited trail visibly advance
+PASS route project JSON preserves points, timing and transport changes
+PASS travel routes round trip as reusable user assets
+PASS hiding a travel overlay never erases or recolors the underlying map
+PASS grouped route overlays preserve parent map pixels outside their graphics
+PASS Solid route exports shared measured path and icon assets
+PASS Dashed route exports shared measured path and icon assets
+PASS Dotted route exports shared measured path and icon assets
+PASS Arrows route exports shared measured path and icon assets
+PASS repeated selection-style redraws reuse text extraction rather than recalculating pixels
+PASS cached text redraw stays responsive on a representative crop
+PASS new route opens with no pre-positioned departure or arrival points
+PASS new route defaults hide future path and enable arrival emphasis and repeat
+PASS enabling smooth curves alone preserves the straight path
+PASS arrival emphasis never renders waypoint names into the output
+PASS roof up with forward heading at -180 degrees
+PASS roof up with forward heading at -150 degrees
+PASS roof up with forward heading at -135 degrees
+PASS roof up with forward heading at -30 degrees
+PASS roof up with forward heading at 0 degrees
+PASS roof up with forward heading at 30 degrees
+PASS roof up with forward heading at 135 degrees
+PASS roof up with forward heading at 150 degrees
+PASS roof up with forward heading at 180 degrees
+PASS vertical-family heading retained at -110
+PASS vertical-family heading retained at -90
+PASS vertical-family heading retained at 75
+PASS vertical-family heading retained at 90
+PASS vertical-family heading retained at 110
+PASS explicit horizontal and fixed direction modes retained
+PASS 10 seconds allocate by actual 4:1 pixel lengths within one frame rounding
+PASS automatic leg times use whole frames
+PASS minimum total duration rounds up to a valid 24fps frame boundary
+PASS zero-length leg reserves one frame and gives remaining time to the actual journey
+PASS total duration includes waypoint stops
+PASS insufficient duration rejects without changing timing
+PASS total budget snaps to requested output frame rate
+PASS inserting a curve control preserves the entire existing Bezier before dragging
+PASS multiple bend controls add samples without extra waypoints or stops
+PASS curve controls deep copy for history and assets
+PASS inserting into a straightened leg cannot resurrect its obsolete hidden curve controls
+PASS context waypoint insertion creates a real optional stop
+PASS endpoint role edits keep one departure and arrival by reordering
+PASS deleting every waypoint returns to a safe empty editor
+PASS new Upright route leaves outside map pixels unchanged at 0
+PASS new Upright route leaves outside map pixels unchanged at 2
+PASS new Upright route leaves outside map pixels unchanged at 4.5
+PASS new Upright route leaves outside map pixels unchanged at 7
+PASS new Upright route project preserves bends and duration budget
+PASS new Vertical route leaves outside map pixels unchanged at 0
+PASS new Vertical route leaves outside map pixels unchanged at 2
+PASS new Vertical route leaves outside map pixels unchanged at 4.5
+PASS new Vertical route leaves outside map pixels unchanged at 7
+PASS new Vertical route project preserves bends and duration budget
+PASS new Bends route leaves outside map pixels unchanged at 0.5
+PASS new Bends route leaves outside map pixels unchanged at 2
+PASS new Bends route leaves outside map pixels unchanged at 5
+PASS new Bends route leaves outside map pixels unchanged at 9.5
+PASS new Bends route project preserves bends and duration budget
+PASS new ROI route leaves outside map pixels unchanged at 2
+PASS new ROI route leaves outside map pixels unchanged at 5
+PASS new ROI route leaves outside map pixels unchanged at 9.5
+PASS new ROI route project preserves bends and duration budget
+ROLL automatic: 0/6232 reference ink pixels missing
+PASS automatic range separated rolling digits keep complete moving glyphs instead of clipping against old glyph outlines
+ROLL saved: 0/6232 reference ink pixels missing
+PASS saved precision separated rolling digits keep complete moving glyphs instead of clipping against old glyph outlines
+PASS range mode without a manually picked ink color preserves every antialiased digit edge instead of thinning it with background tolerance
+PASS transparent PNG keeps opaque black number ink instead of treating transparent black as a removal color
+PASS white price, comma, discount and one-pixel strokes retain every visible source pixel
+PASS textured multi-color background including closed counters is removed without erosion
+PASS numeric separation recomposes original white glyph thickness within two channel bytes
+PASS dark price, comma, discount and one-pixel strokes retain every visible source pixel
+PASS light multi-color background including closed counters is removed without erosion
+PASS numeric separation recomposes original dark glyph thickness within two channel bytes
+PASS numeric-saved.obs exports separate geometric coverage for dynamic digits
+PASS intentional timeline masks still suppress rolling glyphs after extraction-mask fix
+PASS numeric-mask.obs exports separate geometric coverage for dynamic digits
+PASS numeric-child.obs exports separate geometric coverage for dynamic digits
+PASS numeric-bounce.obs exports separate geometric coverage for dynamic digits
+PASS all-waypoint emphasis is True at 0 seconds
+PASS all-waypoint emphasis is True at 0.5 seconds
+PASS all-waypoint emphasis is False at 1 seconds
+PASS all-waypoint emphasis is False at 2 seconds
+PASS all-waypoint emphasis is True at 3 seconds
+PASS all-waypoint emphasis is True at 3.5 seconds
+PASS all-waypoint emphasis is False at 4 seconds
+PASS all-waypoint emphasis is True at 6 seconds
+PASS all-waypoint emphasis is True at 6.5 seconds
+PASS all-waypoint emphasis is False at 7 seconds
+PASS all-waypoint emphasis is False at 8 seconds
+PASS route-Stops.obs exports separate geometric coverage for dynamic digits
+PASS zero-stop departure and arrival never flash emphasis while intermediate dwell still does
+RESULT 595/595 passed

@@ -13,8 +13,9 @@ public sealed partial class EffectScene
         using var subset=new SKBitmap();if(!_source.ExtractSubset(subset,rect))throw new InvalidDataException("그룹 범위를 읽지 못했습니다.");var bitmap=subset.Copy();using var corrected=region.Cutout?.DecodeForeground();
         if(corrected is not null)using(var c=new SKCanvas(bitmap))using(var image=SKImage.FromBitmap(corrected)){c.Clear(SKColors.Transparent);c.DrawImage(image,SKRect.Create(bitmap.Width,bitmap.Height),Sampling);}return bitmap;
     }
-    private SKBitmap ShapeCoverage(EffectRegion region,int w,int h)
+    private SKBitmap ShapeCoverage(EffectRegion region,int w,int h,bool includeCutout=true)
     {
+        if(!includeCutout){var layer=GetLayer(region);if(layer.NumericShapeImage is null){using var shape=RegionRaster.Shape(region,RegionRaster.Rect(region,Width,Height),Width,Height,includeCutout:false);layer.NumericShapeImage=SKImage.FromBitmap(shape);}return SKBitmap.FromImage(layer.NumericShapeImage);}
         if(RegionRaster.Custom(region))return SKBitmap.FromImage(GetLayer(region).ShapeImage!);
         var bitmap=new SKBitmap(w,h);bitmap.Erase(SKColors.Transparent);using var c=new SKCanvas(bitmap);using var p=new SKPaint{Color=SKColors.White,IsAntialias=true};using var path=RegionMask.Create(region.Shape,SKRect.Create(w,h),region.Points);c.DrawPath(path,p);
         if(region.Cutout is { } cutout){using var mask=cutout.Decode();using var image=SKImage.FromBitmap(mask);using var cut=new SKPaint{BlendMode=SKBlendMode.DstIn};c.DrawImage(image,SKRect.Create(w,h),Sampling,cut);}return bitmap;
@@ -42,8 +43,10 @@ public sealed partial class EffectScene
             if(effects&&root.Role==RegionRole.Group)foreach(var child in regions.Where(r=>r.ParentId==root.Id&&r.Enabled).Reverse())ApplyArea(frame,child,rect,time);
             var roll=effects?clips.LastOrDefault(c=>c.Options.Kind==EffectKind.DigitRoll&&time>=c.Start&&time<c.End):null;
             var bounce=effects?clips.LastOrDefault(c=>c.Options.Kind==EffectKind.Bounce&&time>=c.Start&&time<c.End):null;
-            if((roll is not null||bounce is not null)&&GetLayer(root).Digits.Count>0){using var c=new SKCanvas(frame);c.Clear(SKColors.Transparent);using var p=new SKPaint{Color=SKColors.White};DrawDigits(c,GetLayer(root),roll,bounce,time,p);}
-            using var coverage=ShapeCoverage(root,frame.Width,frame.Height);using var masks=_maskRenderer.Render(root.Masks,frame.Width,frame.Height,Width,Height,rect,time);Multiply(coverage,masks);Multiply(frame,coverage);
+            var numeric=(roll is not null||bounce is not null)&&GetLayer(root).Digits.Count>0;
+            if(numeric){using var c=new SKCanvas(frame);c.Clear(SKColors.Transparent);using var p=new SKPaint{Color=SKColors.White};DrawDigits(c,GetLayer(root),roll,bounce,time,p);}
+            // Input glyphs already carry the extraction alpha. A moving/new glyph must not be cut by the old glyph silhouette.
+            using var coverage=ShapeCoverage(root,frame.Width,frame.Height,!numeric);using var masks=_maskRenderer.Render(root.Masks,frame.Width,frame.Height,Width,Height,rect,time);Multiply(coverage,masks);Multiply(frame,coverage);
             canvas.Save();canvas.Translate(rect.Left,rect.Top);Transform(canvas,SKRect.Create(frame.Width,frame.Height),state);ClipCrop(canvas,SKRect.Create(frame.Width,frame.Height),state);using var paint=new SKPaint{Color=SKColors.White.WithAlpha((byte)(Math.Clamp(state.Alpha,0,1)*255)),IsAntialias=true};using(var image=SKImage.FromBitmap(frame))canvas.DrawImage(image,0,0,Sampling,paint);
             if(effects)
             {

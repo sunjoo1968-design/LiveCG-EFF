@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.2.1</Version>
+    <Version>1.2.2</Version>
     <Authors>SunjooAn</Authors>
     <Company>SunjooAn</Company>
     <NuGetAudit>true</NuGetAudit>

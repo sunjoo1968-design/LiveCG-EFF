@@ -1,0 +1,7 @@
+ROLL automatic: 0/6232 reference ink pixels missing
+PASS automatic range separated rolling digits keep complete moving glyphs instead of clipping against old glyph outlines
+ROLL saved: 0/6232 reference ink pixels missing
+PASS saved precision separated rolling digits keep complete moving glyphs instead of clipping against old glyph outlines
+PASS range mode without a manually picked ink color preserves every antialiased digit edge instead of thinning it with background tolerance
+PASS transparent PNG keeps opaque black number ink instead of treating transparent black as a removal color
+RESULT 4/4 passed

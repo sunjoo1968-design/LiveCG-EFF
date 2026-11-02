@@ -1,0 +1,8 @@
+ROLL automatic: 0/6232 reference ink pixels missing
+PASS automatic range separated rolling digits keep complete moving glyphs instead of clipping against old glyph outlines
+ROLL saved: 2426/6232 reference ink pixels missing
+FAIL saved precision separated rolling digits keep complete moving glyphs instead of clipping against old glyph outlines
+[DEBUG-v122] saved cells=4 / reference cells=4
+[DEBUG-v122] range-off, remove-mask=False: missing=2426
+[DEBUG-v122] range-off, remove-mask=True: missing=0
+RESULT 1/2 passed

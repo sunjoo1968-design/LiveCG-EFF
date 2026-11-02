@@ -400,6 +400,7 @@ public sealed partial class EffectScene : IDisposable
         public SKImage BackingImage { get; }
         public SKImage? RawImage { get; init; }
         public SKImage? ShapeImage { get; init; }
+        public SKImage? NumericShapeImage { get; set; }
         public SKImage? EraseImage { get; }
         public SKImage? FillImage { get; }
         public string? MaskData { get; }
@@ -411,7 +412,7 @@ public sealed partial class EffectScene : IDisposable
         public RegionShape Shape { get; }
         public SKPath Path { get; }
         public List<SKRect> Digits { get; }
-        public void Dispose() { RawImage?.Dispose();ShapeImage?.Dispose();EraseImage?.Dispose();FillImage?.Dispose();Path.Dispose();Image.Dispose();BackingImage.Dispose();bitmap.Dispose();backing.Dispose(); }
+        public void Dispose() { RawImage?.Dispose();ShapeImage?.Dispose();NumericShapeImage?.Dispose();EraseImage?.Dispose();FillImage?.Dispose();Path.Dispose();Image.Dispose();BackingImage.Dispose();bitmap.Dispose();backing.Dispose(); }
     }
 }
 

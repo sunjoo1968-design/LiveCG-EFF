@@ -39,6 +39,8 @@ public sealed partial class ObjectSelectionWindow
         TextMethod.Items.Add("정확한 단색 · 획 보존");TextMethod.Items.Add("색상 범위 · 무늬 배경");TextMethod.SelectedIndex=region.TextSettings.RangeMode?1:0;RangeTolerance.Value=region.TextSettings.ColorTolerance;InkTolerance.Value=region.TextSettings.InkTolerance;_backgroundColors=[..region.TextSettings.BackgroundColors];ShowBackgrounds();
         _textOptions.Children.Add(new TextBlock{Text="분리 방식"});_textOptions.Children.Add(TextMethod);_textOptions.Children.Add(new TextBlock{Text="배경 색상 범위 · 획 축소 없음"});_textOptions.Children.Add(RangeTolerance);_textOptions.Children.Add(new TextBlock{Text="남길 글자색 범위"});_textOptions.Children.Add(InkTolerance);_textOptions.Children.Add(_backgroundList);
         void Button(Panel host,string title,Action action){var b=new Button{Content=title};b.Click+=(_,_)=>action();host.Children.Add(b);}
+        var numericPreset=new Button{Content="숫자·가격 우선 · 획 보존"};numericPreset.Click+=(_,_)=>ApplyNumericPreset();_textOptions.Children.Insert(0,numericPreset);
+        _textOptions.Children.Insert(1,new TextBlock{Text="가격·할인율 권장: 보호색을 자동 추정하고 옅은 획도 남깁니다. 여러 바탕색은 배경색 추가로 지정하세요.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(3,5,3,5)});
         Button(_textOptions,"배경색 추가 · 스포이드",()=>{_pickingAdditional=true;_pickingInk=false;Canvas.PickColor=true;Canvas.HolePickMode=false;});Button(_textOptions,"선택 배경색 삭제",()=>{if(_backgroundList.SelectedItem is string color){_backgroundColors.Remove(color);ShowBackgrounds();QueuePreview();}});
         Button(manual,"수동 보정만 초기화",()=>{Record(Snapshot());Array.Fill(_manualPatch,(short)-1);_accepted=Snapshot();QueuePreview();});
         _undoButton=actions.Children.OfType<Button>().FirstOrDefault(b=>Equals(b.Content,"되돌리기"));_redoButton=actions.Children.OfType<Button>().FirstOrDefault(b=>Equals(b.Content,"다시 실행"));
@@ -53,6 +55,10 @@ public sealed partial class ObjectSelectionWindow
         Canvas.StrokeEnded+=()=>{if(_undo.Count>0)CaptureManual(_undo[^1].Mask);_accepted=Snapshot();if(_pendingBefore is not null)QueuePreview();};
         PreviewKeyDown+=(_,e)=>{if(Keyboard.Modifiers==ModifierKeys.Control&&e.Key==Key.Y&&!MainWindow.IsTextEditing(Keyboard.FocusedElement as DependencyObject)){Redo();e.Handled=true;}};
         void RangeControls(){RangeTolerance.IsEnabled=InkTolerance.IsEnabled=_backgroundList.IsEnabled=TextMethod.SelectedIndex==1;}TextMethod.SelectionChanged+=(_,_)=>RangeControls();RangeControls();_view.SelectedIndex=2;Canvas.ViewMode=2;Canvas.Changed();_liveSync=false;_maskSettingsKey=SettingsKey();_accepted=Snapshot();UpdateUndoButtons();
+    }
+    public void ApplyNumericPreset()
+    {
+        _liveSync=true;TargetBox.SelectedIndex=1;TextMethod.SelectedIndex=1;_inkColor="";RangeTolerance.Value=24;InkTolerance.Value=36;_liveSync=false;QueuePreview("숫자·가격 우선 · 획 보존");
     }
     private void CaptureManual(MaskBuffer before){for(var i=0;i<_manualPatch.Length;i++)if(Canvas.Buffer.Alpha[i]!=before.Alpha[i])_manualPatch[i]=Canvas.Buffer.Alpha[i];}
     private void ApplyManual(MaskBuffer next){for(var i=0;i<Math.Min(_manualPatch.Length,next.Alpha.Length);i++)if(_manualPatch[i]>=0)next.Alpha[i]=(byte)_manualPatch[i];}

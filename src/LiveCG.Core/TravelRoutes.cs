@@ -63,9 +63,15 @@ public sealed class RouteGeometry
         double completed=0;for(var i=0;i<Segments.Count;i++)
         {
             var s=Segments[i];var p=route.Points[i+1];icon=route.Points[i].Icon??icon;
-            if(seconds<=s.Start+s.Duration){var f=Math.Clamp((seconds-s.Start)/s.Duration,0,1);var d=f*s.Length;var j=1;while(j<s.Distance.Length-1&&s.Distance[j]<d)j++;var mix=(d-s.Distance[j-1])/Math.Max(1e-12,s.Distance[j]-s.Distance[j-1]);var x=s.X[j-1]+(s.X[j]-s.X[j-1])*mix;var y=s.Y[j-1]+(s.Y[j]-s.Y[j-1])*mix;return new(x,y,Math.Atan2(s.Y[j]-s.Y[j-1],s.X[j]-s.X[j-1]),completed+d,i,i,f,false,icon);}
+            if(seconds<s.Start+s.Duration){var f=Math.Clamp((seconds-s.Start)/s.Duration,0,1);var d=f*s.Length;var j=1;while(j<s.Distance.Length-1&&s.Distance[j]<d)j++;var mix=(d-s.Distance[j-1])/Math.Max(1e-12,s.Distance[j]-s.Distance[j-1]);var x=s.X[j-1]+(s.X[j]-s.X[j-1])*mix;var y=s.Y[j-1]+(s.Y[j]-s.Y[j-1])*mix;return new(x,y,Math.Atan2(s.Y[j]-s.Y[j-1],s.X[j]-s.X[j-1]),completed+d,i,i,f,false,icon);}
             completed+=s.Length;if(seconds<s.Start+s.Duration+p.Stop||i==Segments.Count-1)return new(p.X,p.Y,Math.Atan2(s.Y[^1]-s.Y[^2],s.X[^1]-s.X[^2]),completed,i+1,i,1,true,p.Icon??icon);
         }return new(first.X,first.Y,0,0,0,0,0,true,icon);
+    }
+    public bool EmphasizeStop(TravelRoute route,RouteSample sample,double seconds)
+    {
+        if(!route.Arrival||!sample.Stopped||sample.Point<0||sample.Point>=route.Points.Count)return false;
+        var stop=route.Points[sample.Point].Stop;var start=sample.Point==0?0:Segments[sample.Point-1].Start+Segments[sample.Point-1].Duration;
+        return stop>0&&seconds>=start&&seconds<start+stop;
     }
 }
 public static class RouteRenderer
@@ -94,7 +100,7 @@ public static class RouteRenderer
         var alpha=route.Opacity*opacity;var lineColor=SKColor.Parse(route.Color);var borderColor=SKColor.Parse(route.OutlineColor);if(route.FuturePath){p.Color=lineColor.WithAlpha((byte)(lineColor.Alpha*60/255d*alpha));canvas.DrawPath(full,p);}if(route.Outline>0){p.StrokeWidth=(float)(route.LineWidth+route.Outline*2);p.Color=borderColor.WithAlpha((byte)(borderColor.Alpha*alpha));canvas.DrawPath(past,p);}
         p.StrokeWidth=(float)route.LineWidth;p.Color=lineColor.WithAlpha((byte)(lineColor.Alpha*alpha));if(route.LineStyle is RouteLineStyle.Dashed or RouteLineStyle.Dotted)p.PathEffect=SKPathEffect.CreateDash(route.LineStyle==RouteLineStyle.Dotted?[1,(float)route.LineWidth*2]:[12,8],0);canvas.DrawPath(past,p);p.PathEffect?.Dispose();p.PathEffect=null;
         if(route.LineStyle==RouteLineStyle.Arrows)foreach(var s in geometry.Segments)for(var j=8;j<s.X.Length;j+=16){var before=geometry.Segments.TakeWhile(v=>v!=s).Sum(v=>v.Length);if(before+s.Distance[j]>sample.Distance)continue;canvas.Save();canvas.Translate((float)s.X[j]*w,(float)s.Y[j]*h);canvas.RotateDegrees((float)(Math.Atan2((s.Y[j]-s.Y[j-1])*h,(s.X[j]-s.X[j-1])*w)*180/Math.PI));p.Style=SKPaintStyle.Stroke;using var arrow=new SKPath();arrow.MoveTo(-7,-5);arrow.LineTo(0,0);arrow.LineTo(-7,5);canvas.DrawPath(arrow,p);canvas.Restore();}
-        if(route.Arrival&&sample.Stopped&&sample.Point==route.Points.Count-1){p.Color=lineColor.WithAlpha((byte)(lineColor.Alpha*200/255d*alpha));p.StrokeWidth=2;canvas.DrawCircle((float)sample.X*w,(float)sample.Y*h,(float)route.IconSize*.65f,p);}
+        if(geometry.EmphasizeStop(route,sample,Math.Clamp(progress,0,1)*route.Duration)){p.Color=lineColor.WithAlpha((byte)(lineColor.Alpha*200/255d*alpha));p.StrokeWidth=2;canvas.DrawCircle((float)sample.X*w,(float)sample.Y*h,(float)route.IconSize*.65f,p);}
         var angle=Math.Atan2(Math.Sin(sample.Angle)*h,Math.Cos(sample.Angle)*w)*180/Math.PI;canvas.Save();canvas.Translate((float)sample.X*w,(float)sample.Y*h);var pose=RouteEditing.IconPose(route.Direction,angle);canvas.RotateDegrees((float)pose.Rotation);if(pose.FlipX)canvas.Scale(-1,1);if(route.Animate&&!sample.Stopped){canvas.Translate(0,(float)Math.Sin(progress*route.Duration*8)*2);canvas.RotateDegrees((float)Math.Sin(progress*route.Duration*6)*3);}
         var cache=Caches.GetOrCreateValue(route);if(cache.Custom!=route.CustomPng){foreach(var old in cache.Icons.Values)old.Dispose();cache.Icons.Clear();cache.Custom=route.CustomPng;}if(!cache.Icons.TryGetValue(sample.Icon,out var icon)){icon=Icon(route,sample.Icon);cache.Icons.Add(sample.Icon,icon);}using var image=SKImage.FromBitmap(icon);using var ip=new SKPaint{Color=SKColors.White.WithAlpha((byte)(255*opacity)),IsAntialias=true};var size=(float)route.IconSize;var scale=Math.Min(size/icon.Width,size/icon.Height);canvas.DrawImage(image,SKRect.Create(-icon.Width*scale/2,-icon.Height*scale/2,icon.Width*scale,icon.Height*scale),new SKSamplingOptions(SKFilterMode.Linear),ip);canvas.Restore();
     }

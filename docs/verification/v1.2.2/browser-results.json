@@ -1,0 +1,678 @@
+{
+  "passed": 168,
+  "total": 168,
+  "results": [
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs renders native comparison time 0.2"
+    },
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs renders native comparison time 1.9"
+    },
+    {
+      "ok": true,
+      "name": "all-effects.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "all-effects.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "all-effects.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "all-effects.obs renders native comparison time 1.4"
+    },
+    {
+      "ok": true,
+      "name": "all-effects.obs renders native comparison time 1.6"
+    },
+    {
+      "ok": true,
+      "name": "group-masks.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "group-masks.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "group-masks.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "group-masks.obs renders native comparison time 1.2"
+    },
+    {
+      "ok": true,
+      "name": "group-masks.obs renders native comparison time 2.1"
+    },
+    {
+      "ok": true,
+      "name": "paths-cutout.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "paths-cutout.obs renders native comparison time 0.1"
+    },
+    {
+      "ok": true,
+      "name": "paths-cutout.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "paths-cutout.obs renders native comparison time 1.6"
+    },
+    {
+      "ok": true,
+      "name": "broadcast-polish.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "broadcast-polish.obs renders native comparison time 0.2"
+    },
+    {
+      "ok": true,
+      "name": "broadcast-polish.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "broadcast-polish.obs renders native comparison time 1.4"
+    },
+    {
+      "ok": true,
+      "name": "broadcast-polish.obs renders native comparison time 2.5"
+    },
+    {
+      "ok": true,
+      "name": "broadcast-polish.obs renders native comparison time 3.5"
+    },
+    {
+      "ok": true,
+      "name": "broadcast-polish.obs renders native comparison time 4.5"
+    },
+    {
+      "ok": true,
+      "name": "soft-inside.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "soft-inside.obs renders native comparison time 0.3"
+    },
+    {
+      "ok": true,
+      "name": "soft-inside.obs renders native comparison time 0.7"
+    },
+    {
+      "ok": true,
+      "name": "soft-inside.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "soft-inside.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "soft-outside.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "soft-outside.obs renders native comparison time 0.3"
+    },
+    {
+      "ok": true,
+      "name": "soft-outside.obs renders native comparison time 0.7"
+    },
+    {
+      "ok": true,
+      "name": "soft-outside.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "soft-outside.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "soft-both.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "soft-both.obs renders native comparison time 0.3"
+    },
+    {
+      "ok": true,
+      "name": "soft-both.obs renders native comparison time 0.7"
+    },
+    {
+      "ok": true,
+      "name": "soft-both.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "soft-both.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "content-only.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "content-only.obs renders native comparison time 0.3"
+    },
+    {
+      "ok": true,
+      "name": "content-only.obs renders native comparison time 0.7"
+    },
+    {
+      "ok": true,
+      "name": "content-only.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "content-only.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "soft-group.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "soft-group.obs renders native comparison time 0.25"
+    },
+    {
+      "ok": true,
+      "name": "soft-group.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "soft-group.obs renders native comparison time 1.5"
+    },
+    {
+      "ok": true,
+      "name": "soft-group.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "soft-numeric.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "soft-numeric.obs renders native comparison time 0.25"
+    },
+    {
+      "ok": true,
+      "name": "soft-numeric.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "soft-numeric.obs renders native comparison time 1.5"
+    },
+    {
+      "ok": true,
+      "name": "soft-numeric.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "manual-separation.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "manual-separation.obs renders native comparison time 0.25"
+    },
+    {
+      "ok": true,
+      "name": "manual-separation.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "manual-separation.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "inactive-manual-group.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "inactive-manual-group.obs renders native comparison time 0.25"
+    },
+    {
+      "ok": true,
+      "name": "inactive-manual-group.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "inactive-manual-group.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "text-strokes.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "text-strokes.obs renders native comparison time 0.3"
+    },
+    {
+      "ok": true,
+      "name": "text-strokes.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "route-Solid.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Solid.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Solid.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-Solid.obs renders native comparison time 3.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Solid.obs renders native comparison time 5"
+    },
+    {
+      "ok": true,
+      "name": "route-Solid.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "route-Dashed.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Dashed.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Dashed.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-Dashed.obs renders native comparison time 3.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Dashed.obs renders native comparison time 5"
+    },
+    {
+      "ok": true,
+      "name": "route-Dashed.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "route-Dotted.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Dotted.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Dotted.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-Dotted.obs renders native comparison time 3.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Dotted.obs renders native comparison time 5"
+    },
+    {
+      "ok": true,
+      "name": "route-Dotted.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "route-Arrows.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Arrows.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Arrows.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-Arrows.obs renders native comparison time 3.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Arrows.obs renders native comparison time 5"
+    },
+    {
+      "ok": true,
+      "name": "route-Arrows.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "route-hidden.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-hidden.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "route-GroupMask.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-GroupMask.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-GroupMask.obs renders native comparison time 3.5"
+    },
+    {
+      "ok": true,
+      "name": "route-GroupMask.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "route-Upright.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Upright.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "route-Upright.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-Upright.obs renders native comparison time 4.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Upright.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "route-Vertical.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Vertical.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "route-Vertical.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-Vertical.obs renders native comparison time 4.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Vertical.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "route-Bends.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Bends.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Bends.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-Bends.obs renders native comparison time 5"
+    },
+    {
+      "ok": true,
+      "name": "route-Bends.obs renders native comparison time 9.5"
+    },
+    {
+      "ok": true,
+      "name": "route-ROI.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-ROI.obs renders native comparison time 2"
+    },
+    {
+      "ok": true,
+      "name": "route-ROI.obs renders native comparison time 5"
+    },
+    {
+      "ok": true,
+      "name": "route-ROI.obs renders native comparison time 9.5"
+    },
+    {
+      "ok": true,
+      "name": "numeric-saved.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "numeric-saved.obs renders native comparison time 0.2"
+    },
+    {
+      "ok": true,
+      "name": "numeric-saved.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "numeric-saved.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "numeric-saved.obs renders native comparison time 1.2"
+    },
+    {
+      "ok": true,
+      "name": "numeric-mask.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "numeric-mask.obs renders native comparison time 0.2"
+    },
+    {
+      "ok": true,
+      "name": "numeric-mask.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "numeric-child.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "numeric-child.obs renders native comparison time 0.2"
+    },
+    {
+      "ok": true,
+      "name": "numeric-child.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "numeric-bounce.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "numeric-bounce.obs renders native comparison time 0.2"
+    },
+    {
+      "ok": true,
+      "name": "numeric-bounce.obs renders native comparison time 0.6"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 0"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 0.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 1"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 3"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 3.5"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 4"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 6"
+    },
+    {
+      "ok": true,
+      "name": "route-Stops.obs renders native comparison time 7"
+    },
+    {
+      "ok": true,
+      "name": "content-only.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "disabled exit leaves browser emphasis running"
+    },
+    {
+      "ok": true,
+      "name": "effect-derived no-exit package restarts at actual program activation"
+    },
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "after entrance and multiple cycles only the emphasis section repeats"
+    },
+    {
+      "ok": true,
+      "name": "pause freezes the playback clock"
+    },
+    {
+      "ok": true,
+      "name": "targeted command ignores a different PNG source"
+    },
+    {
+      "ok": true,
+      "name": "OBS interaction keyboard E requests exit"
+    },
+    {
+      "ok": true,
+      "name": "requested exit completes and stops rather than repeating the entrance"
+    },
+    {
+      "ok": true,
+      "name": "OBS interaction keyboard R restarts a new entrance"
+    },
+    {
+      "ok": true,
+      "name": "OBS invisible-to-visible event restarts according to the saved policy"
+    },
+    {
+      "ok": true,
+      "name": "duplicate visible event does not interrupt the entrance"
+    },
+    {
+      "ok": true,
+      "name": "optional no-replay policy preserves playback when source returns"
+    },
+    {
+      "ok": true,
+      "name": "immediate exit resumes paused playback and enters the exit section"
+    },
+    {
+      "ok": true,
+      "name": "v1-rest.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "named source HTML is the primary browser entry"
+    },
+    {
+      "ok": true,
+      "name": "browser enters original rest after one emphasis pass"
+    },
+    {
+      "ok": true,
+      "name": "browser original-rest screenshot captured for native pixel comparison"
+    },
+    {
+      "ok": true,
+      "name": "browser resumes emphasis after rest without replaying entrance"
+    },
+    {
+      "ok": true,
+      "name": "browser Transparent rest captured for native comparison"
+    },
+    {
+      "ok": true,
+      "name": "browser Hold rest captured for native comparison"
+    },
+    {
+      "ok": true,
+      "name": "browser hold rest retains the final emphasis frame"
+    },
+    {
+      "ok": true,
+      "name": "v1/Jpeg.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "v1/Jpeg.obs renders normalized PNG assets"
+    },
+    {
+      "ok": true,
+      "name": "v1/Webp.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "v1/Webp.obs renders normalized PNG assets"
+    },
+    {
+      "ok": true,
+      "name": "한글 로컬 & 패키지.obs loads via local file with all PNGs and no runtime error"
+    },
+    {
+      "ok": true,
+      "name": "separate preview exposes creator/version and live controls"
+    }
+  ]
+}
