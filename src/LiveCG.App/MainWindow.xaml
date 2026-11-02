@@ -55,14 +55,14 @@
       <StackPanel.Resources><Style x:Key="OutputHeader" TargetType="TextBlock"><Setter Property="Foreground" Value="#80D7C0"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Margin" Value="3,10,3,5"/></Style></StackPanel.Resources>
       <TextBlock Text="① 출력 방식" Style="{StaticResource OutputHeader}"/><ComboBox x:Name="OutputKindBox" SelectionChanged="OutputKindChanged"/>
       <Separator Margin="3,7"/><TextBlock Text="② 반복 · 출력 길이" Style="{StaticResource OutputHeader}"/>
-      <UniformGrid Columns="2"><StackPanel><TextBlock Text="WebM 반복 횟수"/><ComboBox x:Name="WebmRepeatsBox" IsEditable="True" LostFocus="OutputTimingChanged" SelectionChanged="OutputTimingComboChanged"/></StackPanel><StackPanel><TextBlock Text="사이 쉬기 (초)"/><ComboBox x:Name="LoopRestBox" IsEditable="True" LostFocus="OutputTimingChanged" SelectionChanged="OutputTimingComboChanged"/></StackPanel></UniformGrid>
+      <UniformGrid x:Name="OutputTimingGrid" Columns="2"><StackPanel x:Name="WebmRepeatsPanel"><TextBlock Text="WebM 반복 횟수"/><ComboBox x:Name="WebmRepeatsBox" IsEditable="True" LostFocus="OutputTimingChanged" SelectionChanged="OutputTimingComboChanged"/></StackPanel><StackPanel><TextBlock Text="사이 쉬기 (초)"/><ComboBox x:Name="LoopRestBox" IsEditable="True" LostFocus="OutputTimingChanged" SelectionChanged="OutputTimingComboChanged"/></StackPanel></UniformGrid>
       <ComboBox x:Name="RestModeBox" SelectionChanged="OutputTimingComboChanged" ToolTip="쉬는 동안 표시할 모습"/>
       <TextBlock x:Name="AutoDurationText" Text="출력 길이 · 타임라인 자동" Foreground="{StaticResource AccentBrush}" FontSize="12" FontWeight="Bold" Margin="3,4" TextWrapping="Wrap"/>
       <WrapPanel><Button Content="선택 파일에 적용" Click="ApplyOutputTiming" Padding="6,4"/><Button Content="1회 + 쉬기 확인" Click="PreviewSingleCycle" Padding="6,4"/></WrapPanel>
       <Separator Margin="3,7"/><TextBlock Text="③ 영상 품질" Style="{StaticResource OutputHeader}"/>
       <UniformGrid Columns="2">
        <StackPanel><TextBlock Text="출력 FPS"/><ComboBox x:Name="FpsBox" IsEditable="True" LostFocus="VideoOptionsChanged" SelectionChanged="VideoComboChanged"/></StackPanel>
-       <StackPanel><TextBlock Text="출력 화질"/><ComboBox x:Name="QualityBox" SelectionChanged="VideoComboChanged"/></StackPanel>
+       <StackPanel x:Name="WebmQualityPanel"><TextBlock Text="출력 화질"/><ComboBox x:Name="QualityBox" SelectionChanged="VideoComboChanged"/></StackPanel>
       </UniformGrid>
       <Expander Header="정밀 설정 · 타임라인 끝 여유" Foreground="#A9BDCC"><StackPanel><TextBlock Text="편집 끝 여유 · 반복 사이 쉬기와 별도" FontSize="10"/><ComboBox x:Name="EndHoldBox" IsEditable="True" LostFocus="VideoOptionsChanged" SelectionChanged="VideoComboChanged"/></StackPanel></Expander>
       <Separator Margin="3,7"/><TextBlock Text="④ 저장 · 출력 대상" Style="{StaticResource OutputHeader}"/><ComboBox x:Name="ExportScopeBox"/>
@@ -153,7 +153,7 @@
   <TabControl Grid.Row="3" x:Name="EffectsTabs" Background="#14202D" BorderBrush="#354A5C" Foreground="#DFE7EE" Padding="3" SelectionChanged="PropertyTabChanged">
    <TabControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></TabControl.ItemsPanel>
    <TabControl.Template><ControlTemplate TargetType="TabControl"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><ItemsPresenter/><Border Grid.Row="1" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="3"><ContentPresenter ContentSource="SelectedContent"/></Border></Grid></ControlTemplate></TabControl.Template>
-   <TabItem Header="① 효과 · 20종">
+   <TabItem Header="① 효과 · 21종">
     <DockPanel>
      <StackPanel DockPanel.Dock="Top"><TextBox x:Name="EffectSearchBox" ToolTip="효과 / 내 효과 검색" TextChanged="FilterEffects"/>
       <WrapPanel><Button Content="＋ 뒤에 추가" Click="AddClip"/><Button Content="＋ 커서에 추가" Click="AddClipAtCursor"/></WrapPanel>
@@ -167,7 +167,7 @@
      <Expander x:Name="ClipBasicSection" Header="기본 · 강도 / 속도" IsExpanded="True" Foreground="#BFE5D7" Margin="3,6">
       <StackPanel><CheckBox x:Name="ClipEnabledCheck" Content="선택 효과 사용" IsChecked="True" Checked="ClipOptionsChanged" Unchecked="ClipOptionsChanged"/>
        <UniformGrid Columns="2"><StackPanel><TextBlock Text="강도"/><ComboBox x:Name="StrengthBox" SelectionChanged="ClipComboChanged"/></StackPanel><StackPanel><TextBlock Text="속도"/><ComboBox x:Name="EffectSpeedBox" IsEditable="True" LostFocus="ClipOptionsChanged" SelectionChanged="ClipComboChanged"/></StackPanel></UniformGrid>
-       <WrapPanel><Button Content="효과 복제" Click="DuplicateClip"/><Button Content="효과 삭제" Click="DeleteClip"/></WrapPanel>
+       <WrapPanel><Button Content="여행 경로 편집" Click="OpenTravelRoute"/><Button Content="숫자 칸 편집" Click="EditDigitCells"/><Button Content="효과 복제" Click="DuplicateClip"/><Button Content="효과 삭제" Click="DeleteClip"/></WrapPanel>
       </StackPanel>
      </Expander>
      <Expander x:Name="ClipTimingSection" Header="시간 · 반복 / 구간" Foreground="#B6CFE7" Margin="3,6">

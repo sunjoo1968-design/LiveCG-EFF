@@ -16,6 +16,7 @@ public sealed partial class EffectScene : IDisposable
     public int Width => _source.Width;
     public int Height => _source.Height;
     public SKBitmap OriginalFrame()=>_source.Copy();
+    public int DigitCount(EffectRegion region)=>GetLayer(region).Digits.Count;
     public void DrawSource(SKCanvas canvas)=>DrawOriginal(canvas,0,0,null);
     public EffectScene(SKBitmap source) { _source = source; _image = SKImage.FromBitmap(source); }
 
@@ -69,7 +70,7 @@ public sealed partial class EffectScene : IDisposable
         // Remove all source instances before drawing any moving layer.
         foreach(var item in prepared)
         {
-            if(item.Region.Enabled&&item.Region.Background==BackgroundMode.KeepOriginal)continue;
+            if(item.Region.OverlayOnly||item.Region.Enabled&&item.Region.Background==BackgroundMode.KeepOriginal)continue;
             var layer=item.Layer;using var erase=new SKPaint{BlendMode=SKBlendMode.DstOut};
             canvas.DrawImage(layer.EraseImage!,layer.Bounds.Left,layer.Bounds.Top,erase);
             canvas.DrawImage(layer.FillImage!,layer.Bounds.Left,layer.Bounds.Top);
@@ -158,6 +159,7 @@ public sealed partial class EffectScene : IDisposable
 
     private static void DrawDecoration(SKCanvas canvas, float width, float height, EffectClip clip, float p, float opacity, EffectRegion region,SKImage? coverage=null)
     {
+        if(clip.Options.Kind==EffectKind.TravelRoute){if(clip.Route is { } route)RouteRenderer.Draw(canvas,route,width,height,p,opacity);return;}
         var power = (float)clip.Options.Power;
         var edge = Math.Clamp(Math.Min(p, 1 - p) * 9, 0, 1);
         var amplitude = Math.Min(1, .65f * power) * opacity * edge;
@@ -290,10 +292,10 @@ public sealed partial class EffectScene : IDisposable
             using var raw=RegionRaster.Raw(_source,region,rect,background);
             using var shape=RegionRaster.Shape(region,rect,Width,Height);
             var foreground=raw.Copy();Multiply(foreground,shape);var backingCustom=foreground.Copy();
-            var digitsCustom=DigitCells.Find(foreground,background);
+            var digitsCustom=DigitCells.Find(foreground,DigitCells.Background(foreground,background),region.DigitDividers);
             using(var c=new SKCanvas(backingCustom))using(var paint=new SKPaint{Color=region.ContentOnly?SKColors.Transparent:background,BlendMode=SKBlendMode.Src})foreach(var digit in digitsCustom)c.DrawRect(digit,paint);
             using var eraseCustom=RegionRaster.Shape(region,rect,Width,Height,false);
-            var custom=new Layer(foreground,backingCustom,rect,region.Background,region.BackgroundColor,background,DigitCells.InkColor(foreground,background),digitsCustom,region,higher,eraseCustom.Copy())
+            var custom=new Layer(foreground,backingCustom,rect,region.Background,region.BackgroundColor,background,DigitCells.InkColor(foreground,DigitCells.Background(foreground,background)),digitsCustom,region,higher,eraseCustom.Copy())
             {RawImage=SKImage.FromBitmap(raw),ShapeImage=SKImage.FromBitmap(shape)};
             _layers.Add(region.Id,custom);return custom;
         }
@@ -330,7 +332,7 @@ public sealed partial class EffectScene : IDisposable
                 bitmap.SetPixel(x-rect.Left,y-rect.Top,fill.WithAlpha((byte)(fill.Alpha*current.Alpha/255)));
             }
         }
-        var digits = DigitCells.Find(bitmap, background);
+        var digits = DigitCells.Find(bitmap,DigitCells.Background(bitmap,background),region.DigitDividers);
         var backing = bitmap.Copy();
         using (var c = new SKCanvas(backing))
         using (var fill = new SKPaint { Color = background, BlendMode = SKBlendMode.Src })
@@ -338,14 +340,14 @@ public sealed partial class EffectScene : IDisposable
             using var shape = RegionMask.Create(region.Shape, SKRect.Create(bitmap.Width,bitmap.Height),region.Points);c.ClipPath(shape,antialias:true);
             foreach (var digit in digits) c.DrawRect(digit, fill);
         }
-        var ink = DigitCells.InkColor(bitmap, background);
+        var ink = DigitCells.InkColor(bitmap,DigitCells.Background(bitmap,background));
         var layer = new Layer(bitmap, backing, rect, region.Background, region.BackgroundColor, background, ink, digits, region, higher,Coverage(region,rect));
         maskBitmap?.Dispose();
         _layers.Add(region.Id, layer); return layer;
     }
 
-    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Softness==b.Softness&&a.ContentOnly==b.ContentOnly&&a.ContentTolerance==b.ContentTolerance&&a.SeparationTarget==b.SeparationTarget&&a.TextInkColor==b.TextInkColor&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.CutoutEnabled==b.CutoutEnabled&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
-    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,Bounds=r.Bounds,Shape=r.Shape,Softness=r.Softness with{},ContentOnly=r.ContentOnly,ContentTolerance=r.ContentTolerance,SeparationTarget=r.SeparationTarget,TextInkColor=r.TextInkColor,CutoutEnabled=r.CutoutEnabled,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
+    private static bool SameGeometry(EffectRegion a,EffectRegion b)=>a.Id==b.Id&&a.OverlayOnly==b.OverlayOnly&&a.Bounds==b.Bounds&&a.Shape==b.Shape&&a.Softness==b.Softness&&a.ContentOnly==b.ContentOnly&&a.ContentTolerance==b.ContentTolerance&&a.SeparationTarget==b.SeparationTarget&&a.TextInkColor==b.TextInkColor&&a.TextSettings.RangeMode==b.TextSettings.RangeMode&&a.TextSettings.ColorTolerance==b.TextSettings.ColorTolerance&&a.TextSettings.InkTolerance==b.TextSettings.InkTolerance&&a.TextSettings.BackgroundColors.SequenceEqual(b.TextSettings.BackgroundColors)&&a.DigitDividers.SequenceEqual(b.DigitDividers)&&a.Background==b.Background&&a.BackgroundColor==b.BackgroundColor&&a.CutoutEnabled==b.CutoutEnabled&&a.Points.SequenceEqual(b.Points)&&a.Cutout?.MaskPng==b.Cutout?.MaskPng&&a.Cutout?.ForegroundPng==b.Cutout?.ForegroundPng&&a.Cutout?.ErasePng==b.Cutout?.ErasePng;
+    private static EffectRegion Geometry(EffectRegion r)=>new(){Id=r.Id,OverlayOnly=r.OverlayOnly,Bounds=r.Bounds,Shape=r.Shape,Softness=r.Softness with{},ContentOnly=r.ContentOnly,ContentTolerance=r.ContentTolerance,SeparationTarget=r.SeparationTarget,TextInkColor=r.TextInkColor,TextSettings=r.TextSettings.Copy(),DigitDividers=[..r.DigitDividers],CutoutEnabled=r.CutoutEnabled,Points=r.Points.Select(p=>p with{}).ToList(),Background=r.Background,BackgroundColor=r.BackgroundColor,Cutout=r.Cutout is null?null:r.Cutout with{}};
     private static SKBitmap Coverage(EffectRegion region,SKRectI rect)
     {
         var bitmap=new SKBitmap(rect.Width,rect.Height);bitmap.Erase(SKColors.Transparent);
@@ -430,8 +432,14 @@ public sealed class MotionState
 
 public static class DigitCells
 {
+    public static SKColor Background(SKBitmap image,SKColor fallback)
+    {
+        var samples=new List<SKColor>();for(var x=0;x<image.Width;x++){samples.Add(image.GetPixel(x,0));samples.Add(image.GetPixel(x,image.Height-1));}for(var y=0;y<image.Height;y++){samples.Add(image.GetPixel(0,y));samples.Add(image.GetPixel(image.Width-1,y));}
+        if(samples.Count(c=>c.Alpha<32)>samples.Count*.4)return SKColors.Transparent;
+        var dominant=samples.Where(c=>c.Alpha>80).GroupBy(c=>(c.Red/8,c.Green/8,c.Blue/8)).OrderByDescending(g=>g.Count()).FirstOrDefault();return dominant is null?fallback:dominant.First();
+    }
     private static bool IsInk(SKColor c, SKColor background) => c.Alpha > 80 && (background.Alpha < 32 || Math.Max(Math.Abs(c.Red - background.Red), Math.Max(Math.Abs(c.Green - background.Green), Math.Abs(c.Blue - background.Blue))) > 65);
-    public static List<SKRect> Find(SKBitmap image, SKColor background)
+    public static List<SKRect> Find(SKBitmap image, SKColor background,IReadOnlyList<double>? dividers=null)
     {
         var runs = new List<SKRect>(); var start = -1; var top = image.Height; var bottom = 0;
         for (var x = 0; x <= image.Width; x++)
@@ -443,6 +451,20 @@ public static class DigitCells
             else if (start >= 0) { runs.Add(SKRect.Create(start, top, x - start, bottom - top)); start = -1; }
         }
         var height = runs.Select(r => r.Height).DefaultIfEmpty(0).Max();
+        if(dividers?.Count>0)
+        {
+            runs=[];var bounds=dividers.Append(0).Append(1).Distinct().Order().Select(v=>(int)Math.Round(v*image.Width)).ToArray();for(var i=1;i<bounds.Length;i++){int topY=image.Height,bottomY=0,left=image.Width,right=0;for(var x=bounds[i-1];x<Math.Min(image.Width,bounds[i]);x++)for(var y=0;y<image.Height;y++)if(IsInk(image.GetPixel(x,y),background)){left=Math.Min(left,x);right=Math.Max(right,x+1);topY=Math.Min(topY,y);bottomY=Math.Max(bottomY,y+1);}if(bottomY>topY)runs.Add(new(left,topY,right,bottomY));}
+        }
+        else
+        {
+            var separated=new List<SKRect>();foreach(var run in runs)
+            {
+                if(run.Width<=height*1.15){separated.Add(run);continue;}
+                var cuts=new List<int>{(int)run.Left};var inValley=false;var valleyStart=0;
+                for(var x=(int)run.Left+1;x<run.Right;x++){var count=0;for(var y=(int)run.Top;y<run.Bottom;y++)if(IsInk(image.GetPixel(x,y),background))count++;var low=count<=Math.Max(1,height*.06);if(low&&!inValley){valleyStart=x;inValley=true;}else if(!low&&inValley){var cut=(valleyStart+x)/2;if(cut-cuts[^1]>=height*.22&&run.Right-cut>=height*.22)cuts.Add(cut);inValley=false;}}
+                if(cuts.Count==1){var n=Math.Clamp((int)Math.Round(run.Width/Math.Max(1,height*.65)),2,20);for(var i=1;i<n;i++)cuts.Add((int)(run.Left+run.Width*i/n));}cuts.Add((int)run.Right);for(var i=1;i<cuts.Count;i++)separated.Add(new(cuts[i-1],run.Top,cuts[i],run.Bottom));
+            }runs=separated;
+        }
         return runs.Where(r => r.Height >= Math.Max(7, height * .68) && r.Width >= r.Height * .17 && r.Width <= r.Height * 1.15)
             .Select(r=>SKRect.Intersect(SKRect.Create(0,0,image.Width,image.Height),new SKRect(r.Left-2,r.Top-2,r.Right+2,r.Bottom+2))).ToList();
     }

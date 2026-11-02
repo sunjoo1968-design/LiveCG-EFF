@@ -33,7 +33,7 @@ public sealed partial class EffectScene
         canvas.SaveLayer();canvas.ClipRect(SKRect.Create(Width,Height));DrawOriginal(canvas,0,0,null);
         foreach(var root in roots)
         {
-            if(root.Enabled&&root.Background==BackgroundMode.KeepOriginal)continue;
+            if(root.OverlayOnly||root.Enabled&&root.Background==BackgroundMode.KeepOriginal)continue;
             var layer=GetLayer(root);using var p=new SKPaint{BlendMode=SKBlendMode.DstOut};canvas.DrawImage(layer.EraseImage!,layer.Bounds.Left,layer.Bounds.Top,p);canvas.DrawImage(layer.FillImage!,layer.Bounds.Left,layer.Bounds.Top);
         }
         foreach(var root in roots.AsEnumerable().Reverse())
@@ -96,6 +96,10 @@ public sealed partial class EffectScene
     }
     private void ApplySoftArea(SKBitmap frame,EffectRegion area,SKRectI parent,double time)
     {
+        if(area.OverlayOnly)
+        {
+            var b=area.Bounds.Pixels(Width,Height);b.Offset(-parent.Left,-parent.Top);using var decor=new SKBitmap(frame.Width,frame.Height);decor.Erase(SKColors.Transparent);using(var c=new SKCanvas(decor)){c.Translate(b.Left,b.Top);foreach(var clip in ClipTiming.EffectiveClips(area.Clips,time))if(time>=clip.Start&&(time<clip.End||ProductInfo.HoldsDecoration(clip.Options.Kind)))DrawDecoration(c,b.Width,b.Height,clip,(float)ClipTiming.Progress(clip,time),1,area);}using var overlayMasks=_maskRenderer.Render(area.Masks,frame.Width,frame.Height,Width,Height,parent,time);Multiply(decor,overlayMasks);using var overlayImage=SKImage.FromBitmap(decor);using var overlayCanvas=new SKCanvas(frame);overlayCanvas.DrawImage(overlayImage,0,0);return;
+        }
         var clips=ClipTiming.EffectiveClips(area.Clips,time);var layer=GetLayer(area);var bounds=layer.Bounds;bounds.Offset(-parent.Left,-parent.Top);var state=Evaluate(clips,time,bounds,layer.Digits.Count>0);
         if(Identity(state)&&!clips.Any(c=>time>=c.Start&&(time<c.End||ProductInfo.HoldsDecoration(c.Options.Kind))))return;
         using var composed=frame.Copy();using(var c=new SKCanvas(composed))

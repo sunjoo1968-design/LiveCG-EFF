@@ -17,16 +17,16 @@ public sealed partial class PreviewControl
     private void DrawSoftGuides(SKCanvas canvas)
     {
         if(!ShowSoftGuides||AddMode||SelectedMask is not null||SelectedRegion is not {Softness.Enabled:true} r||_source is null)return;
-        var key=JsonSerializer.Serialize(new{r.Bounds,r.Shape,r.Points,r.Softness,_source.Width,_source.Height});
+        var previewBounds=r.Bounds.Pixels(_source.Width,_source.Height);var previewFactor=Math.Min(1,Math.Max(512,Math.Max(previewBounds.Width,previewBounds.Height)*Viewport.Scale)/Math.Max(previewBounds.Width,previewBounds.Height));var key=JsonSerializer.Serialize(new{r.Bounds,r.Shape,r.Points,r.Softness,_source.Width,_source.Height,previewFactor});
         if(_guideKey!=key)
         {
             _insideGuide?.Dispose();_outsideGuide?.Dispose();_insideGuide=new();_outsideGuide=new();_guideKey=key;
-            var clean=r with{Cutout=null};var rect=RegionRaster.Rect(clean,_source.Width,_source.Height);using var mask=RegionRaster.Shape(clean,rect,_source.Width,_source.Height);
+            var factor=previewFactor;var width=Math.Max(1,(int)Math.Round(_source.Width*factor));var height=Math.Max(1,(int)Math.Round(_source.Height*factor));var softness=r.Softness;var clean=r with{Cutout=null,Softness=softness with{Width=softness.Width*factor,Top=softness.Top*factor,Right=softness.Right*factor,Bottom=softness.Bottom*factor,Left=softness.Left*factor}};var rect=RegionRaster.Rect(clean,width,height);using var mask=RegionRaster.Shape(clean,rect,width,height);
             void Edge(SKPath path,int threshold,int x,int y)
             {
                 bool On(int px,int py)=>px>=0&&py>=0&&px<mask.Width&&py<mask.Height&&mask.GetPixel(px,py).Alpha>=threshold;
                 if(!On(x,y))return;var px=x+rect.Left;var py=y+rect.Top;
-                void Line(float a,float b,float c,float d){path.MoveTo(a,b);path.LineTo(c,d);}
+                void Line(float a,float b,float c,float d){path.MoveTo((float)(a/factor),(float)(b/factor));path.LineTo((float)(c/factor),(float)(d/factor));}
                 if(!On(x-1,y))Line(px,py,px,py+1);if(!On(x+1,y))Line(px+1,py,px+1,py+1);if(!On(x,y-1))Line(px,py,px+1,py);if(!On(x,y+1))Line(px,py+1,px+1,py+1);
             }
             for(var y=0;y<mask.Height;y++)for(var x=0;x<mask.Width;x++){Edge(_insideGuide,254,x,y);Edge(_outsideGuide,1,x,y);}

@@ -1,0 +1,32 @@
+{
+  "Version": "1.2.0",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-02",
+  "Core": 516,
+  "Wpf": 442,
+  "Chromium": 126,
+  "ProgramClock": 5,
+  "ActualObs": 40,
+  "RenderComparisons": 96,
+  "Passed": 1225,
+  "Total": 1225,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "OptionalLocalPriceScreenshotChecks": 1,
+  "SourceImagesPublished": false,
+  "MaskBenchmark": {
+    "Pixels": 524288,
+    "BulkMilliseconds": 6.09,
+    "ReferenceMilliseconds": 450.6,
+    "Meaning": "Conversion microbenchmark on this PC, not whole-application speed"
+  },
+  "Limitations": [
+    "Ambiguous similar foreground/background colors are retained conservatively",
+    "Travel paths are user-drawn, not geographic routing or automatic removal of baked-in map lines",
+    "Travel route maximum 200 waypoints / 300 seconds; custom icons normalize to PNG <=512px"
+  ],
+  "PackageSHA256": "56DCE462703C761D11E1248F221AD0640FDEEB5C595E3A185FBB39FF2F7AC48E",
+  "PackageMiB": 174.4,
+  "PackageEntries": 509,
+  "PackageBytes": 182863323
+}

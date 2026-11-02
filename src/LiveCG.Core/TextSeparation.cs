@@ -12,8 +12,10 @@ public static class TextSeparation
 {
     private static bool Same(SKColor a,SKColor b)=>a.Red==b.Red&&a.Green==b.Green&&a.Blue==b.Blue;
     private static int Contrast(SKColor a,SKColor b){var r=a.Red-b.Red;var g=a.Green-b.Green;var c=a.Blue-b.Blue;return r*r+g*g+c*c;}
-    public static TextMatte Extract(SKBitmap source,SKColor background,SKColor? ink=null)
+    public static long Calculations;
+    public static TextMatte Extract(SKBitmap source,SKColor background,SKColor? ink=null,TextSeparationSettings? settings=null)
     {
+        Interlocked.Increment(ref Calculations);
         var w=source.Width;var h=source.Height;var n=checked(w*h);if(n>16_000_000)throw new InvalidDataException("글자 분리 범위는 최대1,600만 픽셀입니다.");
         var colors=new SKColor[n];var contrast=new int[n];var horizontal=new int[n];var alpha=new byte[n];var output=source.Copy();
         for(var y=0;y<h;y++)for(var x=0;x<w;x++){var i=y*w+x;colors[i]=source.GetPixel(x,y);contrast[i]=colors[i].Alpha==255?Contrast(colors[i],background):0;}
@@ -30,6 +32,29 @@ public static class TextSeparation
             var error=Math.Max(Math.Abs(background.Red+coverage*r-c.Red),Math.Max(Math.Abs(background.Green+coverage*g-c.Green),Math.Abs(background.Blue+coverage*b-c.Blue)));
             if(coverage<=0||error>1)continue;
             alpha[i]=(byte)Math.Clamp((int)Math.Round(coverage*255),1,255);output.SetPixel(x,y,f.WithAlpha(255));
+        }
+        if(settings?.RangeMode==true)
+        {
+            var backgrounds=settings.BackgroundColors.Select(SKColor.Parse).Append(background).ToArray();
+            double Distance(SKColor a,SKColor b)=>Math.Max(Math.Abs(a.Red-b.Red),Math.Max(Math.Abs(a.Green-b.Green),Math.Abs(a.Blue-b.Blue)));
+            for(var y=0;y<h;y++)for(var x=0;x<w;x++)
+            {
+                var i=y*w+x;var c=colors[i];if(c.Alpha<255)continue;
+                if(backgrounds.Any(bg=>Same(c,bg))){alpha[i]=0;continue;}
+                var protectedEdge=false;
+                if(ink is { } f)foreach(var bg in backgrounds)
+                {
+                    double r=f.Red-bg.Red,g=f.Green-bg.Green,b=f.Blue-bg.Blue;var length=r*r+g*g+b*b;if(length<1)continue;
+                    var a=((c.Red-bg.Red)*r+(c.Green-bg.Green)*g+(c.Blue-bg.Blue)*b)/length;
+                    if(a<=0||a>1)continue;var error=Math.Max(Math.Abs(bg.Red+a*r-c.Red),Math.Max(Math.Abs(bg.Green+a*g-c.Green),Math.Abs(bg.Blue+a*b-c.Blue)));
+                    if(error<=1){alpha[i]=(byte)Math.Clamp((int)Math.Round(a*255),1,255);output.SetPixel(x,y,f.WithAlpha(255));protectedEdge=true;break;}
+                }
+                if(protectedEdge)continue;
+                if(ink is { } color&&Distance(c,color)<=settings.InkTolerance){alpha[i]=255;output.SetPixel(x,y,c);continue;}
+                if(backgrounds.Any(bg=>Distance(c,bg)<=settings.ColorTolerance)){alpha[i]=0;continue;}
+                // Unknown colors are retained; range mode never erodes a contour to hide uncertainty.
+                alpha[i]=255;output.SetPixel(x,y,c);
+            }
         }
         return new(new(w,h,alpha),output);
     }

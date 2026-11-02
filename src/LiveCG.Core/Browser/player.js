@@ -15,7 +15,7 @@
     const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
     const image = name => images.get(name);
     const power = c => ({VeryWeak:.18,Weak:.55,Medium:1,Strong:1.65,VeryStrong:2.4}[c.options.strength] ?? 1);
-    const holds = k => k === "Highlight" || k === "Underline";
+    const holds = k => k === "Highlight" || k === "Underline" || k === "TravelRoute";
     entrances.add("WipeRight"); entrances.add("FallIn");
     const blank = (key, w, h) => {
         let c = buffers.get(key);
@@ -116,7 +116,28 @@
         }
         x.globalCompositeOperation = "source-over"; return result;
     }
-    function decoration(x, r, w, h, c, p, opacity, alpha = null) { alpha??=image(assets.get(r.id).image);
+    function drawRoute(x,r,w,h,clip,p,opacity){
+        const route=clip.route,compiled=assets.get(r.id).routes?.find(a=>a.id===clip.id);if(!route||!compiled)return;
+        const points=route.points,segments=compiled.segments,duration=points.reduce((s,v,i)=>s+v.stop+(i?v.move:0),0),seconds=clamp(p)*duration;
+        let sample={x:points[0].x,y:points[0].y,angle:0,distance:0,point:0,stopped:true,icon:points[0].icon??route.icon},completed=0,icon=sample.icon;
+        if(seconds>=points[0].stop)for(let i=0;i<segments.length;i++){
+            const s=segments[i],point=points[i+1];icon=points[i].icon??icon;
+            if(seconds<=s.start+s.duration){const f=clamp((seconds-s.start)/s.duration),d=f*s.length;let j=1;while(j<64&&s.distance[j]<d)j++;const mix=(d-s.distance[j-1])/Math.max(1e-12,s.distance[j]-s.distance[j-1]);sample={x:s.x[j-1]+(s.x[j]-s.x[j-1])*mix,y:s.y[j-1]+(s.y[j]-s.y[j-1])*mix,angle:Math.atan2(s.y[j]-s.y[j-1],s.x[j]-s.x[j-1]),distance:completed+d,point:i,stopped:false,icon};break;}
+            completed+=s.length;if(seconds<s.start+s.duration+point.stop||i===segments.length-1){sample={x:point.x,y:point.y,angle:Math.atan2(s.y[64]-s.y[63],s.x[64]-s.x[63]),distance:completed,point:i+1,stopped:true,icon:point.icon??icon};break;}
+        }
+        const full=new Path2D(),past=new Path2D();let used=0;
+        for(const s of segments){full.moveTo(s.x[0]*w,s.y[0]*h);past.moveTo(s.x[0]*w,s.y[0]*h);for(let j=1;j<s.x.length;j++){full.lineTo(s.x[j]*w,s.y[j]*h);if(used+s.distance[j]<=sample.distance)past.lineTo(s.x[j]*w,s.y[j]*h);else if(used+s.distance[j-1]<sample.distance)past.lineTo(sample.x*w,sample.y*h);}used+=s.length;}
+        x.save();x.lineCap='round';x.lineJoin='round';x.lineWidth=route.lineWidth;x.globalAlpha=route.opacity*opacity;
+        if(route.futurePath){x.strokeStyle=compiled.color;x.globalAlpha*=60/255;x.stroke(full);x.globalAlpha=route.opacity*opacity;}
+        if(route.outline>0){x.strokeStyle=compiled.outlineColor;x.lineWidth=route.lineWidth+route.outline*2;x.stroke(past);}x.lineWidth=route.lineWidth;x.strokeStyle=compiled.color;
+        if(route.lineStyle==='Dashed')x.setLineDash([12,8]);else if(route.lineStyle==='Dotted')x.setLineDash([1,route.lineWidth*2]);x.stroke(past);x.setLineDash([]);
+        if(route.lineStyle==='Arrows'){used=0;for(const s of segments){for(let j=8;j<s.x.length;j+=16){if(used+s.distance[j]>sample.distance)continue;x.save();x.translate(s.x[j]*w,s.y[j]*h);x.rotate(Math.atan2((s.y[j]-s.y[j-1])*h,(s.x[j]-s.x[j-1])*w));x.beginPath();x.moveTo(-7,-5);x.lineTo(0,0);x.lineTo(-7,5);x.stroke();x.restore();}used+=s.length;}}
+        if(route.arrival&&sample.stopped){x.globalAlpha=200/255*route.opacity*opacity;x.lineWidth=2;x.beginPath();x.arc(sample.x*w,sample.y*h,route.iconSize*.65,0,Math.PI*2);x.stroke();if(points[sample.point].name){x.globalAlpha=opacity;x.fillStyle='white';x.font=`bold ${clamp(route.iconSize*.35,10,26)}px "Malgun Gothic"`;x.textAlign='center';x.fillText(points[sample.point].name,sample.x*w,sample.y*h-route.iconSize*.75);}}
+        x.globalAlpha=opacity;x.translate(sample.x*w,sample.y*h);if(route.direction==='Follow')x.rotate(Math.atan2(Math.sin(sample.angle)*h,Math.cos(sample.angle)*w));else if(route.direction==='Horizontal'&&Math.cos(sample.angle)<0)x.scale(-1,1);
+        if(route.animate&&!sample.stopped){x.translate(0,Math.sin(p*duration*8)*2);x.rotate(Math.sin(p*duration*6)*3*Math.PI/180);}const sprite=image(compiled.icons[sample.icon]);const scale=Math.min(route.iconSize/sprite.width,route.iconSize/sprite.height);x.drawImage(sprite,-sprite.width*scale/2,-sprite.height*scale/2,sprite.width*scale,sprite.height*scale);x.restore();
+    }
+    function decoration(x, r, w, h, c, p, opacity, alpha = null) {
+        if(c.options.kind==='TravelRoute'){drawRoute(x,r,w,h,c,p,opacity);return;}alpha??=image(assets.get(r.id).image);
         const pow = power(c), edge = clamp(Math.min(p, 1 - p) * 9), amplitude = Math.min(1, .65 * pow) * opacity * edge;
         const outline = shape(r, { x: 0, y: 0, width: w, height: h }), k = c.options.kind;
         x.save(); x.lineCap = "butt";
@@ -200,6 +221,7 @@
         d.restore(); multiply(decor, masks); frame.getContext("2d").drawImage(decor, 0, 0);
     }
     function applySoftArea(frame,r,parent,time,a,clips){
+        if(r.overlayOnly){const layer=blank(r.id+'-overlay-only',parent.width,parent.height),c=layer.getContext('2d');c.translate(a.x-parent.x,a.y-parent.y);for(const clip of clips)if(time>=clip.start&&(time<clip.start+clip.duration||holds(clip.options.kind)))decoration(c,r,a.width,a.height,clip,progress(clip,time),1);multiply(layer,maskCoverage(r,parent,time,r.id+'-overlay-masks'));frame.getContext('2d').drawImage(layer,0,0);return;}
         const b={x:a.x-parent.x,y:a.y-parent.y,width:a.width,height:a.height},s=motion(clips,time,b,a.digits.length>0);
         if(identity(s)&&!clips.some(c=>time>=c.start&&(time<c.start+c.duration||holds(c.options.kind))))return;
         const composed=blank(r.id+"-soft-work",frame.width,frame.height),c=composed.getContext("2d");c.drawImage(frame,0,0);
@@ -223,7 +245,7 @@
         if(plain)for(const r of data.regions.filter(visible).slice().reverse()){const a=assets.get(r.id);ctx.save();ctx.translate(a.x,a.y);for(const c of effective(r.clips,time))if(time>=c.start&&(time<c.start+c.duration||holds(c.options.kind)))decoration(ctx,r,a.width,a.height,c,progress(c,time),1);ctx.restore();}
         if (!plain) {
             for (const r of roots) {
-                if (r.enabled && r.background === "KeepOriginal") continue;
+                if (r.overlayOnly || r.enabled && r.background === "KeepOriginal") continue;
                 const a = assets.get(r.id); ctx.globalCompositeOperation = "destination-out"; ctx.drawImage(image(a.erase), a.x, a.y); ctx.globalCompositeOperation = "source-over"; ctx.drawImage(image(a.fill), a.x, a.y);
             }
             for (const r of roots.slice().reverse()) {
@@ -279,7 +301,7 @@
     window.addEventListener("obsSourceActiveChanged",e=>{if(typeof e.detail?.active!=="boolean")return;obsHost=true;const next=e.detail.active;try{window.sessionStorage?.setItem(activeStorageKey,String(next));}catch{}if(next===programActive)return;programActive=next;if(!data.playback.replayOnShow){waitingForProgram=false;return;}api.restart();waitingForProgram=!next;});
     window.addEventListener("LiveCGControl", e => { const v = e.detail ?? {}; if (v.target && v.target !== "all" && v.target !== data.sourceName) return; if (["restart", "exit", "pause", "resume"].includes(v.command)) api[v.command](); });
     const names = new Set([data.source]);
-    for (const a of data.assets) { for (const key of ["raw", "shape", "image", "backing", "erase", "fill"]) names.add(a[key]); for (const m of a.masks) names.add(m.image); }
+    for (const a of data.assets) { for (const key of ["raw", "shape", "image", "backing", "erase", "fill"]) names.add(a[key]); for (const m of a.masks) names.add(m.image);for(const route of a.routes??[])for(const icon of Object.values(route.icons))names.add(icon); }
     Promise.all([...names].map(name => new Promise((resolve, reject) => { const img = new Image(); img.onload = () => { images.set(name, img); resolve(); }; img.onerror = () => reject(new Error("이미지 로드 실패: " + name)); img.src = name; }))).then(() => {
         loaded = true; api.restart();waitingForProgram=obsHost&&data.playback.replayOnShow&&programActive===false; const credit = document.getElementById("credit"); if (credit) credit.textContent = data.credit;
         document.title = "LiveCG-EFF · " + data.credit;

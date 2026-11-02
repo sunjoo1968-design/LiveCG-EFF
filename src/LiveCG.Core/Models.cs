@@ -6,7 +6,7 @@ using SkiaSharp;
 namespace LiveCG.Core;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum EffectKind { Sweep, Glow, Sparkle, Border, Zoom, Bounce, FadeIn, RiseIn, ZoomIn, ZoomOutIn, Shake, Float, Highlight, Ripple, Rays, OrbitBurst, DigitRoll, UserMotion, WipeRight, FallIn, Underline }
+public enum EffectKind { Sweep, Glow, Sparkle, Border, Zoom, Bounce, FadeIn, RiseIn, ZoomIn, ZoomOutIn, Shake, Float, Highlight, Ripple, Rays, OrbitBurst, DigitRoll, UserMotion, WipeRight, FallIn, Underline, TravelRoute }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum StrengthLevel { Weak, Medium, Strong, VeryWeak, VeryStrong }
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -24,7 +24,7 @@ public static class ProductInfo
     public static string Credit => "SunjooAn | v" + Version;
     public static string EffectName(EffectKind kind) => kind switch
     {
-        EffectKind.Sweep => "빛 스윕", EffectKind.Glow => "광채", EffectKind.Sparkle => "반짝임",
+        EffectKind.TravelRoute=>"여행 경로",EffectKind.Sweep => "빛 스윕", EffectKind.Glow => "광채", EffectKind.Sparkle => "반짝임",
         EffectKind.Border => "테두리 흐름", EffectKind.Zoom => "확대·축소", EffectKind.Bounce => "숫자 바운스",
         EffectKind.FadeIn => "서서히 등장", EffectKind.RiseIn => "아래에서 등장",
         EffectKind.ZoomIn => "줌인 등장", EffectKind.ZoomOutIn => "줌아웃 등장",
@@ -37,7 +37,7 @@ public static class ProductInfo
     public static StrengthLevel StrengthAt(int index)=>Strengths[Math.Clamp(index,0,Strengths.Length-1)];
     public static string StrengthName(StrengthLevel level) => level switch { StrengthLevel.VeryWeak=>"최약",StrengthLevel.Weak => "약", StrengthLevel.Medium => "중", StrengthLevel.VeryStrong=>"최강", _ => "강" };
     public static bool IsEntrance(EffectKind kind) => kind is EffectKind.FadeIn or EffectKind.RiseIn or EffectKind.ZoomIn or EffectKind.ZoomOutIn or EffectKind.WipeRight or EffectKind.FallIn;
-    public static bool HoldsDecoration(EffectKind kind)=>kind is EffectKind.Highlight or EffectKind.Underline;
+    public static bool HoldsDecoration(EffectKind kind)=>kind is EffectKind.Highlight or EffectKind.Underline or EffectKind.TravelRoute;
     public static SKColor DefaultEffectColor(EffectKind kind)=>kind switch{EffectKind.Glow=>new(255,218,88),EffectKind.Sparkle=>new(255,247,192),EffectKind.Border=>new(255,211,67),EffectKind.Highlight or EffectKind.Underline=>new(255,225,32),EffectKind.Ripple=>new(255,225,120),EffectKind.Rays=>new(255,229,99),EffectKind.OrbitBurst=>new(255,230,78),_=>SKColors.White};
     public static bool NeedsLayer(EffectKind kind) => IsEntrance(kind) || kind is EffectKind.Zoom or EffectKind.Bounce or EffectKind.Shake or EffectKind.Float or EffectKind.DigitRoll or EffectKind.UserMotion;
 }
@@ -48,7 +48,7 @@ public record NormalizedRect(double X, double Y, double Width, double Height)
     {
         if (!double.IsFinite(X + Y + Width + Height)) throw new InvalidDataException("영역 좌표가 올바르지 않습니다.");
         var x = Math.Clamp(X, 0, .99999); var y = Math.Clamp(Y, 0, .99999);
-        return new(x, y, Math.Clamp(Width, .00001, 1 - x), Math.Clamp(Height, .00001, 1 - y));
+        return new(x, y, Math.Clamp(Width, Math.Min(.00001,1-x), 1 - x), Math.Clamp(Height, Math.Min(.00001,1-y), 1 - y));
     }
     public SKRect Pixels(int width, int height)
     {
@@ -92,6 +92,7 @@ public record EffectClip
     public double? SourceDuration { get; set; }
     public Guid? SequenceId { get; set; }
     public MotionDefinition? Motion { get; set; }
+    public TravelRoute? Route { get; set; }
     public Guid? AssetId { get; set; }
     public Guid? AssetInstanceId { get; set; }
     public string? AssetName { get; set; }
@@ -100,13 +101,14 @@ public record EffectClip
     [JsonIgnore] public double End => Start + Duration;
     [JsonIgnore] public string DisplayName=>string.IsNullOrWhiteSpace(AssetName)?ProductInfo.EffectName(Options.Kind):AssetName+" · "+ProductInfo.EffectName(Options.Kind);
     [JsonIgnore] public string Label => $"{Start:0.##}–{End:0.##}초  {DisplayName} · {ProductInfo.StrengthName(Options.Strength)}{(Loop ? " ↻" : "")}";
-    public EffectClip Copy(bool newId = true) => this with { Id = newId ? Guid.NewGuid() : Id, Options = Options with { }, Motion = Motion?.Copy() };
+    public EffectClip Copy(bool newId = true) => this with { Id = newId ? Guid.NewGuid() : Id, Options = Options with { }, Motion = Motion?.Copy(),Route=Route?.Copy() };
     public void Validate()
     {
         if (!double.IsFinite(Start + Duration) || Start < 0 || Duration is < .016 or > 300 || End > 3600)
             throw new InvalidDataException("클립의 시작·길이를 확인하세요. 전체 길이는 최대 1시간입니다.");
         if(!Enum.IsDefined(Section))throw new InvalidDataException("클립 구간이 올바르지 않습니다.");
         Options.Validate();
+        if(Options.Kind==EffectKind.TravelRoute&&Route is null)throw new InvalidDataException("여행 경로를 전용 편집창에서 지정하세요.");Route?.Validate();
         if(!double.IsFinite(SourceOffset)||SourceOffset<0||SourceOffset>300||SourceDuration is { } total&&(!double.IsFinite(total)||total<.016||total>300))throw new InvalidDataException("분할 클립의 원본 구간이 올바르지 않습니다.");
         if(Options.Kind == EffectKind.UserMotion && Motion is null)throw new InvalidDataException("사용자 모션에 키프레임 정보가 없습니다.");
         Motion?.Validate();
@@ -116,7 +118,7 @@ public record EffectClip
 
 public record VideoOptions
 {
-    public OutputKind Output { get; set; }
+    public OutputKind Output { get; set; }=OutputKind.Browser;
     public double Duration { get; set; } = 1;
     public int Fps { get; set; } = 30;
     public int Crf { get; set; } = 18;
@@ -134,6 +136,9 @@ public record VideoOptions
 public enum SeparationTarget { Object, Text }
 public record EffectRegion
 {
+    public bool OverlayOnly { get; set; }
+    public List<double> DigitDividers { get; set; }=[];
+    public TextSeparationSettings TextSettings { get; set; }=new();
     public SeparationTarget SeparationTarget { get; set; }
     public string TextInkColor { get; set; }="";
     public RegionSoftness Softness { get; set; } = new();
@@ -160,10 +165,11 @@ public record EffectRegion
     [JsonPropertyName("Effect"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public EffectOptions? LegacyEffect { get; set; }
     [JsonIgnore] public string Label => $"{(Enabled?"◉":"— 숨김")} {(Role==RegionRole.Group?"▣ ":ParentId is not null?"↳ ":"")}{Name}{(Locked ? " 🔒" : "")} · {Clips.Count}개 효과";
-    public EffectRegion Copy(bool newIds = true) => this with { Id = newIds ? Guid.NewGuid() : Id, Softness=Softness with{}, Clips = Clips.Select(c => c.Copy(newIds)).ToList(), Points=Points.Select(p=>p with{}).ToList(), Masks=Masks.Select(m=>m.Copy(newIds)).ToList(), Cutout = Cutout is null ? null : Cutout with{} };
+    public EffectRegion Copy(bool newIds = true) => this with { Id = newIds ? Guid.NewGuid() : Id,DigitDividers=[..DigitDividers],TextSettings=TextSettings.Copy(), Softness=Softness with{}, Clips = Clips.Select(c => c.Copy(newIds)).ToList(), Points=Points.Select(p=>p with{}).ToList(), Masks=Masks.Select(m=>m.Copy(newIds)).ToList(), Cutout = Cutout is null ? null : Cutout with{} };
     public void Validate()
     {
         Bounds = Bounds.Clamp();
+        if(TextSettings is null)throw new InvalidDataException("글자 분리 설정이 없습니다.");TextSettings.Validate();if(DigitDividers is null||DigitDividers.Count>30||DigitDividers.Any(v=>!double.IsFinite(v)||v is <=0 or >=1))throw new InvalidDataException("숫자 칸 경계를 확인하세요.");
         if(!Enum.IsDefined(SeparationTarget)||TextInkColor is null||(TextInkColor.Length>0&&!SKColor.TryParse(TextInkColor,out _)))throw new InvalidDataException("분리 대상/글자 보호 색상을 확인하세요.");
         if(Softness is null)throw new InvalidDataException("경계 설정이 없습니다.");Softness.Validate();
         if(!double.IsFinite(ContentTolerance)||ContentTolerance is <0 or >150)throw new InvalidDataException("배경 분리 허용오차는 0~150입니다.");

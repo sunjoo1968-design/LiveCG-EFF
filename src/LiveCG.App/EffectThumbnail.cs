@@ -58,6 +58,7 @@ public sealed class EffectThumbnail : SKElement, IDisposable
         }
         _scene=new(_sample);
         _region=new(){Bounds=new(.14,.22,.72,.56),Clips=[new(){Duration=1.5,Options=new(){Kind=kind,Strength=StrengthLevel.Strong}}]};
+        if(kind==EffectKind.TravelRoute){_region.Bounds=new(.05,.05,.9,.9);_region.OverlayOnly=true;_region.Background=BackgroundMode.KeepOriginal;_region.Clips[0].Route=new(){Arrival=false,IconSize=34};_region.Clips[0].Duration=2;}
         PaintSurface+=Paint;
         _timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(65)};
         _timer.Tick+=(_,_)=>{if(IsMouseOver||Selected){_time+=.065;InvalidateVisual();}};

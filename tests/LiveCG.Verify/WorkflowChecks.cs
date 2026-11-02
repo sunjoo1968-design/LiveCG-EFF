@@ -9,7 +9,7 @@ internal static class WorkflowChecks
         var path=Path.Combine(folder,"타임라인 예제.png");using var source=SKBitmap.Decode(path)!;
         var price=LiveCG.Testing.TestFixtures.Demo(path).Regions[3];
         using(var scene=new EffectScene(source))
-        foreach(var kind in Enum.GetValues<EffectKind>().Where(k=>k!=EffectKind.UserMotion))
+        foreach(var kind in Enum.GetValues<EffectKind>().Where(k=>k!=EffectKind.UserMotion&&k!=EffectKind.TravelRoute))
         {
             var region=price with{Clips=[new(){Duration=3,Loop=true,LoopPeriod=1,Options=new(){Kind=kind}}]};
             using var a=scene.Render([region],new(),.3);using var b=scene.Render([region],new(),1.3);

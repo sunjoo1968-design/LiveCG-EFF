@@ -11,10 +11,12 @@ Environment.SetEnvironmentVariable("LIVECG_DATA_DIR",Path.Combine(folder,"user-d
 var failures=new List<string>();var count=0;
 void Check(bool ok,string name){count++;Console.WriteLine((ok?"PASS ":"FAIL ")+name);if(!ok)failures.Add(name);}
 void Reject(Action action,string name){try{action();Check(false,name);}catch(InvalidDataException){Check(true,name);}}
+if(args.Contains("--v12-repro")){V12Checks.Repro(Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
+if(args.Contains("--v12-only")){await V12Checks.Run(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
 void Png(SKBitmap b,string path){using var image=SKImage.FromBitmap(b);using var data=image.Encode(SKEncodedImageFormat.Png,100);File.WriteAllBytes(path,data.ToArray());}
 if(args.Contains("--visual-repro")){BroadcastChecks.VisualRepro(folder,Check);return failures.Count==0?0:1;}
 if(args.Contains("--playback-only")){await PlaybackChecks.Run(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
-Check(Enum.GetValues<EffectKind>().Count(k=>k!=EffectKind.UserMotion)==20,"20 distinct effect primitives without per-video duplicates");
+Check(Enum.GetValues<EffectKind>().Count(k=>k!=EffectKind.UserMotion)==21,"21 distinct effects including the travel editor without per-video duplicates");
 Check(Enum.GetValues<StrengthLevel>().Length==5,"five named strength levels");
 var identityRegion=new EffectRegion();var regionHash=identityRegion.GetHashCode();identityRegion.Bounds=new(.2,.2,.2,.2);identityRegion.Name="변경";
 Check(identityRegion.GetHashCode()==regionHash,"region identity stays stable during spatial and name edits");
@@ -76,7 +78,7 @@ using(var scene=new EffectScene(source))
     var price=demo.Regions[3].Copy(false);price.Clips=[];
     using var unchanged=scene.Render([price],new(),0);
     Check(unchanged.Bytes.SequenceEqual(source.Bytes),"regions without clips leave source pixels unchanged");
-    foreach(var kind in Enum.GetValues<EffectKind>().Where(k=>k!=EffectKind.UserMotion))
+    foreach(var kind in Enum.GetValues<EffectKind>().Where(k=>k!=EffectKind.UserMotion&&k!=EffectKind.TravelRoute))
     {
         var effectRegion=price with {Clips=[new(){Duration=1,Options=new(){Kind=kind,Strength=StrengthLevel.Strong}}]};
         using var frame=scene.Render([effectRegion],new(),.35);
@@ -155,6 +157,7 @@ await SoftEdgeChecks.Run(folder,Check);
 await ContextChecks.Run(folder,Check);
 await V1Checks.Run(folder,Check);
 await TextChecks.Run(folder,Check);
+await V12Checks.Run(folder,Check);
 Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");
 File.WriteAllText(Path.Combine(folder,"result.txt"),$"{count-failures.Count}/{count} passed\n"+string.Join("\n",failures));
 return failures.Count==0?0:1;

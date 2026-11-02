@@ -16,7 +16,7 @@ internal static class OutputUiChecks
         void Pump()=>Dispatcher.CurrentDispatcher.Invoke(()=>{},DispatcherPriority.ApplicationIdle);
         var path=Path.Combine(folder,"타임라인 예제.png");var r=new EffectRegion{Name="가격",Bounds=new(.1,.7,.7,.2),ContentOnly=true,Clips=[new(){Duration=1,Options=new(){Kind=EffectKind.ZoomIn}},new(){Start=1,Duration=2,Options=new(){Kind=EffectKind.Zoom}}]};
         var first=new ImageJob{SourcePath=path,Width=960,Height=540,Playback=PlaybackSections.NewDefault(),Regions=[r]};var other=first.Snapshot();other.SourcePath=Path.Combine(folder,"두 번째 PNG.png");other.Playback.IntroEnd=.3;
-        w.ApplyDocument(new(){Jobs=[first,other],Video=new(){Fps=30,EndHold=0}});Call("ResetHistory");Pump();var job=F<ImageJob>("_current");
+        w.ApplyDocument(new(){Jobs=[first,other],Video=new(){Output=OutputKind.Webm,Fps=30,EndHold=0}});Call("ResetHistory");Pump();var job=F<ImageJob>("_current");
         check(C<ComboBox>("WebmRepeatsBox").IsVisible&&C<ComboBox>("LoopRestBox").Text=="1"&&C<ComboBox>("RestModeBox").SelectedIndex==0,"left output panel exposes repeat count and default original rest without a dialog");
         check(C<TextBlock>("AutoDurationText").Text.Contains("9.00초")&&C<TextBlock>("AutoDurationText").Text.Contains("270프레임"),"output summary immediately includes two rests for three repeats");
         C<ComboBox>("WebmRepeatsBox").SelectedItem="5";Pump();check(job.Playback.WebmRepeats==5&&C<TextBlock>("AutoDurationText").Text.Contains("15.00초"),"left repeat dropdown directly updates model and final duration");

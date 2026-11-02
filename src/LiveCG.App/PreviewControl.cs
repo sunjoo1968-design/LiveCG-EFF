@@ -42,6 +42,9 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     private bool _panning;
     private readonly List<SKPoint> _pathPoints=[];
     public PreviewViewport Viewport { get; } = new();
+    private SKBitmap? _cachedFrame;private SKImage? _cachedImage;private (double Time,bool Effects,double Opacity,LoopRestMode? RestMode,long Revision)? _frameKey;private long _revision;
+    public void ModelChanged(){_revision++;InvalidateVisual();}
+    public int DigitCount(EffectRegion region)=>_scene?.DigitCount(region)??0;
     private EffectRegion? _selectedRegion;
     public EffectRegion? SelectedRegion { get=>_selectedRegion;set{if(_selectedRegion?.Id!=value?.Id)SelectedPathPoint=-1;_selectedRegion=value;} }
     public bool AddMode { get; set; }
@@ -107,6 +110,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     private SKPoint PointAt(MouseEventArgs e) { var p = e.GetPosition(this); return new((float)p.X, (float)p.Y); }
     public void SetJob(ImageJob? job)
     {
+        _cachedImage?.Dispose();_cachedFrame?.Dispose();_cachedImage=null;_cachedFrame=null;_frameKey=null;_revision++;
         CancelGesture();SelectedMask=null;CreatingMask=false; _scene?.Dispose(); _source?.Dispose(); _scene = null; _source = null; _job = job; SelectedRegion = null;
         if (job is not null)
         {
@@ -162,11 +166,14 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         if(ComparisonBackground is 1 or 2 or 3){paint.Color=ComparisonBackground==2?SKColors.White:SKColors.Black;canvas.DrawRect(imageRect,paint);if(ComparisonBackground==3){paint.Color=SKColors.White;canvas.DrawRect(SKRect.Create(imageRect.MidX,imageRect.Top,imageRect.Width/2,imageRect.Height),paint);}}
         canvas.Save(); canvas.Translate(imageRect.Left, imageRect.Top); canvas.Scale((float)Viewport.Scale);
         if (_background is not null&&ComparisonBackground==4) canvas.DrawImage(_background, SKRect.Create(_source.Width, _source.Height));
-        var renderRegions=SectionRules.RenderRegions(_job!);
-        if(RestDisplay==LoopRestMode.Original)_scene.DrawSource(canvas);
-        else if(RestDisplay==LoopRestMode.Transparent){}
-        else if(ShowEffects&&OutputOpacity<1){using var fade=new SKPaint{Color=SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(OutputOpacity,0,1)*255))};canvas.SaveLayer(fade);_scene.Draw(canvas,renderRegions,Time,true);canvas.Restore();}
-        else _scene.Draw(canvas,renderRegions,Time,ShowEffects);
+        var key=(Time,ShowEffects,OutputOpacity,RestDisplay,_revision);
+        if(_frameKey!=key)
+        {
+            _cachedImage?.Dispose();_cachedFrame?.Dispose();_cachedFrame=new SKBitmap(_source.Width,_source.Height);using(var cached=new SKCanvas(_cachedFrame))
+            {cached.Clear(SKColors.Transparent);var renderRegions=SectionRules.RenderRegions(_job!);if(RestDisplay==LoopRestMode.Original)_scene.DrawSource(cached);else if(RestDisplay!=LoopRestMode.Transparent){if(ShowEffects&&OutputOpacity<1){using var fade=new SKPaint{Color=SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(OutputOpacity,0,1)*255))};cached.SaveLayer(fade);_scene.Draw(cached,renderRegions,Time,true);cached.Restore();}else _scene.Draw(cached,renderRegions,Time,ShowEffects);}}
+            _cachedImage=SKImage.FromBitmap(_cachedFrame);_frameKey=key;
+        }
+        if(_cachedImage is not null)canvas.DrawImage(_cachedImage,0,0);
         canvas.Restore(); canvas.Restore();
         DrawEyedropper(canvas);
         if (!ShowOverlays) return;
@@ -326,5 +333,5 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         _draft=null;_pathPoints.Clear();_dragRegion=null;_before=null;_panning=false;_handle=-1;AddMode=false;InvalidateVisual();ViewChanged?.Invoke();
         if(edited){RegionEdited?.Invoke();GestureEnded?.Invoke(false);}
     }
-    public void Dispose(){DisposeSoftGuides();_scene?.Dispose();_source?.Dispose();_background?.Dispose();}
+    public void Dispose(){DisposeSoftGuides();_cachedImage?.Dispose();_cachedFrame?.Dispose();_scene?.Dispose();_source?.Dispose();_background?.Dispose();}
 }

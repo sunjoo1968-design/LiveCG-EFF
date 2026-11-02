@@ -11,9 +11,9 @@ public partial class MainWindow
     private double _broadcastElapsed;
     private void InitializePlayback()
     {
-        Choices(OutputKindBox,["WebM 영상","OBS 브라우저 패키지","WebM + OBS 둘 다"]);OutputKindBox.SelectedIndex=0;
+        Choices(OutputKindBox,["OBS 브라우저 패키지","WebM 영상","WebM + OBS 둘 다"]);OutputKindBox.SelectedIndex=0;
         Choices(WebmRepeatsBox,["1","2","3","5","10","20","50","100"]);Choices(LoopRestBox,["0","0.25","0.5","1","2","3","5","10","30"]);Choices(RestModeBox,["원본 유지 · 효과만 쉬기","마지막 모습 유지","전체 투명"]);
-        Choices(SectionModeBox,["구간: 효과에 맞춤","구간: 직접 조절"]);Choices(PlaybackViewBox,["편집 미리보기","OBS 방송 미리보기"]);
+        Choices(SectionModeBox,["구간: 효과에 맞춤","구간: 직접 조절"]);Choices(PlaybackViewBox,["OBS 방송 미리보기","편집 미리보기"]);BroadcastPreviewCheck.IsChecked=true;PlaybackViewBox.SelectedIndex=0;
     }
     private void ConfigurePlayback(object sender,RoutedEventArgs e)
     {
@@ -25,11 +25,11 @@ public partial class MainWindow
     private void OutputKindChanged(object sender,SelectionChangedEventArgs e)
     {
         if(_loading||_busy||OutputKindBox.SelectedIndex<0)return;
-        _video.Output=(OutputKind)OutputKindBox.SelectedIndex;ExportButton.Content="출력 시작";MarkEdited(true);RefreshTimeline();
+        _video.Output=OutputKindBox.SelectedIndex switch{0=>OutputKind.Browser,1=>OutputKind.Webm,_=>OutputKind.Both};ExportButton.Content="출력 시작";MarkEdited(true);RefreshTimeline();
     }
     private bool _playbackViewSync;
-    private void BroadcastModeChanged(object sender,RoutedEventArgs e){if(!_loading)StopPlayback();if(_playbackViewSync)return;_playbackViewSync=true;PlaybackViewBox.SelectedIndex=BroadcastPreviewCheck.IsChecked==true?1:0;LoopPreviewCheck.Visibility=BroadcastPreviewCheck.IsChecked==true?Visibility.Collapsed:Visibility.Visible;_playbackViewSync=false;}
-    private void PlaybackViewChanged(object sender,SelectionChangedEventArgs e){if(_playbackViewSync||_loading)return;BroadcastPreviewCheck.IsChecked=PlaybackViewBox.SelectedIndex==1;}
+    private void BroadcastModeChanged(object sender,RoutedEventArgs e){if(!_loading)StopPlayback();if(_playbackViewSync)return;_playbackViewSync=true;PlaybackViewBox.SelectedIndex=BroadcastPreviewCheck.IsChecked==true?0:1;LoopPreviewCheck.Visibility=BroadcastPreviewCheck.IsChecked==true?Visibility.Collapsed:Visibility.Visible;_playbackViewSync=false;}
+    private void PlaybackViewChanged(object sender,SelectionChangedEventArgs e){if(_playbackViewSync||_loading)return;BroadcastPreviewCheck.IsChecked=PlaybackViewBox.SelectedIndex==0;}
     private void SectionModeChanged(object sender,SelectionChangedEventArgs e)
     {
         if(_loading||_busy||_current is null||SectionModeBox.SelectedIndex<0)return;var auto=SectionModeBox.SelectedIndex==0;if(auto==_current.Playback.ByEffects)return;

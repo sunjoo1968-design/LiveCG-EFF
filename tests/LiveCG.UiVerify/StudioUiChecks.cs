@@ -29,7 +29,7 @@ internal static class StudioUiChecks
         void Pump(){((FrameworkElement)window.Content).UpdateLayout();Dispatcher.CurrentDispatcher.Invoke(()=>{},DispatcherPriority.ApplicationIdle);}
         ImageJob Current()=>Field<ImageJob>(window,"_current");EffectRegion Region()=>Field<EffectRegion>(window,"_region");
         var path=Path.Combine(folder,"타임라인 예제.png");var auxiliary=new List<Window>();
-        void Load(){window.ApplyDocument(new(){Jobs=[TestFixtures.Demo(path)],Video=new(){Fps=30,EndHold=.9}});C<ListBox>("RegionList").SelectedItem=Current().Regions[3];Pump();}
+        void Load(){window.ApplyDocument(new(){Jobs=[TestFixtures.Demo(path)],Video=new(){Output=OutputKind.Webm,Fps=30,EndHold=.9}});C<ListBox>("RegionList").SelectedItem=Current().Regions[3];Pump();}
         try
         {
             Load();var preview=C<PreviewControl>("Preview");var originalPreview=preview;
@@ -100,7 +100,7 @@ internal static class StudioUiChecks
             check(C<ListBox>("AssetList").Items.Cast<EffectAsset>().Any(a=>a.Id==studio.Asset.Id),"saved studio asset appears in the main user library");
             studio.SetFrame(48);Capture(studio,Path.Combine(folder,"effect-studio.png"),1370,940);studio.DiscardAndClose();check(Field<List<EffectStudioWindow>>(window,"_studios").Count==0,"closing studio releases its modeless-window registration");
             var second=Path.Combine(folder,"우클릭 두번째.png");File.Copy(path,second,true);ImageJob Short(string input)=>new(){SourcePath=input,Width=960,Height=540,Regions=[new(){Clips=[new(){Duration=.1,Options=new(){Kind=EffectKind.Glow}}]}]};
-            window.ApplyDocument(new(){Jobs=[Short(path),Short(second)],Video=new(){Fps=10,EndHold=0}});Pump();var files=C<ListBox>("FileList");files.SelectedIndex=1;Pump();
+            window.ApplyDocument(new(){Jobs=[Short(path),Short(second)],Video=new(){Output=OutputKind.Webm,Fps=10,EndHold=0}});Pump();var files=C<ListBox>("FileList");files.SelectedIndex=1;Pump();
             var container=(ListBoxItem)files.ItemContainerGenerator.ContainerFromIndex(0);container.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice,Environment.TickCount,MouseButton.Right){RoutedEvent=Mouse.PreviewMouseDownEvent});
             var menu=files.ContextMenu!;menu.RaiseEvent(new RoutedEventArgs(ContextMenu.OpenedEvent));check(menu.Items.OfType<MenuItem>().Count()==4&&((MenuItem)menu.Items[1]).Header.ToString()!.Contains("1개"),"material context menu exposes clicked, selected-count, all, and folder actions");
             var output=Path.Combine(folder,"context-export");Directory.CreateDirectory(output);C<TextBox>("OutputFolderBox").Text=output;foreach(var name in new[]{"타임라인 예제.webm","우클릭 두번째.webm"}){var target=Path.Combine(output,name);if(File.Exists(target))File.Delete(target);}

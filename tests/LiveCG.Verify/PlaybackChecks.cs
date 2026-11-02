@@ -54,7 +54,7 @@ internal static class PlaybackChecks
         var path=Path.Combine(folder,"all-effects.png");using var bitmap=new SKBitmap(660,900);bitmap.Erase(SKColors.Transparent);var regions=new List<EffectRegion>();
         using(var c=new SKCanvas(bitmap))using(var p=new SKPaint{Color=SKColors.Red,IsAntialias=true})using(var font=new SKFont(SKTypeface.FromFamilyName("Arial",SKFontStyle.Bold),35))
         {
-            var i=0;foreach(var kind in Enum.GetValues<EffectKind>())
+            var i=0;foreach(var kind in Enum.GetValues<EffectKind>().Where(k=>k!=EffectKind.TravelRoute))
             {
                 var x=50+i%3*210;var y=35+i/3*125;p.Color=new SKColor(112,26,46);c.DrawRoundRect(SKRect.Create(x,y,140,70),12,12,p);p.Color=SKColors.White;c.DrawText("87,070",x+8,y+47,font,p);
                 regions.Add(new(){Name=kind.ToString(),Bounds=NormalizedRect.FromPixels(SKRect.Create(x,y,140,70),660,900),Background=kind is EffectKind.DigitRoll or EffectKind.Bounce?BackgroundMode.Solid:BackgroundMode.Transparent,BackgroundColor="#701A2E",Shape=RegionShape.RoundedRectangle,Clips=[new(){Duration=1.5,Options=new(){Kind=kind},Motion=kind==EffectKind.UserMotion?MotionDefinition.Example():null}]});i++;

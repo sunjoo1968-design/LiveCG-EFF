@@ -25,7 +25,7 @@ public record RegionSoftness
 /// <summary>Shared source-space geometry and alpha for native rendering and exported browser assets.</summary>
 public static class RegionRaster
 {
-    public static bool Custom(EffectRegion r)=>r.Softness.Enabled||r.ContentOnly||(!r.CutoutEnabled&&r.Cutout is not null);
+    public static bool Custom(EffectRegion r)=>r.OverlayOnly||r.Softness.Enabled||r.ContentOnly||(!r.CutoutEnabled&&r.Cutout is not null);
     public static ObjectCutout? ActiveCutout(EffectRegion r)=>r.CutoutEnabled?r.Cutout:null;
     public static SKRectI Rect(EffectRegion r,int w,int h)
     {var b=ObjectExtractor.PixelRect(r.Bounds,w,h);var p=(int)Math.Ceiling(r.Softness.Padding)+((r.Softness.Padding>0)?2:0);return new(Math.Max(0,b.Left-p),Math.Max(0,b.Top-p),Math.Min(w,b.Right+p),Math.Min(h,b.Bottom+p));}
@@ -59,11 +59,12 @@ public static class RegionRaster
     public static SKBitmap Raw(SKBitmap source,EffectRegion r,SKRectI rect,SKColor background)
     {
         using var crop=new SKBitmap();if(!source.ExtractSubset(crop,rect))throw new InvalidDataException("영역을 읽을 수 없습니다.");var output=crop.Copy();
+        if(r.OverlayOnly){output.Erase(SKColors.Transparent);return output;}
         using(var corrected=ActiveCutout(r)?.DecodeForeground())if(corrected is not null){using var c=new SKCanvas(output);c.Clear(SKColors.Transparent);using var image=SKImage.FromBitmap(corrected);var original=ObjectExtractor.PixelRect(r.Bounds,source.Width,source.Height);c.DrawImage(image,SKRect.Create(original.Left-rect.Left,original.Top-rect.Top,original.Width,original.Height));}
         if(r.ContentOnly&&ActiveCutout(r) is null)
         {
             MaskBuffer mask;
-            if(r.SeparationTarget==SeparationTarget.Text){using var text=TextSeparation.Extract(output,background,SKColor.TryParse(r.TextInkColor,out var ink)?ink:null);output.Dispose();output=text.Foreground.Copy();mask=text.Mask;}
+            if(r.SeparationTarget==SeparationTarget.Text){using var text=TextSeparation.Extract(output,background,SKColor.TryParse(r.TextInkColor,out var ink)?ink:null,r.TextSettings);output.Dispose();output=text.Foreground.Copy();mask=text.Mask;}
             else mask=ObjectExtractor.Extract(output,RegionSeparation.Options(r,background));
             using var alpha=mask.Bitmap();Multiply(output,alpha);
         }

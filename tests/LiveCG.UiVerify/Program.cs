@@ -51,20 +51,21 @@ internal static class Program
         MainWindow? window=null;
         try
         {
-            DocumentStore.Save(DocumentStore.DefaultsPath,new AppDefaults{Video=new(){Fps=60,EndHold=1},Effect=new(){Kind=EffectKind.Sweep,Strength=StrengthLevel.Weak},ClipDuration=1});
+            DocumentStore.Save(DocumentStore.DefaultsPath,new AppDefaults{Video=new(){Output=OutputKind.Webm,Fps=60,EndHold=1},Effect=new(){Kind=EffectKind.Sweep,Strength=StrengthLevel.Weak},ClipDuration=1});
             window=new MainWindow{WindowStartupLocation=WindowStartupLocation.Manual,Left=-12000,Top=-12000,ShowInTaskbar=false,ShowActivated=false};window.Show();Layout(window);
+            if(args.Contains("--v12-only")){V12UiChecks.Run(window,folder,Check);Console.WriteLine($"RESULT {checks-failures.Count}/{checks} passed");return failures.Count==0?0:1;}
             Check(window.FindName("TimelineEditor") is not null,"professional track timeline exists");
             Check(window.FindName("RegionX") is null&&window.FindName("RegionY") is null,"numeric spatial coordinates removed");
             Check(window.FindName("IntensitySlider") is null&&Control<ComboBox>(window,"StrengthBox").Items.Count==5,"strength has exactly five choices");
             Check(window.FindName("ZoomInButton") is not null&&window.FindName("ZoomOutButton") is not null,"precision zoom buttons exist");
             Check(window.FindName("VideoDurationBox") is null,"manual video duration removed");
-            Check(Control<System.Windows.Controls.Primitives.UniformGrid>(window,"EffectsGrid").Children.Count==20,"20 effect thumbnails available");
+            Check(Control<System.Windows.Controls.Primitives.UniformGrid>(window,"EffectsGrid").Children.Count==21,"21 effect thumbnails including travel editor available");
             Check(typeof(MainWindow).GetMethod("Redetect",BindingFlags.NonPublic|BindingFlags.Instance) is null,"automatic detection UI handler removed");
             Check(Control<ComboBox>(window,"FpsBox").Text=="60","saved default fps restored");
             var path=TestFixtures.Create(folder);var secondPath=Path.Combine(folder,"두 번째 PNG.png");File.Copy(path,secondPath,true);
             var job=new ImageJob{SourcePath=path,Width=960,Height=540};
             var secondJob=new ImageJob{SourcePath=secondPath,Width=960,Height=540};
-            window.ApplyDocument(new(){Jobs=[job,secondJob],Video=new(){Fps=30,EndHold=.5}});Layout(window);
+            window.ApplyDocument(new(){Jobs=[job,secondJob],Video=new(){Output=OutputKind.Webm,Fps=30,EndHold=.5}});Layout(window);
             Check(job.Regions.Count==0,"PNG begins without automatic regions");
             Check(Control<ComboBox>(window,"FpsBox").Text=="30","loaded project keeps its fps over defaults");
             var preview=Control<PreviewControl>(window,"Preview");var timeline=Control<TimelineControl>(window,"TimelineEditor");
@@ -147,7 +148,8 @@ internal static class Program
             LayerPanelUiChecks.Run(window,folder,Check);
             OutputUiChecks.Run(window,folder,Check);
             DirectSectionChecks.Run(window,folder,Check);
-            var demo=TestFixtures.Demo(path);window.ApplyDocument(new(){Jobs=[demo],Video=new(){Fps=30,EndHold=.9}});Layout(window);
+            V12UiChecks.Run(window,folder,Check);
+            var demo=TestFixtures.Demo(path);window.ApplyDocument(new(){Jobs=[demo],Video=new(){Output=OutputKind.Webm,Fps=30,EndHold=.9}});Layout(window);
             Control<CheckBox>(window,"SnapCheck").IsChecked=true;Control<CheckBox>(window,"RippleCheck").IsChecked=true;
             Control<ListBox>(window,"RegionList").SelectedItem=demo.Regions[3];Call(window,"Seek",3.55,true);Pump();
             Control<CheckBox>(window,"HideOverlaysCheck").IsChecked=true;Snapshot(window,"clean-preview.png");Control<CheckBox>(window,"HideOverlaysCheck").IsChecked=false;

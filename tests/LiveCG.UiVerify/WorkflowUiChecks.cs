@@ -25,12 +25,12 @@ internal static class WorkflowUiChecks
         EffectClip Clip()=>Field<EffectClip>("_clip");
         void Select(int index){C<ListBox>("RegionList").SelectedItem=Current().Regions[index];Pump();}
         void Load()
-        {window.ApplyDocument(new(){Jobs=[TestFixtures.Demo(path)],Video=new(){Fps=30,EndHold=.9}});Pump();C<CheckBox>("HideOverlaysCheck").IsChecked=false;}
+        {window.ApplyDocument(new(){Jobs=[TestFixtures.Demo(path)],Video=new(){Output=OutputKind.Webm,Fps=30,EndHold=.9}});Pump();C<CheckBox>("HideOverlaysCheck").IsChecked=false;}
         Load();var preview=C<PreviewControl>("Preview");var timeline=C<TimelineControl>("TimelineEditor");
         var history=Field<EditHistory>("_history");
         check(!C<ComboBox>("QualityBox").IsEditable&&C<ComboBox>("QualityBox").Text.Contains("고화질"),"output quality uses readable labels without numeric input");
         C<ComboBox>("QualityBox").SelectedIndex=0;Pump();check(Field<VideoOptions>("_video").Crf==10,"highest-quality label maps to encoder quality");
-        window.ApplyDocument(new(){Jobs=[TestFixtures.Demo(path)],Video=new(){Crf=20}});Pump();
+        window.ApplyDocument(new(){Jobs=[TestFixtures.Demo(path)],Video=new(){Output=OutputKind.Webm,Crf=20}});Pump();
         check(C<ComboBox>("QualityBox").Text.Contains("이전")&&Field<VideoOptions>("_video").Crf==20,"legacy custom quality is preserved rather than silently remapped");
         Load();Select(3);
         var oldBounds=Region().Bounds;var rect=preview.Viewport.ToScreen(oldBounds);var point=new SKPoint(rect.MidX,rect.MidY);
@@ -81,7 +81,7 @@ internal static class WorkflowUiChecks
         check(Current().Regions[0].Clips.Count==1,"deleting during a drag cancels the gesture safely");
         var secondPath=Path.Combine(folder,"선택 출력 두번째.png");File.Copy(path,secondPath,true);
         ImageJob Short(string input)=>new(){SourcePath=input,Width=960,Height=540,Regions=[new(){Clips=[new(){Duration=.1,Options=new(){Kind=EffectKind.Glow}}]}]};
-        window.ApplyDocument(new(){Jobs=[Short(path),Short(secondPath)],Video=new(){Fps=10,EndHold=0}});Pump();
+        window.ApplyDocument(new(){Jobs=[Short(path),Short(secondPath)],Video=new(){Output=OutputKind.Webm,Fps=10,EndHold=0}});Pump();
         var files=C<ListBox>("FileList");files.UnselectAll();files.SelectedIndex=1;Pump();C<ComboBox>("ExportScopeBox").SelectedIndex=1;
         var targets=(List<ImageJob>)Call("ExportTargets")!;check(targets.Count==1&&targets[0].SourcePath==secondPath,"selected export scope contains only selected PNGs");
         C<ComboBox>("ExportScopeBox").SelectedIndex=2;check(((List<ImageJob>)Call("ExportTargets")!).Single()==Current(),"current-file scope follows the active PNG");

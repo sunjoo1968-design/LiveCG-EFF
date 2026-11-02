@@ -15,6 +15,7 @@ public partial class MainWindow
         var p=_current?.Playback??_defaultPlayback;WebmRepeatsBox.Text=p.WebmRepeats.ToString();LoopRestBox.Text=F(p.LoopRest);RestModeBox.SelectedIndex=(int)p.RestMode;
         var plan=_current is null?null:PlaybackPlan.Create(_current,_video);
         AutoDurationText.Text=plan is null?"이미지를 선택하세요":$"WebM {plan.WebmDuration:0.00}초 · {plan.WebmFrameCount:N0}프레임"+(plan.Enabled?$"\n{plan.Repeats}회 · 사이 쉬기 {(double)plan.RestFrames/plan.Fps:0.##}초\nOBS 무한 반복":"\n구간 미사용 · 전체 1회");
+        if(_video.Output==OutputKind.Browser)AutoDurationText.Text=plan is null?"OBS 브라우저 패키지":$"OBS · 등장 {(double)plan.IntroFrames/plan.Fps:0.##}초 → 반복 무한\n사이 쉬기 {p.LoopRest:0.##}초";WebmRepeatsPanel.Visibility=WebmQualityPanel.Visibility=_video.Output==OutputKind.Browser?Visibility.Collapsed:Visibility.Visible;OutputTimingGrid.Columns=_video.Output==OutputKind.Browser?1:2;
         AutoDurationText.ToolTip=plan is null?"":$"편집 타임라인 {plan.Duration:0.##}초 · 최종 WebM은 반복 사이 쉬기를 포함하고 마지막 쉬기는 생략합니다.";
         WebmRepeatsBox.IsEnabled=LoopRestBox.IsEnabled=RestModeBox.IsEnabled=!_busy;_outputSync=false;
     }

@@ -74,7 +74,7 @@ public partial class MainWindow : Window
     private void Notify(string text)=>StatusText.Text=text;
     private void MarkEdited(bool allFiles=false)
     {
-        _dirty=true;
+        _dirty=true;Preview.ModelChanged();
         foreach(var job in allFiles?_jobs:_current is null?Enumerable.Empty<ImageJob>():new[]{_current})
         {job.Progress=0;job.Status=job.Regions.Count==0?"영역 지정 대기":$"편집 중 · 영역 {job.Regions.Count}개";job.Detail="";}
         RecordEdit();
@@ -170,7 +170,7 @@ public partial class MainWindow : Window
         ShapeBox.SelectedIndex=(int)_editor.NewShape;
         Preview.SelectedRegion=region;TimelineEditor.SelectedRegion=region;TimelineEditor.SelectedClip=_clip;
         _loading=false;LoadClipFields();LoadGroupFields();UpdateSelectionLabel();TimelineEditor.InvalidateVisual();Preview.InvalidateVisual();
-        if(!_restoring&&!_gestureActive)_history.UpdateSelection(CaptureState());
+        if(!_restoring&&!_gestureActive&&_history.Current is { } history)_history.UpdateSelection(history with{File=_current?.SourcePath,Region=_region?.Id,Clip=_clip?.Id,Time=_time,SelectedClips=TimelineEditor.SelectedClipIds.ToArray(),Mask=_selectedMask?.Id});
     }
     private void RegionSelectionChanged(object sender,SelectionChangedEventArgs e){if(!_loading){Preview.CancelGesture();SelectRegion(RegionList.SelectedItem as EffectRegion);}}
     private void LoadClipFields()
@@ -182,6 +182,7 @@ public partial class MainWindow : Window
         ClipLoopCheck.IsChecked=_clip?.Loop??_defaultLoop;LoopPeriodBox.Text=F(_clip?.LoopPeriod??_defaultLoopPeriod);
         EffectLabel.Text=_clip is null?$"{ProductInfo.EffectName(options.Kind)} · ＋버튼으로 클립 추가":$"{ProductInfo.EffectName(options.Kind)} · 선택 클립";
         ShowEffectColor();
+        if(options.Kind==EffectKind.DigitRoll&&_region is not null){var count=Preview.DigitCount(_region);EffectLabel.Text+=count>0?$" · 숫자 {count}칸":" · 숫자 칸을 못 찾았습니다. 아래 숫자 칸 편집을 사용하세요.";}
         LoadSoftnessFields();
         foreach(var thumbnail in _thumbnails){thumbnail.Selected=thumbnail.Kind==options.Kind;thumbnail.InvalidateVisual();}
         _loading=previous;
@@ -238,6 +239,7 @@ public partial class MainWindow : Window
     private void ClipComboChanged(object sender,SelectionChangedEventArgs e)=>QueueEdit(()=>ClipOptionsChanged(sender,e));
     private void SelectEffect(EffectKind kind)
     {
+        if(kind==EffectKind.TravelRoute){OpenTravelRoute(this,new RoutedEventArgs());return;}
         if(_busy||!CommitClip(true))return;
         if(_clip is not null)_clip.Options=_clip.Options with {Kind=kind};
         else _defaultEffect=_defaultEffect with {Kind=kind};
@@ -270,6 +272,7 @@ public partial class MainWindow : Window
         var clip=TimelineRules.Append(_region,options,_clip?.Duration??_defaultClipDuration,_video.Fps);
         clip.Loop=_clip?.Loop??_defaultLoop;clip.LoopPeriod=_clip?.LoopPeriod??_defaultLoopPeriod;
         if(clip.Options.Kind==EffectKind.UserMotion)clip.Motion=_clip?.Motion?.Copy()??_defaultMotion?.Copy()??MotionDefinition.Example();
+        if(clip.Options.Kind==EffectKind.TravelRoute){clip.Route=_clip?.Route?.Copy()??new();clip.Duration=clip.Route.Duration;}
         if(atCursor)TimelineRules.SetTiming(clip,_time,clip.Duration,_video.Fps);
         _clip=clip;_selectionEpoch++;LoadClipFields();TimelineEditor.SelectedClip=clip;MarkEdited();RefreshRegionList();UpdateSelectionLabel();RefreshTimeline();
         Seek(clip.Start+clip.Duration*.45,true);
@@ -305,7 +308,7 @@ public partial class MainWindow : Window
     }
     private void ShowVideo()
     {
-        var previous=_loading;_loading=true;FpsBox.Text=_video.Fps.ToString();ShowQuality();EndHoldBox.Text=F(_video.EndHold);OutputKindBox.SelectedIndex=(int)_video.Output;ExportButton.Content="출력 시작";_loading=previous;RefreshTimeline();
+        var previous=_loading;_loading=true;FpsBox.Text=_video.Fps.ToString();ShowQuality();EndHoldBox.Text=F(_video.EndHold);OutputKindBox.SelectedIndex=_video.Output switch{OutputKind.Browser=>0,OutputKind.Webm=>1,_=>2};ExportButton.Content="출력 시작";_loading=previous;RefreshTimeline();
     }
     private bool CommitVideo(bool report)
     {
@@ -362,7 +365,7 @@ public partial class MainWindow : Window
                 using var json=System.Text.Json.JsonDocument.Parse(File.ReadAllText(DocumentStore.DefaultsPath));
                 if(!json.RootElement.TryGetProperty("Playback",out var policy)||!policy.TryGetProperty("LoopRest",out _))defaults.Playback.LoopRest=1;
             }
-            _video=defaults.Video;_defaultPlayback=defaults.Playback with{};_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=defaults.Loop;_defaultLoopPeriod=defaults.LoopPeriod;_defaultMotion=defaults.Motion?.Copy();_editor=defaults.Editor;OutputFolderBox.Text=defaults.OutputDirectory;
+            _video=defaults.Video with{Output=OutputKind.Browser};_defaultPlayback=defaults.Playback with{};_defaultEffect=defaults.Effect;_defaultClipDuration=defaults.ClipDuration;_defaultLoop=defaults.Loop;_defaultLoopPeriod=defaults.LoopPeriod;_defaultMotion=defaults.Motion?.Copy();_editor=defaults.Editor;OutputFolderBox.Text=defaults.OutputDirectory;
         }catch(Exception ex){_video=new();_defaultPlayback=PlaybackSections.NewDefault();_defaultEffect=new();_defaultClipDuration=1;OutputFolderBox.Text="";Notify("기본값을 읽지 못해 초기값을 사용합니다: "+ex.Message);}
     }
     private void SaveDefaults(object sender,RoutedEventArgs e)

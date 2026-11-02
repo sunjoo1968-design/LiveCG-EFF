@@ -24,7 +24,7 @@ internal static class PrecisionUiChecks
         {
             var job=TestFixtures.Demo(path);job.Regions=job.Regions.Take(2).ToList();
             for(var i=0;i<2;i++)job.Regions[i].Clips=[new(){Start=1+i*2,Duration=1,Options=new(){Kind=EffectKind.Glow},AssetInstanceId=groupId}];
-            window.ApplyDocument(new(){Jobs=[job],Video=new(){Fps=30,EndHold=.9}});C<CheckBox>("SnapCheck").IsChecked=false;Pump();
+            window.ApplyDocument(new(){Jobs=[job],Video=new(){Output=OutputKind.Webm,Fps=30,EndHold=.9}});C<CheckBox>("SnapCheck").IsChecked=false;Pump();
         }
         Point Center(int row){var r=timeline.ClipRect(Job().Regions[row],Job().Regions[row].Clips[0]);return new(r.MidX(),r.Top+14);}
         void SelectTwo(){timeline.BeginPointer(Center(0));timeline.EndPointer();timeline.BeginPointer(Center(1),true);timeline.EndPointer();Pump();}

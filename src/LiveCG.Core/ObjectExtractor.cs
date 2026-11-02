@@ -9,12 +9,13 @@ public record ObjectCutout
     public string MaskPng { get; set; }="";
     public string ForegroundPng { get; set; }="";
     public string ErasePng { get; set; }="";
+    public string ManualPng { get; set; }="";
     public void Validate()
     {
         if(Width<1||Height<1||(long)Width*Height>16000000||string.IsNullOrEmpty(MaskPng)||MaskPng.Length>16000000)throw new InvalidDataException("오브젝트 마스크 크기/내용이 올바르지 않습니다.");
         try{var bytes=Convert.FromBase64String(MaskPng);using var codec=SKCodec.Create(new SKMemoryStream(bytes));if(codec is null||codec.Info.Width!=Width||codec.Info.Height!=Height)throw new InvalidDataException("마스크 이미지 크기가 다릅니다.");}
         catch(FormatException ex){throw new InvalidDataException("마스크 데이터가 손상됐습니다.",ex);}
-        foreach(var png in new[]{ForegroundPng,ErasePng})if(!string.IsNullOrEmpty(png))
+        foreach(var png in new[]{ForegroundPng,ErasePng,ManualPng})if(!string.IsNullOrEmpty(png))
         {if(png.Length>32000000)throw new InvalidDataException("보정 이미지가 너무 큽니다.");try{using var codec=SKCodec.Create(new SKMemoryStream(Convert.FromBase64String(png)));if(codec is null||codec.Info.Width!=Width||codec.Info.Height!=Height)throw new InvalidDataException("보정 이미지 크기가 다릅니다.");}catch(FormatException ex){throw new InvalidDataException("보정 이미지가 손상됐습니다.",ex);}}
     }
     public SKBitmap Decode()
@@ -45,6 +46,10 @@ public sealed class MaskBuffer(int width,int height,byte[] alpha)
     public int Height { get; }=height;
     public byte[] Alpha { get; }=alpha;
     public MaskBuffer Copy()=>new(Width,Height,(byte[])Alpha.Clone());
+    public MaskBuffer Resize(int width,int height)
+    {
+        if(width==Width&&height==Height)return Copy();using var source=Bitmap();using var image=SKImage.FromBitmap(source);using var resized=new SKBitmap(width,height);using(var c=new SKCanvas(resized)){c.Clear(SKColors.Transparent);c.DrawImage(image,SKRect.Create(width,height));}var alpha=new byte[width*height];var pixels=resized.GetPixelSpan();for(var y=0;y<height;y++)for(var x=0;x<width;x++)alpha[y*width+x]=pixels[y*resized.RowBytes+x*4+3];return new(width,height,alpha);
+    }
     public MaskBuffer Morph(int radius,bool expand)
     {
         if(radius is <0 or >6)throw new InvalidDataException("테두리 정리는0~6px입니다.");if(radius==0)return Copy();var temp=new byte[Alpha.Length];var result=new byte[Alpha.Length];
@@ -71,7 +76,7 @@ public sealed class MaskBuffer(int width,int height,byte[] alpha)
     public SKBitmap Bitmap()
     {
         var bitmap=new SKBitmap(Width,Height);
-        for(var y=0;y<Height;y++)for(var x=0;x<Width;x++)bitmap.SetPixel(x,y,SKColors.White.WithAlpha(Alpha[y*Width+x]));return bitmap;
+        var pixels=bitmap.GetPixelSpan();for(var y=0;y<Height;y++)for(var x=0;x<Width;x++){var at=y*bitmap.RowBytes+x*4;var a=Alpha[y*Width+x];pixels[at]=pixels[at+1]=pixels[at+2]=pixels[at+3]=a;}return bitmap;
     }
     public ObjectCutout Encode()
     {using var bitmap=Bitmap();using var image=SKImage.FromBitmap(bitmap);using var data=image.Encode(SKEncodedImageFormat.Png,100);return new(){Width=Width,Height=Height,MaskPng=Convert.ToBase64String(data.ToArray())};}
