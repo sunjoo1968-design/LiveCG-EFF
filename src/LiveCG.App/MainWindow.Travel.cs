@@ -6,7 +6,7 @@ public partial class MainWindow
 {
     private void EditDigitCells(object sender,RoutedEventArgs e)
     {
-        if(_busy||_current is null||_region is null){Notify("먼저 숫자 영역을 선택하세요.");return;}try{using var source=SourceImage.Read(_current.SourcePath);using var crop=ObjectExtractor.CropObject(source!,_region);var window=new DigitCellWindow(crop,_region.DigitDividers){Owner=this};if(window.ShowDialog()==true){_region.DigitDividers=window.Dividers.Distinct().Order().ToList();MarkEdited();Preview.InvalidateVisual();Notify($"숫자 칸 {window.Dividers.Count+1}개 · 원본 숫자로 정착합니다.");}}catch(Exception ex){Error(ex);}
+        if(_busy||_current is null||_region is null){Notify("먼저 숫자 영역을 선택하세요.");return;}try{using var source=SourceImage.Read(_current.SourcePath);using var crop=ObjectExtractor.CropObject(source!,_region);var window=new DigitCellWindow(crop,_region.DigitDividers,RegionSeparation.Background(source!,_region)){Owner=this};if(window.ShowDialog()==true){_region.DigitDividers=window.Dividers.Distinct().Order().ToList();MarkEdited();Preview.InvalidateVisual();Notify($"숫자 칸 {window.Dividers.Count+1}개 · 원본 숫자로 정착합니다.");}}catch(Exception ex){Error(ex);}
     }
     private void OpenTravelRoute(object sender,RoutedEventArgs e)=>OpenRouteEditor(_clip?.Options.Kind==EffectKind.TravelRoute?_clip:null,null);
     private void OpenRouteEditor(EffectClip? edit,EffectAsset? asset)

@@ -13,6 +13,8 @@ void Check(bool ok,string name){count++;Console.WriteLine((ok?"PASS ":"FAIL ")+n
 void Reject(Action action,string name){try{action();Check(false,name);}catch(InvalidDataException){Check(true,name);}}
 if(args.Contains("--v12-repro")){V12Checks.Repro(Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
 if(args.Contains("--v122-repro")){V122Checks.Repro(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
+if(args.Contains("--v123-repro")){V123Checks.Repro(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
+if(args.Contains("--v123-only")){await V123Checks.Run(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
 if(args.Contains("--v122-only")){await V122Checks.Run(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
 if(args.Contains("--v121-repro")){V121Checks.Repro(Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
 if(args.Contains("--v121-only")){await V121Checks.Run(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
@@ -164,6 +166,7 @@ await TextChecks.Run(folder,Check);
 await V12Checks.Run(folder,Check);
 await V121Checks.Run(folder,Check);
 await V122Checks.Run(folder,Check);
+await V123Checks.Run(folder,Check);
 Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");
 File.WriteAllText(Path.Combine(folder,"result.txt"),$"{count-failures.Count}/{count} passed\n"+string.Join("\n",failures));
 return failures.Count==0?0:1;

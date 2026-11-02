@@ -1,0 +1,43 @@
+{
+  "Version": "1.2.3",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-02",
+  "Core": 671,
+  "Wpf": 507,
+  "Chromium": 183,
+  "ProgramClock": 5,
+  "ActualObs": 68,
+  "RenderComparisons": 155,
+  "Passed": 1589,
+  "Total": 1589,
+  "FeatureCoreSubset": 76,
+  "FeatureWpfSubset": 24,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "OptionalLocalPriceImageChecks": 52,
+  "SourceImagesPublished": false,
+  "CacheWarmColdMismatch": 0,
+  "ActualPriceRepro": {
+    "ReferenceInkPixels": 625,
+    "MissingAfter": 0,
+    "InflatedHeightBefore": 51,
+    "MissingBefore": 92,
+    "BoundaryDeltaPixels": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ],
+    "RedrawCycles": 6,
+    "ExpectedDigitHeightRange": [
+      40,
+      42
+    ]
+  },
+  "Limitations": [
+    "Ambiguous background/ink colors may need manual inclusion/exclusion; original glyphs are not eroded",
+    "Stored precision masks remain unchanged unless recalculated; OBS packages must be re-exported",
+    "Cross-engine comparison retains mean error <3 and changed-pixel fraction <3.5%; it does not require bit-identical antialiasing"
+  ]
+}

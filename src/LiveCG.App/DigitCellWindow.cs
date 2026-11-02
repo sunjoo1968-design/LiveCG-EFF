@@ -8,10 +8,10 @@ namespace LiveCG.App;
 public sealed class DigitCellWindow:Window
 {
     public List<double> Dividers { get; }=[];private readonly SKElement _canvas=new();private readonly PreviewViewport _view=new();private readonly SKImage _image;private int _drag=-1;
-    public DigitCellWindow(SKBitmap image,IEnumerable<double> dividers)
+    public DigitCellWindow(SKBitmap image,IEnumerable<double> dividers,SKColor? sourceBackground=null)
     {
         Title="숫자 칸 편집 · "+ProductInfo.Credit;Width=960;Height=500;MinWidth=650;MinHeight=350;WindowStartupLocation=WindowStartupLocation.CenterOwner;Background=System.Windows.Media.Brushes.Black;Foreground=System.Windows.Media.Brushes.White;_image=SKImage.FromBitmap(image);Dividers.AddRange(dividers);
-        void Auto(){Dividers.Clear();var cells=DigitCells.Find(image,DigitCells.Background(image,SKColors.Transparent));for(var i=1;i<cells.Count;i++)Dividers.Add((cells[i-1].Right+cells[i].Left)/2/image.Width);_canvas.InvalidateVisual();}
+        void Auto(){Dividers.Clear();var cells=DigitCells.Find(image,DigitCells.DetectionBackground(image,sourceBackground??SKColors.Transparent));for(var i=1;i<cells.Count;i++)Dividers.Add((cells[i-1].MidX+cells[i].MidX)/2/image.Width);_canvas.InvalidateVisual();}
         if(Dividers.Count==0)Auto();var root=new DockPanel{Margin=new Thickness(10)};Content=root;var row=new WrapPanel();DockPanel.SetDock(row,Dock.Top);root.Children.Add(row);
         void Button(string text,Action action){var b=new Button{Content=text};b.Click+=(_,_)=>action();row.Children.Add(b);}
         Button("자동 칸 다시 찾기",Auto);Button("화면 맞춤",()=>{_view.Fit(false);_canvas.InvalidateVisual();});Button("적용",()=>{DialogResult=true;});Button("취소",Close);row.Children.Add(new TextBlock{Text="경계선 드래그 · 더블클릭 추가 · 우클릭 삭제 · 휠 확대",Margin=new Thickness(6)});root.Children.Add(_canvas);

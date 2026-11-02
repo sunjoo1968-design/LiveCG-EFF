@@ -1,12 +1,20 @@
 # LiveCG-EFF
 
-**제작자 SunjooAn · 현재 버전 1.2.2 · Windows x64**
+**제작자 SunjooAn · 현재 버전 1.2.3 · Windows x64**
 
 이미지에서 마우스로 지정한 영역에 효과를 배치하고 **투명 WebM / OBS 브라우저 패키지**로 출력하는 라이브커머스 자막 편집기입니다. 가격 자동 탐지와 사운드는 포함하지 않습니다.
 
 ## 다운로드와 실행
 
-[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.2.2-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.2.3-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+
+## v1.2.3 영역 재지정과 숫자 롤링
+
+- 영역을 삭제하고 다시 지정했을 때 일부 순환 숫자가 잘려 보이던 문제를 수정했습니다. 좁은 원래 숫자 `1`과 넓은 임시 숫자 `0`의 표시 공간을 분리하고, 숫자 칸 편집의 자동 경계도 같은 기준으로 맞췄습니다. 사용자가 지정한 경계는 유지합니다.
+- 복합 배경 분리 후 남은 배경색을 숫자 획으로 잘못 판단해 높이가 늘어나던 문제를 수정했습니다. 원래 배경색을 숫자 검출의 기준으로 사용하며 원본 획을 깎지 않습니다. 수동 칸에서 쉼표는 고정된 원본으로 남깁니다.
+- OBS 브라우저 패키지에는 앱에서 그린 임시 숫자 이미지를 내장해 글꼴 표시 차이를 줄입니다. 효과가 멈추면 원본 숫자 픽셀과 획 두께를 그대로 복원합니다.
+- 제공된 실제 복합 배경 이미지의 가격·할인율, 영역 삭제·재지정과 경계 ±2px, 정밀 분리·숫자 칸 편집을 검사했습니다. 동일 모델의 새 장면과 기존 장면이 같아 캐시 잔존은 확인되지 않았습니다. 실제 이미지는 공개하지 않습니다.
+- 기존 작업을 열어 사용할 수 있습니다. OBS에 반영하려면 **브라우저 패키지를 다시 출력**하세요. 같은 색의 글자·배경이나 모호한 무늬는 포함/제외 브러시 보정이 필요할 수 있습니다.
 
 ## v1.2.2 숫자 롤링·분리와 정차 조절
 
@@ -179,6 +187,6 @@ node .\tools\verify-obs-program.mjs .
 
 실제 브라우저 검증에는 Node24·Chrome, OBS 통합에는 OBS33 개발용 설치본이 필요합니다. 일반 배포 사용자에게는 필요하지 않습니다. OBS 검증은 별도 portable 설정을 쓰며 송출·녹화를 시작하지 않습니다. 네이티브/Canvas의 블러·글자 경계에는 소폭 차이가 있을 수 있습니다.
 
-[검증 요약](docs/verification/v1.2.2/summary.json) · [계획](docs/01-plan/features/numeric-matte-route-stops.plan.md) · [설계](docs/02-design/features/numeric-matte-route-stops.design.md) · [검토](docs/03-analysis/numeric-matte-route-stops.analysis.md) · [완료 보고](docs/04-report/numeric-matte-route-stops.report.md)
+[검증 요약](docs/verification/v1.2.3/summary.json) · [계획](docs/01-plan/features/region-redraw-digit-integrity.plan.md) · [설계](docs/02-design/features/region-redraw-digit-integrity.design.md) · [검토](docs/03-analysis/region-redraw-digit-integrity.analysis.md) · [완료 보고](docs/04-report/region-redraw-digit-integrity.report.md)
 
 외부 구성 요소의 제작자·라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), licenses 및 배포본의 FFmpeg/.NET 고지에 유지합니다. 개인 원본·작업·사용자 설정과 인증 정보는 공개하지 않습니다.

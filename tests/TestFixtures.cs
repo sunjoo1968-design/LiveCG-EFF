@@ -33,4 +33,11 @@ public static class TestFixtures
         job.Regions.Add(new(){Name="가격",Bounds=NormalizedRect.FromPixels(SKRect.Create(438,405,245,73),960,540),Clips=[new(){Duration=1.5,Options=new(){Kind=EffectKind.DigitRoll}},new(){Start=1.6,Duration=1.4,Options=new(){Kind=EffectKind.Bounce,Strength=StrengthLevel.Strong}},new(){Start=3.1,Duration=1,Options=new(){Kind=EffectKind.Sweep,Strength=StrengthLevel.Strong}}]});
         return job;
     }
+    public static string NumericRedraw(string folder)
+    {
+        Directory.CreateDirectory(folder);var path=Path.Combine(folder,"synthetic-numeric-redraw.png");using var image=new SKBitmap(1080,1920);image.Erase(new(125,20,32));
+        using var c=new SKCanvas(image);using var paint=new SKPaint{Color=new(145,26,39),IsAntialias=true};for(var y=695;y<790;y+=5)for(var x=630;x<985;x+=5)if((x/5+y/5)%2==0)c.DrawRect(x,y,5,5,paint);
+        using var font=new SKFont(SKTypeface.FromFamilyName("Arial",SKFontStyle.Bold),50);paint.Color=SKColors.White;var chars="133,470";var positions=new[]{665,691,721,747,762,791,820};for(var i=0;i<chars.Length;i++){font.ScaleX=i==0?.65f:1;c.DrawText(chars[i].ToString(),positions[i],758,font,paint);}font.ScaleX=1;font.Size=45;c.DrawText("원",854,758,font,paint);
+        paint.Color=new(224,177,111);c.DrawRoundRect(SKRect.Create(900,719,78,46),15,15,paint);paint.Color=new(65,14,22);font.Size=32;c.DrawText("21%",909,754,font,paint);SourceImage.SavePng(image,path);return path;
+    }
 }

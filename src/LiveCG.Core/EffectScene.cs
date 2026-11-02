@@ -17,6 +17,7 @@ public sealed partial class EffectScene : IDisposable
     public int Height => _source.Height;
     public SKBitmap OriginalFrame()=>_source.Copy();
     public int DigitCount(EffectRegion region)=>GetLayer(region).Digits.Count;
+    public IReadOnlyList<SKRect> DigitBounds(EffectRegion region)=>GetLayer(region).Digits.ToArray();
     public void DrawSource(SKCanvas canvas)=>DrawOriginal(canvas,0,0,null);
     public EffectScene(SKBitmap source) { _source = source; _image = SKImage.FromBitmap(source); }
 
@@ -264,11 +265,10 @@ public sealed partial class EffectScene : IDisposable
             var tick = (int)Math.Floor(turns);
             var number = (int)((unchecked((uint)roll.Id.GetHashCode()) + (uint)i * 17 + (uint)tick * 71) % 10);
             var shift = (float)(turns - tick) * cell.Height;
-            canvas.Save(); canvas.ClipRect(target);
-            font.Size = cell.Height / .74f;
+            var slot=layer.RollSlots[i];var window=slot.Window;window.Offset(0,offset);canvas.Save();canvas.ClipRect(window);
             for (var row = -1; row <= 0; row++)
             {
-                var text = ((number - row + 10) % 10).ToString();
+                var value=(number-row+10)%10;var text=value.ToString();font.Size=slot.FontSizes[value];
                 font.MeasureText(text, out var bounds);
                 canvas.DrawText(text, target.MidX - bounds.MidX, target.MidY - bounds.MidY + shift + row * cell.Height, font, textPaint);
             }
@@ -292,10 +292,10 @@ public sealed partial class EffectScene : IDisposable
             using var raw=RegionRaster.Raw(_source,region,rect,background);
             using var shape=RegionRaster.Shape(region,rect,Width,Height);
             var foreground=raw.Copy();Multiply(foreground,shape);var backingCustom=foreground.Copy();
-            var digitsCustom=DigitCells.Find(foreground,DigitCells.Background(foreground,background),region.DigitDividers);
+            var detectionBackground=DigitCells.DetectionBackground(foreground,background);var digitsCustom=DigitCells.Find(foreground,detectionBackground,region.DigitDividers);
             using(var c=new SKCanvas(backingCustom))using(var paint=new SKPaint{Color=region.ContentOnly?SKColors.Transparent:background,BlendMode=SKBlendMode.Src})foreach(var digit in digitsCustom)c.DrawRect(digit,paint);
             using var eraseCustom=RegionRaster.Shape(region,rect,Width,Height,false);
-            var custom=new Layer(foreground,backingCustom,rect,region.Background,region.BackgroundColor,background,DigitCells.InkColor(foreground,DigitCells.Background(foreground,background)),digitsCustom,region,higher,eraseCustom.Copy())
+            var custom=new Layer(foreground,backingCustom,rect,region.Background,region.BackgroundColor,background,DigitCells.InkColor(foreground,detectionBackground),digitsCustom,region,higher,eraseCustom.Copy())
             {RawImage=SKImage.FromBitmap(raw),ShapeImage=SKImage.FromBitmap(shape)};
             _layers.Add(region.Id,custom);return custom;
         }
@@ -385,7 +385,7 @@ public sealed partial class EffectScene : IDisposable
         public List<EffectRegion> Higher { get; }
         public Layer(SKBitmap bitmap,SKBitmap backing,SKRect bounds,BackgroundMode mode,string color,SKColor background,SKColor ink,List<SKRect> digits,EffectRegion region,IReadOnlyList<EffectRegion> higher,SKBitmap coverage)
         {
-            this.bitmap=bitmap;this.backing=backing;Bitmap=bitmap;Image=SKImage.FromBitmap(bitmap);BackingImage=SKImage.FromBitmap(backing);Bounds=bounds;Mode=mode;Color=color;Background=background;Ink=ink;Shape=region.Shape;Digits=digits;MaskData=region.Cutout?.MaskPng;
+            this.bitmap=bitmap;this.backing=backing;Bitmap=bitmap;Image=SKImage.FromBitmap(bitmap);BackingImage=SKImage.FromBitmap(backing);Bounds=bounds;Mode=mode;Color=color;Background=background;Ink=ink;Shape=region.Shape;Digits=digits;RollSlots=DigitRollLayout.Create(digits,bitmap.Width,region.DigitDividers);MaskData=region.Cutout?.MaskPng;
             Geometry=EffectScene.Geometry(region);Higher=higher.Select(EffectScene.Geometry).ToList();Path=RegionMask.Create(region.Shape,SKRect.Create(bitmap.Width,bitmap.Height),region.Points);
             using(coverage)using(var fillBitmap=new SKBitmap(coverage.Width,coverage.Height))
             {
@@ -412,6 +412,7 @@ public sealed partial class EffectScene : IDisposable
         public RegionShape Shape { get; }
         public SKPath Path { get; }
         public List<SKRect> Digits { get; }
+        public List<DigitRollSlot> RollSlots { get; }
         public void Dispose() { RawImage?.Dispose();ShapeImage?.Dispose();NumericShapeImage?.Dispose();EraseImage?.Dispose();FillImage?.Dispose();Path.Dispose();Image.Dispose();BackingImage.Dispose();bitmap.Dispose();backing.Dispose(); }
     }
 }
@@ -433,6 +434,7 @@ public sealed class MotionState
 
 public static class DigitCells
 {
+    public static SKColor DetectionBackground(SKBitmap image,SKColor sourceBackground)=>sourceBackground.Alpha==255?sourceBackground:Background(image,sourceBackground);
     public static SKColor Background(SKBitmap image,SKColor fallback)
     {
         var samples=new List<SKColor>();for(var x=0;x<image.Width;x++){samples.Add(image.GetPixel(x,0));samples.Add(image.GetPixel(x,image.Height-1));}for(var y=0;y<image.Height;y++){samples.Add(image.GetPixel(0,y));samples.Add(image.GetPixel(image.Width-1,y));}
@@ -454,7 +456,9 @@ public static class DigitCells
         var height = runs.Select(r => r.Height).DefaultIfEmpty(0).Max();
         if(dividers?.Count>0)
         {
-            runs=[];var bounds=dividers.Append(0).Append(1).Distinct().Order().Select(v=>(int)Math.Round(v*image.Width)).ToArray();for(var i=1;i<bounds.Length;i++){int topY=image.Height,bottomY=0,left=image.Width,right=0;for(var x=bounds[i-1];x<Math.Min(image.Width,bounds[i]);x++)for(var y=0;y<image.Height;y++)if(IsInk(image.GetPixel(x,y),background)){left=Math.Min(left,x);right=Math.Max(right,x+1);topY=Math.Min(topY,y);bottomY=Math.Max(bottomY,y+1);}if(bottomY>topY)runs.Add(new(left,topY,right,bottomY));}
+            // A manual stripe may also contain a comma. Only tall source runs define its animated digit.
+            var tall=runs.Where(r=>r.Height>=Math.Max(7,height*.68)).ToArray();runs=[];var bounds=dividers.Append(0).Append(1).Distinct().Order().Select(v=>(int)Math.Round(v*image.Width)).ToArray();
+            for(var i=1;i<bounds.Length;i++){int topY=image.Height,bottomY=0,left=image.Width,right=0;foreach(var span in tall)for(var x=Math.Max(bounds[i-1],(int)span.Left);x<Math.Min(bounds[i],span.Right);x++)for(var y=(int)span.Top;y<span.Bottom;y++)if(IsInk(image.GetPixel(x,y),background)){left=Math.Min(left,x);right=Math.Max(right,x+1);topY=Math.Min(topY,y);bottomY=Math.Max(bottomY,y+1);}if(bottomY>topY)runs.Add(new(left,topY,right,bottomY));}
         }
         else
         {

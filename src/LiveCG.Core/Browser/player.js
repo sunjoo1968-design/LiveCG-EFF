@@ -185,8 +185,12 @@
             if (!roll || progress(roll, time) >= .5 + .48 * (i + 1) / a.digits.length) x.drawImage(foreground, cell.x, cell.y, cell.width, cell.height, cell.x, y, cell.width, cell.height);
             else {
                 const turns = (1 - (1 - progress(roll, time)) ** 2) * 45 * roll.options.speed, tick = Math.floor(turns), number = (((data.seeds[roll.id] + i * 17 + tick * 71) >>> 0) % 10), shift = (turns - tick) * cell.height;
-                x.save(); x.beginPath(); x.rect(cell.x, y, cell.width, cell.height); x.clip(); x.font = `bold ${cell.height / .74}px Arial`;
-                for (let row = -1; row <= 0; row++) { const text = String((number - row + 10) % 10), metrics = x.measureText(text); const baseline = (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2,center=(metrics.actualBoundingBoxRight-metrics.actualBoundingBoxLeft)/2; x.fillText(text, cell.x + cell.width / 2-center, y + cell.height / 2 + baseline + shift + row * cell.height); }
+                const slot=a.rollSlots?.[i]??cell;x.save();x.beginPath();x.rect(slot.x,slot.y+offset,slot.width,slot.height);x.clip();
+                for (let row = -1; row <= 0; row++) {
+                    const value=(number-row+10)%10,glyph=a.rollGlyphs?.[i];
+                    if(glyph){x.drawImage(image(glyph.image),0,value*glyph.height,glyph.width,glyph.height,glyph.x,glyph.y+offset+shift+row*cell.height,glyph.width,glyph.height);continue;}
+                    const text=String(value);x.font=`bold ${slot.fontSizes?.[value]??cell.height/.74}px Arial`;const metrics=x.measureText(text); const baseline = (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2,center=(metrics.actualBoundingBoxRight-metrics.actualBoundingBoxLeft)/2; x.fillText(text, cell.x + cell.width / 2-center, y + cell.height / 2 + baseline + shift + row * cell.height);
+                }
                 x.restore();
             }
         }); x.restore(); return true;
@@ -303,7 +307,7 @@
     window.addEventListener("obsSourceActiveChanged",e=>{if(typeof e.detail?.active!=="boolean")return;obsHost=true;const next=e.detail.active;try{window.sessionStorage?.setItem(activeStorageKey,String(next));}catch{}if(next===programActive)return;programActive=next;if(!data.playback.replayOnShow){waitingForProgram=false;return;}api.restart();waitingForProgram=!next;});
     window.addEventListener("LiveCGControl", e => { const v = e.detail ?? {}; if (v.target && v.target !== "all" && v.target !== data.sourceName) return; if (["restart", "exit", "pause", "resume"].includes(v.command)) api[v.command](); });
     const names = new Set([data.source]);
-    for (const a of data.assets) { for (const key of ["raw", "shape", "numericShape", "image", "backing", "erase", "fill"]) if(a[key])names.add(a[key]); for (const m of a.masks) names.add(m.image);for(const route of a.routes??[])for(const icon of Object.values(route.icons))names.add(icon); }
+    for (const a of data.assets) { for (const key of ["raw", "shape", "numericShape", "image", "backing", "erase", "fill"]) if(a[key])names.add(a[key]); for(const glyph of a.rollGlyphs??[])names.add(glyph.image); for (const m of a.masks) names.add(m.image);for(const route of a.routes??[])for(const icon of Object.values(route.icons))names.add(icon); }
     Promise.all([...names].map(name => new Promise((resolve, reject) => { const img = new Image(); img.onload = () => { images.set(name, img); resolve(); }; img.onerror = () => reject(new Error("이미지 로드 실패: " + name)); img.src = name; }))).then(() => {
         loaded = true; api.restart();waitingForProgram=obsHost&&data.playback.replayOnShow&&programActive===false; const credit = document.getElementById("credit"); if (credit) credit.textContent = data.credit;
         document.title = "LiveCG-EFF · " + data.credit;
