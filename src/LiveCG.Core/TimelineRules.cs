@@ -18,7 +18,7 @@ public static class TimelineRules
     }
     public static EffectClip Append(EffectRegion region, EffectOptions options, double duration, int fps)
     {
-        var clip = new EffectClip { Options = options.Current(),Motion=options.Kind==EffectKind.UserMotion?MotionDefinition.Example():null,Route=options.Kind==EffectKind.TravelRoute?new():null };
+        var clip = new EffectClip { Options = options.Current(),Motion=options.Kind==EffectKind.UserMotion?MotionDefinition.Example():null,Route=options.Kind==EffectKind.TravelRoute?TravelRoute.Example():null };
         SetTiming(clip, region.Clips.Select(c => c.End).DefaultIfEmpty(0).Max(), duration, fps);
         region.Clips.Add(clip); return clip;
     }

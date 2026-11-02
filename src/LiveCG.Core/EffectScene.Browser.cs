@@ -19,7 +19,7 @@ public sealed partial class EffectScene
             var parentRect=RegionRaster.Rect(parent,Width,Height);var masks=new List<object>();
             var routes=new List<object>();foreach(var clip in region.Clips.Where(c=>c.Route is not null))
             {
-                var route=clip.Route!;var icons=new Dictionary<string,string>();foreach(var kind in Enum.GetValues<TravelIcon>()){using var icon=RouteRenderer.Icon(route,kind);icons[kind.ToString()]=Bitmap(icon,prefix+"-"+clip.Id.ToString("N")+"-"+kind+".png");}routes.Add(new{id=clip.Id,segments=RouteRenderer.Geometry(route).Segments,totalLength=RouteRenderer.Geometry(route).TotalLength,color=Css(SKColor.Parse(route.Color)),outlineColor=Css(SKColor.Parse(route.OutlineColor)),icons});
+                var route=clip.Route!;var icons=new Dictionary<string,string>();foreach(var kind in Enum.GetValues<TravelIcon>()){using var icon=RouteRenderer.Icon(route,kind);icons[kind.ToString()]=Bitmap(icon,prefix+"-"+clip.Id.ToString("N")+"-"+kind+".png");}routes.Add(new{id=clip.Id,segments=RouteRenderer.Geometry(route,rect.Width,rect.Height).Segments,totalLength=RouteRenderer.Geometry(route,rect.Width,rect.Height).TotalLength,color=Css(SKColor.Parse(route.Color)),outlineColor=Css(SKColor.Parse(route.OutlineColor)),icons});
             }
             foreach(var mask in region.Masks)
             {

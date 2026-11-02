@@ -152,7 +152,20 @@ public partial class MainWindow
     private void InsertAsset(object sender,RoutedEventArgs e)
     {
         if(_busy||_region is null||SelectedAsset is not { } asset)return;
-        try{var targetRegion=_region;if(asset.Clips.Any(c=>c.Route is not null)){var area=new EffectRegion{Name=asset.Name,Bounds=_region.Bounds,OverlayOnly=true,Background=BackgroundMode.KeepOriginal};_current!.Regions.Insert(0,area);targetRegion=area;_current.Playback.Enabled=true;_current.Playback.ByEffects=true;}var clips=AssetStore.Instantiate(asset,_time,_video.Fps);foreach(var routeClip in clips.Where(c=>c.Route is not null)){routeClip.Section=routeClip.Route!.Repeat?ClipSection.Loop:ClipSection.Intro;if(routeClip.Route.Repeat){var introEnd=_current!.Regions.SelectMany(r=>r.Clips).Where(c=>SectionRules.Effective(c)==ClipSection.Intro).Select(c=>c.End).DefaultIfEmpty(0).Max();routeClip.Start=Math.Max(routeClip.Start,introEnd);}}if(targetRegion.Clips.Count+clips.Count>4000)throw new InvalidDataException("영역당 최대4,000클립입니다.");targetRegion.Clips.AddRange(clips);SelectRegion(targetRegion,clips[0]);MarkEdited();RefreshRegionList();RefreshTimeline();}
+        try
+        {
+            var travel=asset.Clips.Any(c=>c.Route is not null);if(travel&&_current!.Regions.Count>=100)throw new InvalidDataException("영역은 파일당 최대100개입니다.");
+            var targetRegion=travel?new EffectRegion{Name=asset.Name,Bounds=_region.Bounds,OverlayOnly=true,Background=BackgroundMode.KeepOriginal}:_region;
+            var clips=AssetStore.Instantiate(asset,_time,_video.Fps);var rect=ObjectExtractor.PixelRect(targetRegion.Bounds,_current!.Width,_current.Height);
+            foreach(var clip in clips.Where(c=>c.Route is not null))
+            {
+                var route=clip.Route!;var oldDuration=route.Duration;
+                if(route.DurationBudget is { } budget){RouteEditing.AllocateDuration(route,budget,rect.Width,rect.Height,_video.Fps);if(clip.SourceDuration is null&&clip.SourceOffset==0&&Math.Abs(clip.Duration-TimelineRules.Snap(oldDuration,_video.Fps))<1e-8)clip.Duration=route.Duration;clip.LoopPeriod=route.Duration;}
+                clip.Section=route.Repeat?ClipSection.Loop:ClipSection.Intro;if(route.Repeat){var introEnd=_current.Regions.SelectMany(r=>r.Clips).Where(c=>SectionRules.Effective(c)==ClipSection.Intro).Select(c=>c.End).DefaultIfEmpty(0).Max();clip.Start=Math.Max(clip.Start,introEnd);}clip.Validate();
+            }
+            if(targetRegion.Clips.Count+clips.Count>4000)throw new InvalidDataException("영역당 최대4,000클립입니다.");
+            if(travel){_current.Regions.Insert(0,targetRegion);_current.Playback.Enabled=true;_current.Playback.ByEffects=true;}targetRegion.Clips.AddRange(clips);SelectRegion(targetRegion,clips[0]);MarkEdited();RefreshRegionList();RefreshTimeline();
+        }
         catch(Exception ex){Error(ex);}
     }
     private void UpdateAssetClip(object sender,RoutedEventArgs e)

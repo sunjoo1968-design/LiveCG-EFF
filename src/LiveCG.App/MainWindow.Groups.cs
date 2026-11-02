@@ -22,6 +22,8 @@ public partial class MainWindow
     {
         if(_current is null)return;
         var parent=_region?.Role==RegionRole.Group?_region:_current.Regions.FirstOrDefault(g=>g.Id==_region?.ParentId);
+        // Travel overlays are graphics, not automatic container groups. Explicit linking stays available.
+        if(CreationRoleBox.SelectedIndex==0&&parent?.OverlayOnly==true)parent=null;
         var b=region.Bounds;var p=parent?.Bounds;
         if(CreationRoleBox.SelectedIndex==3){region.Role=RegionRole.Object;return;}if(CreationRoleBox.SelectedIndex==1){region.Role=RegionRole.Group;return;}
         if(CreationRoleBox.SelectedIndex==2&&parent is not null){region.Role=RegionRole.EffectArea;region.ParentId=parent.Id;return;}

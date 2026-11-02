@@ -1,0 +1,26 @@
+{
+  "Version": "1.2.1",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-02",
+  "Core": 568,
+  "Wpf": 467,
+  "Chromium": 145,
+  "ProgramClock": 5,
+  "ActualObs": 48,
+  "RenderComparisons": 115,
+  "Passed": 1348,
+  "Total": 1348,
+  "TravelCoreSubset": 52,
+  "TravelWpfSubset": 25,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "OptionalLocalPriceScreenshotChecks": 1,
+  "SourceImagesPublished": false,
+  "Limitations": [
+    "Travel paths follow user points, not geographic road routing or removal of baked-in map lines",
+    "200 waypoints / 300 seconds; 32 curve controls per leg and 512 total",
+    "Horizontal-family orientation uses the actual pixel tangent with abs(dx)>=abs(dy)",
+    "Existing explicit group relationships and saved options remain unchanged; route overlays are excluded from new automatic parent choices",
+    "Frame rounding and one-frame minimum movements; impossible stop budgets are rejected without changing the accepted path"
+  ]
+}

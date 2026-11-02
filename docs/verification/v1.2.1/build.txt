@@ -1,0 +1,12 @@
+  복원할 프로젝트를 확인하는 중...
+  복원할 모든 프로젝트가 최신 상태입니다.
+  LiveCG.Core -> G:\codex_project\LiveCG-EFF\src\LiveCG.Core\bin\Debug\net10.0\LiveCG.Core.dll
+  LiveCG.App -> G:\codex_project\LiveCG-EFF\src\LiveCG.App\bin\Debug\net10.0-windows10.0.19041.0\win-x64\LiveCG-EFF.dll
+  LiveCG.UiVerify -> G:\codex_project\LiveCG-EFF\tests\LiveCG.UiVerify\bin\Debug\net10.0-windows10.0.19041.0\win-x64\LiveCG.UiVerify.dll
+  LiveCG.Verify -> G:\codex_project\LiveCG-EFF\tests\LiveCG.Verify\bin\Debug\net10.0\LiveCG.Verify.dll
+
+빌드했습니다.
+    경고 0개
+    오류 0개
+
+경과 시간: 00:00:15.52

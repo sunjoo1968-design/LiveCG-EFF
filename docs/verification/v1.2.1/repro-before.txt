@@ -1,0 +1,5 @@
+FAIL new route opens with no pre-positioned departure or arrival points
+FAIL new route defaults hide future path and enable arrival emphasis and repeat
+FAIL enabling smooth curves alone preserves the straight path
+FAIL arrival emphasis never renders waypoint names into the output
+RESULT 0/4 passed

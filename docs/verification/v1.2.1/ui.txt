@@ -1,0 +1,468 @@
+PASS professional track timeline exists
+PASS numeric spatial coordinates removed
+PASS strength has exactly five choices
+PASS precision zoom buttons exist
+PASS manual video duration removed
+PASS 21 effect thumbnails including travel editor available
+PASS automatic detection UI handler removed
+PASS saved default fps restored
+PASS PNG begins without automatic regions
+PASS loaded project keeps its fps over defaults
+PASS draft region does not commit before mouse up
+PASS mouse drag creates and clearly selects first region
+PASS selected area name and detailed selection tooltip are explicit
+PASS new manual area is the selected top layer
+PASS ESC cancels unfinished region without creating a ghost
+PASS zoom keeps mouse anchor at exact source pixel
+PASS drag movement remains accurate while zoomed
+PASS ESC rolls back in-progress resize
+PASS eight visible resize handles
+PASS resize handle 0 changes the intended bounds
+PASS resize handle 1 changes the intended bounds
+PASS resize handle 2 changes the intended bounds
+PASS resize handle 3 changes the intended bounds
+PASS resize handle 4 changes the intended bounds
+PASS resize handle 5 changes the intended bounds
+PASS resize handle 6 changes the intended bounds
+PASS resize handle 7 changes the intended bounds
+PASS locked region does not accidentally move
+PASS native 100 percent is source-pixel accurate
+PASS original-view reset clears zoom and pan
+PASS region-list selection switches the active mouse region
+PASS one area supports sequential different effects
+PASS new clip appends at previous end
+PASS strength changes only the selected clip
+PASS timeline body drag changes start time
+PASS timeline right handle adjusts duration
+PASS output duration updates immediately with timeline
+PASS timeline ESC restores start and duration
+PASS ruler click seeks preview and effect state
+PASS new effect can be placed at playhead, including overlap
+PASS left-file progress bar updates live without refreshing selection
+PASS progress and property edits preserve selected region
+PASS saving defaults after fps change does not rewrite existing clip timing
+PASS defaults save video and selected clip options
+PASS new application restores three-level defaults
+PASS output quality uses readable labels without numeric input
+PASS highest-quality label maps to encoder quality
+PASS legacy custom quality is preserved rather than silently remapped
+PASS clean preview hides selection and blocks accidental spatial edits
+PASS clean preview leaves authored region untouched
+PASS normal editing shows active region without all labels
+PASS explicit selected-shape command changes the actual effect mask
+PASS undo restores region shape
+PASS redo reapplies region shape
+PASS eight mouse move events create exactly one undo entry
+PASS undo restores mouse move bounds
+PASS redo restores mouse move result
+PASS cancelled resize does not create an undo entry
+PASS configured region-draw shortcut enters drawing mode
+PASS Shift draw produces a true circle in source pixels
+PASS undo removes a newly drawn region
+PASS text editing keeps its own typing and clipboard shortcuts
+PASS Ctrl+Alt combinations do not trigger clip paste
+PASS number shortcut selects the intended region
+PASS Tab in timeline advances region selection
+PASS per-clip loop controls update the saved model
+PASS cross-region paste creates an independent clip at playhead including loop options
+PASS paste can be undone
+PASS property duration edit moves following effects while preserving gap
+PASS duration and following movement undo together
+PASS duration field displays the actual frame-snapped value
+PASS timeline drag snaps to another region and displays its guide
+PASS Alt bypass disables magnetic guide during actual timeline gesture
+PASS deleting during a drag cancels the gesture safely
+PASS selected export scope contains only selected PNGs
+PASS current-file scope follows the active PNG
+PASS all-files export scope preserves batch output
+PASS selected-file export produces only its WebM and completes progress
+PASS default save includes per-effect loop and editor options
+PASS output folder and settings occupy the left material panel
+PASS large edit mode collapses timeline and expands preview
+PASS entering region drawing can automatically focus the workspace
+PASS preview detaches using the same editor control and selection
+PASS effect library and clip controls detach into their own window
+PASS all detached windows display creator and current version
+PASS detached effect selection updates the shared preview and project
+PASS eyedropper reads exact original PNG pixel after zoom and effects
+PASS sampled source color reaches direct-background settings
+PASS closing detached windows returns panels to their original hosts
+PASS workspace layout persists without changing project data
+PASS offscreen saved windows are recovered into available monitor bounds
+PASS Photoshop-style picker handles alpha and hexadecimal colors
+PASS color picker rejects malformed color without changing selection
+PASS object selection recalculation can be undone
+PASS explicit bounds-fit option fits actual foreground contour
+PASS fitted contour integrates with the actual region editor
+PASS object contour and bounding change undo together
+PASS object apply action remains visible at minimum window size
+PASS asset search filters user names independently of built-in effects
+PASS built-in effect search filters thumbnails
+PASS user-authored asset inserts as an actual keyframe clip
+PASS asset update changes only the chosen instance and preserves other placements
+PASS independent effect studio opens with blank keys, numeric sample and creator credit
+PASS studio creates authored movement without effect-specific code
+PASS studio undo restores previous motion keys
+PASS studio redo reapplies authored keys
+PASS studio copy and paste place keys at the chosen frame
+PASS diamond drag preserves key selection when switching property channel
+PASS studio key drag is one undo transaction
+PASS studio fps control preserves real motion duration
+PASS dragging studio object creates position keys at current frame
+PASS graphic object drag is one reversible key transaction
+PASS studio scale handle creates size keys with aspect preservation
+PASS studio rotation handle creates rotation keys
+PASS studio saves reusable asset and generated thumbnail
+PASS saved studio asset appears in the main user library
+PASS closing studio releases its modeless-window registration
+PASS material context menu exposes clicked, selected-count, all, and folder actions
+PASS right-click this-file output uses clicked item rather than active or selected file
+PASS workspace reset restores standard panel placement
+PASS Ctrl-click selects clips across region rows with an explicit count
+PASS Ctrl-click toggles a selected clip without clearing the other row
+PASS group body drag moves all selected rows by the same frame delta
+PASS multi-clip drag creates one undo transaction
+PASS undo restores group timing and multiple selection
+PASS redo reapplies all selected clip timings
+PASS group paste preserves time spacing and relative region rows
+PASS pasted asset group has a fresh shared instance identity
+PASS delete removes exactly the selected clips across rows
+PASS undo restores deleted group and its selection
+PASS redo deletes the entire group again
+PASS insufficient destination rows reject paste before modifying any clip
+PASS zero boundary clamps the entire group without changing spacing
+PASS ESC restores timing on every selected row
+PASS group snap excludes all selected clips as magnetic targets
+PASS original eyedropper uses software icon and samples its exact source center
+PASS brush outline radius follows the actual source brush and zoom
+PASS object-background eyedropper samples crop pixels at the indicated center
+PASS auxiliary editor windows inherit the application icon
+PASS HSV input and RGB fields stay synchronized
+PASS color plane and brightness strip provide the full reference-style picking surface
+PASS alpha spin input updates the selected RGBA color
+PASS out-of-range numeric color input cannot be accepted
+PASS custom color slot stores the selected alpha color
+PASS custom color slots persist across picker instances
+PASS main and color picker windows expose the branded icon
+PASS point pen keeps the region pending until the path is closed
+PASS point pen closes clicked vertices into a usable region
+PASS all point clicks create a single region undo transaction
+PASS undo removes the complete pen path
+PASS redo restores the pen path points
+PASS freehand drag closes a path and inserts it as the top layer
+PASS ESC cancels an unfinished pen without creating a layer
+PASS switching to selection mode discards the pending pen transaction
+PASS timeline layer-down control changes compositing order as one edit
+PASS undo restores layer order
+PASS dragging a timeline row header reorders the layer
+PASS timeline eye control hides the layer and clearly marks its row
+PASS undo restores layer visibility
+PASS scissors split the selected actual timeline effect at the playhead
+PASS scissors are one reversible transaction
+PASS undo restores the uncut original clip
+PASS Ctrl+K invokes scissors from the timeline
+PASS copying split fragments creates an independent continuous sequence
+PASS mouse growth with follower magnet pulls the next clip flush to the new end
+PASS mouse shrink with follower magnet keeps the next clip attached
+PASS follower magnet option persists as a saved default
+PASS right bracket increases object brush radius by one source pixel
+PASS Shift bracket changes brush radius by ten pixels
+PASS brush shortcuts do not consume unrelated modifier combinations
+PASS one-pixel cleanup button modifies the actual object mask
+PASS mask cleanup can be undone without losing the object
+PASS explicit precision cleanup preserves cleaned colors and separate source erase coverage
+PASS reopening fitted object preserves its saved mask instead of recalculating it
+PASS solid background preset opens the actual cleaned result preview
+PASS first mouse region becomes an explicit group
+PASS drawing inside the selected group creates a local effect area
+PASS creation selector supports independent objects outside groups
+PASS invalid parent assignment rolls back without corrupting the graph
+PASS drawing a mask adds a selected child track without adding a duplicate region
+PASS mask is displayed as a child row under its owning group
+PASS mouse mask center moves its source geometry
+PASS ESC restores the mask before an unfinished resize
+PASS mask bar mouse drag changes its frame-aligned start
+PASS undo restores mask timing and mask selection together
+PASS redo restores the mask timeline transaction
+PASS mask end handle changes duration without changing its animation keys
+PASS mask inspector commits operation and source-pixel feather
+PASS mask copy/paste creates an independent track at the playhead
+PASS mask eye toggle disables only the selected mask
+PASS group collapse hides its masks and local effect rows
+PASS group duplication copies local effects and masks with remapped IDs
+PASS deleting a group removes its local effect rows
+PASS WPF-authored group and masks survive project save/load
+PASS mask keyframe window displays creator and version
+PASS mask editor adds keys with linear interpolation
+PASS mask editor undo removes the last key
+PASS mask editor redo restores the key
+PASS mask editor copies and pastes keys at another frame
+PASS mask preview uses actual source and current frame across rotation scale opacity and anchor channels
+PASS mask animation diamond drag moves the actual key frame
+PASS mask animation drag is a single undo transaction
+PASS mask animation selected-key deletion removes only that key
+PASS freehand mask uses the same closed-path mouse tool as regions
+PASS point pen can create a separate timeline mask
+PASS mask corner handle commits a resized path
+PASS mask up arrow changes explicit composition order within its owner
+PASS choosing the next ellipse leaves the earlier rectangle and its effects unchanged
+PASS next mouse drawing creates its chosen shape inside the previous group
+PASS completed pen path vertex can be dragged outside its previous bounds
+PASS vertex drag is restored by global undo
+PASS clicking a completed path segment inserts a vertex
+PASS selected pen vertex can be deleted while keeping a closed valid path
+PASS undo restores a deleted path vertex
+PASS ESC cancels a path point move with exact geometry restoration
+PASS first new mask adopts its parent clip interval and only applies inside it
+PASS first interaction can trim the newly created mask left edge
+PASS unselected mask right edge supports immediate drag from its visible handle margin
+PASS group children and masks have a genuine shared indented hierarchy
+PASS hierarchy indentation preserves common timeline time alignment
+PASS mask opacity slider updates the actual mask immediately
+PASS one undo restores an entire continuous slider drag
+PASS cancelled clip duration slider restores the original document
+PASS mask preview zoom preserves the source pixel beneath the mouse
+PASS mask preview supports space or middle-button pan
+PASS mask preview fit resets zoom and pan
+PASS mask native zoom maps source pixels to physical display pixels
+PASS dragging the mask body creates position keys at the current frame
+PASS mask body drag is one reversible key edit
+PASS mask corner drag creates scale keys
+PASS mask rotation handle changes visible rotation
+PASS moving mask anchor preserves its visible transformed position
+PASS mask mouse property edits X
+PASS mask mouse property edits Y
+PASS mask mouse property edits ScaleX
+PASS mask mouse property edits ScaleY
+PASS mask mouse property edits Rotation
+PASS mask mouse property edits Opacity
+PASS mask mouse property edits AnchorX
+PASS mask mouse property edits AnchorY
+PASS mask mouse property edits CropTop
+PASS mask mouse property edits CropBottom
+PASS mask mouse property edits CropLeft
+PASS mask mouse property edits CropRight
+PASS mask length slider rescales keys into the new frame range
+PASS mask authoring-length slider is reversible
+PASS effect studio also supports immediate mouse property editing
+PASS effect studio slider undo restores the original value
+PASS effect studio mouse length editing updates the actual asset duration
+PASS effect studio mouse length editing can be undone
+PASS mask in-point at zero can be grabbed just outside the left handle without hitting header arrows
+PASS explicit mask shape editing preserves the parent group shape
+PASS mask pen-point editing changes only the mask and preserves its parent bounds
+PASS edited mask vertices survive template serialization
+PASS Shift value scrubbing provides ten times finer mouse control
+PASS return Preview / normal preserves finite pre-close placement
+PASS return Preview / maximized preserves finite pre-close placement
+PASS return Preview / restored preserves finite pre-close placement
+PASS return Preview / minimized preserves finite pre-close placement
+PASS return Effects / normal preserves finite pre-close placement
+PASS return Effects / maximized preserves finite pre-close placement
+PASS return Effects / restored preserves finite pre-close placement
+PASS return Effects / minimized preserves finite pre-close placement
+PASS returning detached windows preserves all existing image region and effect data
+PASS workspace save normalizes invalid layout values without permitting nonstandard JSON numbers
+PASS repaired workspace remains strict numeric JSON
+PASS unshown Auto-size window capture uses finite fallbacks
+PASS editing plus maximized return and application exit completes without numeric serialization errors
+PASS old project opens without silently enabling broadcast sections
+PASS UI exposes both output types and section settings
+PASS dragging the blue boundary changes entrance duration
+PASS section boundary drag is one undoable gesture
+PASS redo restores section boundary
+PASS ESC/cancel restores the section before dragging
+PASS entrance boundary cannot cross the repeat boundary
+PASS section snap uses existing effect starts and ends
+PASS last section handle adjusts exit and automatic video duration
+PASS native effect preview uses the same final transparent exit
+PASS native broadcast preview skips repeated entrance and remains in the loop
+PASS native preview exit button requests the tail
+PASS output cancellation stays clickable while editing is disabled
+PASS section dialog supports mouse sliders for both boundaries
+PASS both-output choice updates project options
+PASS main output command produces both original-named WebM and browser folder
+PASS file progress reports both completed outputs
+PASS right-click selective output uses the shared output pipeline
+PASS current-file scope stays independent of output format
+PASS minimum layout keeps a usable track area under section controls
+PASS five strength labels appear in intuitive strength order
+PASS lowest strength changes selected clip to very weak
+PASS highest strength changes selected clip to very strong
+PASS effect color picker result updates clip and visible swatch including alpha
+PASS effect color participates in undo and redo
+PASS default-color button restores per-effect colors
+PASS all four effect tabs have explicit large touch targets and visible borders
+PASS new motion studio begins with no prefilled sample animation
+PASS studio can author top and right crop keyframes
+PASS motion timeline exposes all twelve channels including four crop rows
+PASS region softness exposes mouse controls for width, strength, four sides and content tolerance
+PASS mouse softness edit updates selected region immediately
+PASS region softness participates in whole-editor undo
+PASS region softness redo restores edited width
+PASS soft boundary handle can be grabbed independently of region resize
+PASS dragging feather handle changes source-pixel softness width
+PASS feather handle leaves selection geometry unchanged
+PASS cancel restores feather gesture without changing previous edit
+PASS black/white comparison changes only preview backdrop
+PASS effect-based assignment enables optional exit
+PASS cancelable settings edit does not mutate original job
+PASS loop seam comparison exposes two native frames and creator/version
+PASS quick area controls live outside clip properties and outside the pixel viewport
+PASS advanced timing and area details start collapsed
+PASS quick visibility label follows hidden state immediately
+PASS quick visibility label follows restored state immediately
+PASS library and personal-asset searches have independent state
+PASS non-color zoom effect hides irrelevant appearance controls
+PASS quick controls remain accessible on property tab 0
+PASS quick controls remain accessible on property tab 1
+PASS quick controls remain accessible on property tab 2
+PASS quick controls remain accessible on property tab 3
+PASS quick content mode enables single-pass background separation
+PASS quick width changes without opening the clip tab
+PASS precision editor continues the exact quick separation result
+PASS precision editor defaults to preserving selection bounds
+PASS brush refinement keeps the original selected geometry
+PASS precision apply shares mode, background color and tolerance with quick controls
+PASS whole-region mode retains manual corrections for later
+PASS re-enabling content mode restores manual mask without re-extraction
+PASS reopening precision editor preserves hand-painted mask
+PASS quick separation toggle participates in editor undo
+PASS ripple reveals its relevant color controls
+PASS selected region and effect remain identified in the context header
+PASS empty mask selection hides unrelated mask property fields
+PASS timeline mask selection opens dedicated mask editor with grouped controls
+PASS context header identifies selected mask instead of a stale clip
+PASS layer list is expanded by default with group children
+PASS layer selection matches preview and timeline
+PASS layer row identifies name and effect/mask counts
+PASS layer thumbnail displays the original selected content
+PASS deleting a mask immediately refreshes the layer count badge
+PASS child layer has visible hierarchy indentation
+PASS drawing and area tools stay in fixed single rows
+PASS obsolete collapse pin and detached area controls are absent
+PASS advanced area popup does not grow the toolbar
+PASS layer eye button edits visibility in the shared region model
+PASS layer visibility changes support undo
+PASS layer lock synchronizes with preview immediately
+PASS F2/double-click opens in-place layer name editing
+PASS inline layer rename updates shared context
+PASS drag ordering cannot silently remove a region from its group
+PASS layer drag reorders siblings and preserves group membership
+PASS group fold hides its child rows
+PASS group unfold restores child rows
+PASS layer height and right-panel width persist in workspace
+PASS reopening the application restores saved layer-panel dimensions
+PASS independent splitters resize layer height and property width
+PASS wide layout keeps the same single-row controls with a larger preview
+PASS layer panel travels with detached effect properties
+PASS returning properties keeps the preferred panel size
+PASS narrow layout provides horizontal access to every single-row tool
+PASS narrow window retains preview space without toolbar wrapping
+PASS 100 layers scroll internally and selecting the last one updates preview
+PASS large layer list virtualizes rows instead of growing the window
+PASS invalid panel measurements normalize to safe finite defaults
+PASS old area-window preferences are ignored while valid panel dimensions migrate
+PASS left output panel exposes repeat count and default original rest without a dialog
+PASS output summary immediately includes two rests for three repeats
+PASS left repeat dropdown directly updates model and final duration
+PASS left rest dropdown immediately updates final duration
+PASS left rest appearance selector shares the playback model
+PASS rest setting undo restores both model and left controls
+PASS section window opens with the current left-panel repeat settings
+PASS section controls change the same serializable repeat policy
+PASS applying section options refreshes the left output controls
+PASS repeat-only batch apply targets other selected files
+PASS batch repeat settings leave each file with matching count and rest
+PASS output plan lists both formats with named HTML paths and finite frame counts
+PASS legacy one-shot browser output is labeled once instead of infinite in the output plan
+PASS internal panel size is locked while layer-list height stays adjustable
+PASS layer list height still changes inside the locked overall layout
+PASS one-cycle preview displays original source during the rest
+PASS current repeat and rest options can be saved as defaults
+PASS new mouse-created region defaults to background fixed/content-only
+PASS narrow output panel preserves a visible material list above its settings
+PASS main importer accepts JPEG and static WebP with their original dimensions
+PASS WebP can be selected and edited in the original preview
+PASS WebP thumbnail uses the shared graphic decoder
+PASS automatic section boundaries expose a resize cursor
+PASS dragging an automatic boundary freezes resolved values and switches to direct mode
+PASS section dragging leaves authored effect clips untouched
+PASS section undo restores automatic mode as well as boundaries
+PASS canceling an automatic section gesture restores its original mode
+PASS dragging the repeat body moves both boundaries without changing its duration
+PASS effect-fit selection restores automatically resolved section timing
+PASS entrance resize cannot collapse the repeat below one frame
+PASS section boundaries snap to existing effect ends
+PASS redundant effect list and parallel group-role editor are removed
+PASS OBS preview mode shares playback state and hides irrelevant edit-repeat options
+PASS editing preview mode restores its own repeat control
+PASS text target is immediately available outside clip properties and disables stroke-softening
+PASS returning to whole-region effects immediately restores its own softness controls
+PASS precision editor opens with closed text counters already removed
+PASS text mode refuses direct contour contraction
+PASS text cleanup preset cannot invoke the old one-pixel erosion
+PASS text mode preserves the selected bounds including faint edge pixels
+PASS precision text result persists both matte and corrected edge colors
+PASS saved manual text masks are preserved until an explicit calculation or hole edit
+PASS hole candidate application clears only background and preserves the ring stroke
+PASS hole edits support undo without destroying the saved manual mask
+PASS OBS browser is the first output item and the default for new work
+PASS OBS-only mode hides WebM-only repeat count and CRF quality
+PASS WebM output restores its finite repeat and quality settings
+PASS OBS broadcast preview is the first playback mode
+PASS changing the text method updates live preview without pressing recalculate
+PASS range slider immediately changes the displayed separation settings
+PASS precision undo restores the range slider and mask together
+PASS precision redo restores the changed separation options
+PASS manual include stroke changes the current mask
+PASS live recomputation preserves the manual include patch
+PASS undoing a slider gesture preserves the earlier brush stroke
+PASS undoing the brush restores the original background hole
+PASS redoing the brush restores its pixels and manual patch
+PASS manual brush overrides persist separately from the automatic result
+PASS reopened manual patches survive later automatic parameter changes
+PASS resizing an existing separated region preserves its scaled manual mask
+PASS selecting an unchanged separated region does not trigger extraction
+PASS travel waypoint body drags to a new map position
+PASS travel waypoint drag is reversible
+PASS travel editor inserts a waypoint between existing points
+PASS travel editor reorders the selected waypoint
+PASS travel editor deletes a waypoint while preserving its route
+PASS travel timeline length follows movement plus per-point dwell times
+PASS curved route endpoint drags its body rather than an unused zero-length handle
+PASS applying travel editor creates a separate overlay without replacing the selected map region
+PASS travel apply links automatic timeline length and selected whole-route repeat to OBS sections
+PASS saving in the travel editor exposes a reusable route in the user asset library
+PASS travel apply preserves existing image effects and regions
+PASS re-editing route timing preserves its clip identity and commits the new duration and entrance mode
+PASS inserting a saved travel asset keeps a separate map-preserving overlay
+PASS new route window and list contain no initial markers
+PASS incomplete empty route cannot be applied
+PASS left clicking empty map does not accidentally add a waypoint
+PASS right clicks create departure, waypoint and arrival roles
+PASS total-time UI assigns 10 seconds including stops
+PASS moving waypoint redistributes the fixed total by new path lengths
+PASS undo restores waypoint and its timing allocation together
+PASS redo restores edited path and budget
+PASS too-short total time rolls back instead of accepting impossible stops
+PASS right click on waypoint opens explicit edit and delete actions
+PASS role selector reassigns the unique departure by moving its waypoint
+PASS dragging route creates a non-stop curve control and reallocates within total time
+PASS escape cancels curve dragging and restores its original position
+PASS actual-output preview hides editor markers and blocks accidental edits
+PASS undo includes total-time property edits
+PASS redo includes total-time property edits
+PASS delete can return the route to its original empty state
+PASS undo restores a deleted final point in incomplete edit state
+PASS travel without ROI requests drawing instead of assuming the whole image
+PASS travel editor uses the selected map ROI rather than full image
+PASS route creates an independent overlay exactly matching the selected ROI
+PASS even legacy route groups cannot automatically capture later effect regions
+PASS map ROI and prior effects remain preserved beside the route overlay
+PASS inserting a budget route rebalances lengths for the selected map aspect ratio
+PASS rebalancing a saved route asset preserves deliberate clip trimming
+PASS minimum layout keeps effect library visible beside timeline
+PASS creator and current version always displayed
+PASS 50 PNG import remains responsive without OCR
+RESULT 467/467 passed

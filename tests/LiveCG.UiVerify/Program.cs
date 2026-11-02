@@ -54,6 +54,7 @@ internal static class Program
             DocumentStore.Save(DocumentStore.DefaultsPath,new AppDefaults{Video=new(){Output=OutputKind.Webm,Fps=60,EndHold=1},Effect=new(){Kind=EffectKind.Sweep,Strength=StrengthLevel.Weak},ClipDuration=1});
             window=new MainWindow{WindowStartupLocation=WindowStartupLocation.Manual,Left=-12000,Top=-12000,ShowInTaskbar=false,ShowActivated=false};window.Show();Layout(window);
             if(args.Contains("--v12-only")){V12UiChecks.Run(window,folder,Check);Console.WriteLine($"RESULT {checks-failures.Count}/{checks} passed");return failures.Count==0?0:1;}
+            if(args.Contains("--v121-only")){V121UiChecks.Run(window,folder,Check);Console.WriteLine($"RESULT {checks-failures.Count}/{checks} passed");return failures.Count==0?0:1;}
             Check(window.FindName("TimelineEditor") is not null,"professional track timeline exists");
             Check(window.FindName("RegionX") is null&&window.FindName("RegionY") is null,"numeric spatial coordinates removed");
             Check(window.FindName("IntensitySlider") is null&&Control<ComboBox>(window,"StrengthBox").Items.Count==5,"strength has exactly five choices");
@@ -149,6 +150,7 @@ internal static class Program
             OutputUiChecks.Run(window,folder,Check);
             DirectSectionChecks.Run(window,folder,Check);
             V12UiChecks.Run(window,folder,Check);
+            V121UiChecks.Run(window,folder,Check);
             var demo=TestFixtures.Demo(path);window.ApplyDocument(new(){Jobs=[demo],Video=new(){Output=OutputKind.Webm,Fps=30,EndHold=.9}});Layout(window);
             Control<CheckBox>(window,"SnapCheck").IsChecked=true;Control<CheckBox>(window,"RippleCheck").IsChecked=true;
             Control<ListBox>(window,"RegionList").SelectedItem=demo.Regions[3];Call(window,"Seek",3.55,true);Pump();

@@ -1,0 +1,199 @@
+{
+  "passed": 48,
+  "total": 48,
+  "log": "G:\\codex_project\\LiveCG-EFF\\artifacts\\v010-obs-portable\\config\\obs-studio\\logs\\2026-11-02 20-56-18.txt",
+  "results": [
+    {
+      "ok": true,
+      "name": "isolated actual OBS 33 started with test-only profile"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS preview is showing but not program-active before transition"
+    },
+    {
+      "ok": true,
+      "name": "actual preview-to-program transition starts entrance from frame zero"
+    },
+    {
+      "ok": true,
+      "name": "actual program playback advances after the first entrance frame"
+    },
+    {
+      "ok": true,
+      "name": "returning source to preview resets the waiting frame"
+    },
+    {
+      "ok": true,
+      "name": "second actual program transition replays entrance even after a long preview"
+    },
+    {
+      "ok": true,
+      "name": "actual source refresh while program-active also starts playback"
+    },
+    {
+      "ok": true,
+      "name": "new browser source added directly to actual program starts without needing a scene change"
+    },
+    {
+      "ok": true,
+      "name": "actual CEF canvas is ready before screenshot at 1.4s"
+    },
+    {
+      "ok": true,
+      "name": "screenshot source belongs to actual program at 1.4s"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS CEF renders colored sweep/crop at 1.4s"
+    },
+    {
+      "ok": true,
+      "name": "actual CEF canvas is ready before screenshot at 3.5s"
+    },
+    {
+      "ok": true,
+      "name": "screenshot source belongs to actual program at 3.5s"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS CEF renders colored sweep/crop at 3.5s"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS ready for soft-outside"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS soft/content/group capture soft-outside"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS ready for soft-group"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS soft/content/group capture soft-group"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS ready for content-only"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS soft/content/group capture content-only"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS ready for manual-separation"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS soft/content/group capture manual-separation"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS ready for inactive-manual-group"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS soft/content/group capture inactive-manual-group"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS text matte is ready"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS text strokes captured for native comparison"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready Solid"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture Solid"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready Dashed"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture Dashed"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready Dotted"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture Dotted"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready Arrows"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture Arrows"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready hidden"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture hidden"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready GroupMask"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture GroupMask"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready Upright"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture Upright"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready Vertical"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture Vertical"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready Bends"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture Bends"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route ready ROI"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS travel route capture ROI"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS loads named-entry package and reaches the rest phase"
+    },
+    {
+      "ok": true,
+      "name": "actual OBS rest captured for exact source comparison"
+    }
+  ]
+}

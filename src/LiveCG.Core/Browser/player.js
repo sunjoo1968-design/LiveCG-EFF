@@ -119,11 +119,11 @@
     function drawRoute(x,r,w,h,clip,p,opacity){
         const route=clip.route,compiled=assets.get(r.id).routes?.find(a=>a.id===clip.id);if(!route||!compiled)return;
         const points=route.points,segments=compiled.segments,duration=points.reduce((s,v,i)=>s+v.stop+(i?v.move:0),0),seconds=clamp(p)*duration;
-        let sample={x:points[0].x,y:points[0].y,angle:0,distance:0,point:0,stopped:true,icon:points[0].icon??route.icon},completed=0,icon=sample.icon;
+        let sample={x:points[0].x,y:points[0].y,angle:segments.length?Math.atan2(segments[0].y[1]-points[0].y,segments[0].x[1]-points[0].x):0,distance:0,point:0,stopped:true,icon:points[0].icon??route.icon},completed=0,icon=sample.icon;
         if(seconds>=points[0].stop)for(let i=0;i<segments.length;i++){
             const s=segments[i],point=points[i+1];icon=points[i].icon??icon;
-            if(seconds<=s.start+s.duration){const f=clamp((seconds-s.start)/s.duration),d=f*s.length;let j=1;while(j<64&&s.distance[j]<d)j++;const mix=(d-s.distance[j-1])/Math.max(1e-12,s.distance[j]-s.distance[j-1]);sample={x:s.x[j-1]+(s.x[j]-s.x[j-1])*mix,y:s.y[j-1]+(s.y[j]-s.y[j-1])*mix,angle:Math.atan2(s.y[j]-s.y[j-1],s.x[j]-s.x[j-1]),distance:completed+d,point:i,stopped:false,icon};break;}
-            completed+=s.length;if(seconds<s.start+s.duration+point.stop||i===segments.length-1){sample={x:point.x,y:point.y,angle:Math.atan2(s.y[64]-s.y[63],s.x[64]-s.x[63]),distance:completed,point:i+1,stopped:true,icon:point.icon??icon};break;}
+            if(seconds<=s.start+s.duration){const f=clamp((seconds-s.start)/s.duration),d=f*s.length;let j=1;while(j<s.distance.length-1&&s.distance[j]<d)j++;const mix=(d-s.distance[j-1])/Math.max(1e-12,s.distance[j]-s.distance[j-1]);sample={x:s.x[j-1]+(s.x[j]-s.x[j-1])*mix,y:s.y[j-1]+(s.y[j]-s.y[j-1])*mix,angle:Math.atan2(s.y[j]-s.y[j-1],s.x[j]-s.x[j-1]),distance:completed+d,point:i,stopped:false,icon};break;}
+            completed+=s.length;if(seconds<s.start+s.duration+point.stop||i===segments.length-1){sample={x:point.x,y:point.y,angle:Math.atan2(s.y.at(-1)-s.y.at(-2),s.x.at(-1)-s.x.at(-2)),distance:completed,point:i+1,stopped:true,icon:point.icon??icon};break;}
         }
         const full=new Path2D(),past=new Path2D();let used=0;
         for(const s of segments){full.moveTo(s.x[0]*w,s.y[0]*h);past.moveTo(s.x[0]*w,s.y[0]*h);for(let j=1;j<s.x.length;j++){full.lineTo(s.x[j]*w,s.y[j]*h);if(used+s.distance[j]<=sample.distance)past.lineTo(s.x[j]*w,s.y[j]*h);else if(used+s.distance[j-1]<sample.distance)past.lineTo(sample.x*w,sample.y*h);}used+=s.length;}
@@ -132,8 +132,8 @@
         if(route.outline>0){x.strokeStyle=compiled.outlineColor;x.lineWidth=route.lineWidth+route.outline*2;x.stroke(past);}x.lineWidth=route.lineWidth;x.strokeStyle=compiled.color;
         if(route.lineStyle==='Dashed')x.setLineDash([12,8]);else if(route.lineStyle==='Dotted')x.setLineDash([1,route.lineWidth*2]);x.stroke(past);x.setLineDash([]);
         if(route.lineStyle==='Arrows'){used=0;for(const s of segments){for(let j=8;j<s.x.length;j+=16){if(used+s.distance[j]>sample.distance)continue;x.save();x.translate(s.x[j]*w,s.y[j]*h);x.rotate(Math.atan2((s.y[j]-s.y[j-1])*h,(s.x[j]-s.x[j-1])*w));x.beginPath();x.moveTo(-7,-5);x.lineTo(0,0);x.lineTo(-7,5);x.stroke();x.restore();}used+=s.length;}}
-        if(route.arrival&&sample.stopped){x.globalAlpha=200/255*route.opacity*opacity;x.lineWidth=2;x.beginPath();x.arc(sample.x*w,sample.y*h,route.iconSize*.65,0,Math.PI*2);x.stroke();if(points[sample.point].name){x.globalAlpha=opacity;x.fillStyle='white';x.font=`bold ${clamp(route.iconSize*.35,10,26)}px "Malgun Gothic"`;x.textAlign='center';x.fillText(points[sample.point].name,sample.x*w,sample.y*h-route.iconSize*.75);}}
-        x.globalAlpha=opacity;x.translate(sample.x*w,sample.y*h);if(route.direction==='Follow')x.rotate(Math.atan2(Math.sin(sample.angle)*h,Math.cos(sample.angle)*w));else if(route.direction==='Horizontal'&&Math.cos(sample.angle)<0)x.scale(-1,1);
+        if(route.arrival&&sample.stopped&&sample.point===points.length-1){x.globalAlpha=200/255*route.opacity*opacity;x.lineWidth=2;x.beginPath();x.arc(sample.x*w,sample.y*h,route.iconSize*.65,0,Math.PI*2);x.stroke();}
+        x.globalAlpha=opacity;x.translate(sample.x*w,sample.y*h);const angle=Math.atan2(Math.sin(sample.angle)*h,Math.cos(sample.angle)*w),left=Math.cos(angle)<-1e-9;let rotation=0,flip=false;if(route.direction==='Horizontal')flip=left;else if(route.direction==='Follow'){rotation=angle;if(left&&Math.abs(Math.cos(angle))>=Math.abs(Math.sin(angle))-1e-9){rotation+=angle>0?-Math.PI:Math.PI;flip=true;}}x.rotate(rotation);if(flip)x.scale(-1,1);
         if(route.animate&&!sample.stopped){x.translate(0,Math.sin(p*duration*8)*2);x.rotate(Math.sin(p*duration*6)*3*Math.PI/180);}const sprite=image(compiled.icons[sample.icon]);const scale=Math.min(route.iconSize/sprite.width,route.iconSize/sprite.height);x.drawImage(sprite,-sprite.width*scale/2,-sprite.height*scale/2,sprite.width*scale,sprite.height*scale);x.restore();
     }
     function decoration(x, r, w, h, c, p, opacity, alpha = null) {

@@ -269,10 +269,11 @@ public partial class MainWindow : Window
         if(_busy||_region is null){Notify("먼저 효과를 적용할 영역을 선택하세요.");return;}
         if(!CommitClip(true))return;
         var options=(_clip?.Options??_defaultEffect).Current();
+        if(options.Kind==EffectKind.TravelRoute&&_clip?.Route is null){OpenRouteEditor(null,null);return;}
         var clip=TimelineRules.Append(_region,options,_clip?.Duration??_defaultClipDuration,_video.Fps);
         clip.Loop=_clip?.Loop??_defaultLoop;clip.LoopPeriod=_clip?.LoopPeriod??_defaultLoopPeriod;
         if(clip.Options.Kind==EffectKind.UserMotion)clip.Motion=_clip?.Motion?.Copy()??_defaultMotion?.Copy()??MotionDefinition.Example();
-        if(clip.Options.Kind==EffectKind.TravelRoute){clip.Route=_clip?.Route?.Copy()??new();clip.Duration=clip.Route.Duration;}
+        if(clip.Options.Kind==EffectKind.TravelRoute){clip.Route=_clip!.Route!.Copy();clip.Duration=clip.Route.Duration;}
         if(atCursor)TimelineRules.SetTiming(clip,_time,clip.Duration,_video.Fps);
         _clip=clip;_selectionEpoch++;LoadClipFields();TimelineEditor.SelectedClip=clip;MarkEdited();RefreshRegionList();UpdateSelectionLabel();RefreshTimeline();
         Seek(clip.Start+clip.Duration*.45,true);
