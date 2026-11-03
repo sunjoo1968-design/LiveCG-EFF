@@ -21,12 +21,12 @@
    </StackPanel><TextBlock Text="수동 영역 · 다중 효과 · 등장/반복/퇴장 · WebM / OBS 브라우저" Foreground="#93AABA" FontSize="11" Margin="0,4"/></StackPanel>
    <TextBlock x:Name="CreditText" HorizontalAlignment="Right" VerticalAlignment="Top" FontWeight="SemiBold" Margin="0,5"/>
   </Grid>
-  <WrapPanel Grid.Row="1" Margin="-3,0,0,8">
+  <ScrollViewer Grid.Row="1" Margin="-3,0,0,8" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel"><StackPanel Orientation="Horizontal">
    <Button Content="＋ 이미지" Click="AddFiles"/><Button Content="폴더" Click="AddFolder"/><Button Content="새 작업" Click="NewProject"/>
-   <Button Content="작업 열기" Click="OpenProject"/><Button Content="작업 저장" Click="SaveProject"/>
+   <Button Content="작업 열기" Click="OpenProject"/><Button Content="작업 저장" Click="SaveProject"/><Button Content="이동용 작업 저장" Click="SavePortableProject"/>
    <Button Content="템플릿 저장" Click="SaveTemplate"/><Button Content="템플릿 적용" Click="ApplyTemplate"/>
    <Button Content="현재 옵션을 기본값으로 저장" Click="SaveDefaults"/><Button Content="기본값 복원" Click="ResetDefaults"/><Button Content="단축키 설정" Click="ConfigureShortcuts"/><Button Content="배치 초기화" Click="ResetWorkspace"/><Button Content="도움말" Click="ShowHelp"/>
-  </WrapPanel>
+  </StackPanel></ScrollViewer>
   <Grid Grid.Row="2" x:Name="EditorGrid">
    <Grid.ColumnDefinitions><ColumnDefinition Width="280" MinWidth="240"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*" MinWidth="300"/><ColumnDefinition Width="10"/><ColumnDefinition Width="335" MinWidth="300"/></Grid.ColumnDefinitions>
    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="7"/><RowDefinition Height="280" MinHeight="260"/></Grid.RowDefinitions>
@@ -50,7 +50,7 @@
       </DataTemplate></ListBox.ItemTemplate>
      </ListBox>
     </DockPanel>
-    <Expander Grid.Row="1" x:Name="OutputExpander" Header="출력 설정 / 폴더" IsExpanded="True" Foreground="#DFE7EE" Margin="0,8,0,0">
+    <StackPanel Grid.Row="1"><Button Content="최종 출력 설정" Click="ShowFinalOutput" HorizontalAlignment="Left"/><Expander x:Name="OutputExpander" Header="출력 설정 / 폴더" IsExpanded="False" Foreground="#DFE7EE" Margin="0,8,0,0">
      <ScrollViewer x:Name="OutputSettingsScroll" MaxHeight="430" VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,5,0,0">
       <StackPanel.Resources><Style x:Key="OutputHeader" TargetType="TextBlock"><Setter Property="Foreground" Value="#80D7C0"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Margin" Value="3,10,3,5"/></Style></StackPanel.Resources>
       <TextBlock Text="① 출력 방식" Style="{StaticResource OutputHeader}"/><ComboBox x:Name="OutputKindBox" SelectionChanged="OutputKindChanged"/>
@@ -75,7 +75,7 @@
       <TextBlock x:Name="ProgressText" Text="준비" Foreground="#93AABA" FontSize="10" Margin="3"/>
       <TextBlock Text="원본 크기 · 투명 · 무음" Foreground="#93AABA" FontSize="10" Margin="3,4"/>
      </StackPanel></ScrollViewer>
-    </Expander></Grid>
+    </Expander></StackPanel></Grid>
    </Border>
    <Grid x:Name="PreviewHost" Grid.Column="2">
    <Border x:Name="PreviewPanel" Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="10">
@@ -156,7 +156,7 @@
    <TabItem Header="① 효과 · 21종">
     <DockPanel>
      <StackPanel DockPanel.Dock="Top"><TextBox x:Name="EffectSearchBox" ToolTip="효과 / 내 효과 검색" TextChanged="FilterEffects"/>
-      <WrapPanel><Button Content="＋ 뒤에 추가" Click="AddClip"/><Button Content="＋ 커서에 추가" Click="AddClipAtCursor"/></WrapPanel>
+      <WrapPanel><Button Content="→ 뒤에 추가" Background="#225A8F" Foreground="White" Click="AddClip"/><Button Content="◆ 커서에 추가" Background="#914612" Foreground="White" Click="AddClipAtCursor"/></WrapPanel>
       <TextBlock Text="썸네일로 선택 효과 변경 · ＋로 새 효과 추가" TextWrapping="Wrap" Foreground="#A7BBC9" FontSize="10" Margin="4"/>
      </StackPanel><ScrollViewer VerticalScrollBarVisibility="Auto"><UniformGrid x:Name="EffectsGrid" Columns="3"/></ScrollViewer>
     </DockPanel>

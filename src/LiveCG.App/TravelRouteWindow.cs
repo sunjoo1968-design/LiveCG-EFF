@@ -44,7 +44,7 @@ public sealed class TravelRouteWindow:Window
         _save=Add(actions,"내 여행 경로로 저장",()=>{try{Reallocate();Route.Validate();SaveAssetRequested?.Invoke(Route.Copy());_info.Text="내 여행 경로에 저장했습니다.";}catch(Exception ex){_info.Text=ex.Message;}});
         _apply=Add(actions,"타임라인에 적용",()=>{try{Reallocate();Route.Validate();DialogResult=true;}catch(Exception ex){_info.Text=ex.Message;}});Add(actions,"취소",Close);bottom.Children.Add(_info);
         var tabs=new TabControl{Width=310};DockPanel.SetDock(tabs,Dock.Right);root.Children.Add(tabs);var points=new StackPanel{Margin=new Thickness(6)};
-        points.Children.Add(new TextBlock{Text="전체 시간 · 이동 + 정차",Margin=new Thickness(3,5,3,3)});TotalTime.Configure(.1,300,"초",1d/fps);TotalTime.SetSilently(Route.DurationBudget??(Route.Duration>.1?Route.Duration:10));points.Children.Add(TotalTime);
+        points.Children.Add(new TextBlock{Text="전체 시간 · 이동 + 정차",Margin=new Thickness(3,5,3,3)});TotalTime.Configure(.1,300,"초",.5);TotalTime.Slider.Ticks=new System.Windows.Media.DoubleCollection(Enumerable.Range(1,600).Select(i=>i*.5));TotalTime.Slider.IsSnapToTickEnabled=true;TotalTime.SetSilently(Route.DurationBudget??(Route.Duration>.1?Route.Duration:10));points.Children.Add(TotalTime);
         TotalTime.ValueEdited+=v=>{if(!_sync)SetTotalDuration(v);};points.Children.Add(new TextBlock{Text="이동 시간은 경로 길이에 맞춰 자동 계산",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(3,5,3,5)});
         var exactTime=new TextBox{Text=TotalTime.Value.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture)};points.Children.Add(new Expander{Header="전체 시간 정밀 입력 · 초",Foreground=System.Windows.Media.Brushes.White,Content=exactTime});
         void Exact(){if(double.TryParse(exactTime.Text,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var seconds)&&double.IsFinite(seconds)&&seconds is >=.1 and <=300){SetTotalDuration(seconds);exactTime.Text=TotalTime.Value.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);}else _info.Text="전체 시간은 0.1~300초입니다.";}
@@ -58,15 +58,15 @@ public sealed class TravelRouteWindow:Window
     }
     private void Reallocate(){if(Route.DurationBudget is { } budget)RouteEditing.AllocateDuration(Route,budget,Canvas.SourceWidth,Canvas.SourceHeight,_fps);}
     private void Edit(Action change,bool reloadPoint=true){if(_sync)return;Stop();change();Record();Refresh(reloadPoint);}
-    private MouseValueControl Number(Panel panel,string label,double value,double min,double max,string unit,Action<double> set)
+    private MouseValueControl Number(Panel panel,string label,double value,double min,double max,string unit,Action<double> set,double step=.1)
     {
-        panel.Children.Add(new TextBlock{Text=label,Margin=new Thickness(3,7,3,2)});var control=new MouseValueControl();control.Configure(min,max,unit,.1);control.SetSilently(value);
+        panel.Children.Add(new TextBlock{Text=label,Margin=new Thickness(3,7,3,2)});var control=new MouseValueControl();control.Configure(min,max,unit,step);control.Slider.IsSnapToTickEnabled=step==.5;control.SetSilently(value);
         control.GestureStarted+=()=>{_numberGesture=true;_numberBefore=Route.Copy();};control.ValueEdited+=v=>{if(_sync)return;set(v);if(!_numberGesture){Record();Refresh(false);}else{try{Reallocate();_error=null;}catch(Exception ex){_error=ex.Message;}Refresh(false);}};
         control.GestureEnded+=commit=>{if(!_numberGesture)return;_numberGesture=false;if(!commit&&_numberBefore is not null)Route=_numberBefore.Copy();Record();_numberBefore=null;Refresh();};panel.Children.Add(control);return control;
     }
     private void Flag(Panel panel,string label,bool value,Action<bool> set){var box=new CheckBox{Content=label,IsChecked=value,Margin=new Thickness(3,6,3,6)};box.Checked+=(_,_)=>Edit(()=>set(true));box.Unchecked+=(_,_)=>Edit(()=>set(false));panel.Children.Add(box);}
     private void Choices(Panel panel,string label,string[] names,int index,Action<int> set){panel.Children.Add(new TextBlock{Text=label,Margin=new Thickness(3,7,3,2)});var combo=new ComboBox{ItemsSource=names,SelectedIndex=index};combo.SelectionChanged+=(_,_)=>{if(!_sync&&combo.SelectedIndex>=0)Edit(()=>set(combo.SelectedIndex));};panel.Children.Add(combo);}
-    private static string[] IconNames=>["비행기","자동차","캠핑카","자전거","사용자 이미지"];
+    private static string[] IconNames=>["비행기","자동차","캠핑카","자전거","사용자 이미지","배"];
     private void LoadStyle()
     {
         _sync=true;_styleSettings.Children.Clear();Choices(_styleSettings,"기본 이동 아이콘",IconNames,(int)Route.Icon,i=>Route.Icon=(TravelIcon)i);
@@ -84,7 +84,7 @@ public sealed class TravelRouteWindow:Window
         _sync=true;_pointSettings.Children.Clear();_stopValue=null;StopExactBox=null;var i=Canvas.Selected;if(i<0||i>=Route.Points.Count){_pointSettings.Children.Add(new TextBlock{Text="지도 빈 곳을 우클릭해 출발점부터 찍으세요.",TextWrapping=TextWrapping.Wrap});_sync=false;return;}
         var point=Route.Points[i];_pointSettings.Children.Add(new TextBlock{Text=RouteEditing.Role(Route,i),FontWeight=FontWeights.Bold});var name=new TextBox{Text=point.Name,ToolTip="편집용 이름 · 방송에 표시하지 않습니다."};name.LostKeyboardFocus+=(_,_)=>{if(point.Name!=name.Text)Edit(()=>point.Name=name.Text,false);};_pointSettings.Children.Add(new TextBlock{Text="편집용 이름"});_pointSettings.Children.Add(name);
         Choices(_pointSettings,"역할 변경 · 순서와 함께 이동",["출발","경유","도착"],i==0?0:i==Route.Points.Count-1?2:1,role=>SetPointRole(role));
-        _stopValue=Number(_pointSettings,"이 지점 정차 · 0초=통과",point.Stop,0,30,"초",v=>point.Stop=v);
+        _stopValue=Number(_pointSettings,"이 지점 정차 · 0초=통과",point.Stop,0,30,"초",v=>point.Stop=v,.5);
         var exact=new TextBox{Text=point.Stop.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture),Width=80,ToolTip="0~30초 · 출력 프레임 단위로 맞춥니다."};StopExactBox=exact;var exactRow=new WrapPanel();exactRow.Children.Add(new TextBlock{Text="정밀 입력",VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(3)});exactRow.Children.Add(exact);exactRow.Children.Add(new TextBlock{Text="초",VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(3)});var apply=new Button{Content="적용",Name="StopExactApply"};exactRow.Children.Add(apply);_pointSettings.Children.Add(exactRow);
         void CommitExact(){if(_sync||!Route.Points.Any(p=>ReferenceEquals(p,point)))return;if(double.TryParse(exact.Text,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var value)&&double.IsFinite(value)&&value is >=0 and <=30){if(Math.Abs(value-point.Stop)>1e-9)Edit(()=>point.Stop=value);exact.Text=point.Stop.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);}else{_info.Text="정차 시간은 0~30초로 입력하세요.";exact.Text=point.Stop.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);}}
         apply.Click+=(_,_)=>CommitExact();exact.PreviewLostKeyboardFocus+=(_,_)=>CommitExact();exact.KeyDown+=(_,e)=>{if(e.Key==Key.Enter){CommitExact();e.Handled=true;}};

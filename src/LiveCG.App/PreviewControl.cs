@@ -112,7 +112,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     {
         _cachedImage?.Dispose();_cachedFrame?.Dispose();_cachedImage=null;_cachedFrame=null;_frameKey=null;_revision++;
         CancelGesture();SelectedMask=null;CreatingMask=false; _scene?.Dispose(); _source?.Dispose(); _scene = null; _source = null; _job = job; SelectedRegion = null;
-        if (job is not null)
+        if (job is not null && File.Exists(job.SourcePath))
         {
             _source = SourceImage.Read(job) ?? throw new InvalidDataException("이미지를 읽을 수 없습니다.");
             _scene = new(_source);

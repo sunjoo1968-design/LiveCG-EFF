@@ -1,0 +1,13 @@
+{
+  "Version": "1.3.0",
+  "Creator": "SunjooAn",
+  "Core": 652,
+  "Wpf": 495,
+  "ProjectSourcesWpf": 7,
+  "Passed": 1154,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "MigrationTest": "Moved the portable bundle to a different directory to simulate another PC; checked missing-source open, relink, replacement, retained clip and region, and replacement pixels",
+  "PackageBytes": 183146103,
+  "SHA256": "D5DBFA82BEDC44DD1469B1E5262B88FE476A5D844272D10F53DA0E5DEB4C20C5"
+}

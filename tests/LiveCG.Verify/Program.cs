@@ -10,6 +10,8 @@ var folder=Path.Combine(root,"artifacts","v010-core");Directory.CreateDirectory(
 Environment.SetEnvironmentVariable("LIVECG_DATA_DIR",Path.Combine(folder,"user-data"));
 var failures=new List<string>();var count=0;
 void Check(bool ok,string name){count++;Console.WriteLine((ok?"PASS ":"FAIL ")+name);if(!ok)failures.Add(name);}
+ProjectSourceChecks.Run(folder,Check);
+if(args.Contains("--project-sources"))return failures.Count==0?0:1;
 void Reject(Action action,string name){try{action();Check(false,name);}catch(InvalidDataException){Check(true,name);}}
 if(args.Contains("--v12-repro")){V12Checks.Repro(Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
 if(args.Contains("--v122-repro")){V122Checks.Repro(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}

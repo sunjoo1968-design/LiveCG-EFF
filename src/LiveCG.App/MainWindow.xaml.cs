@@ -76,7 +76,7 @@ public partial class MainWindow : Window
     {
         _dirty=true;Preview.ModelChanged();
         foreach(var job in allFiles?_jobs:_current is null?Enumerable.Empty<ImageJob>():new[]{_current})
-        {job.Progress=0;job.Status=job.Regions.Count==0?"영역 지정 대기":$"편집 중 · 영역 {job.Regions.Count}개";job.Detail="";}
+        {job.Progress=0;job.Status=!File.Exists(job.SourcePath)?"원본 다시 연결 필요":job.Regions.Count==0?"영역 지정 대기":$"편집 중 · 영역 {job.Regions.Count}개";job.Detail="";}
         RecordEdit();
     }
     private void Error(Exception ex){Notify(ex.Message);MessageBox.Show(this,ex.Message,"LiveCG-EFF · 확인",MessageBoxButton.OK,MessageBoxImage.Warning);}
@@ -389,7 +389,7 @@ public partial class MainWindow : Window
     {
         if(!CommitClip(true)||!CommitRegion(true)||!CommitMask(true)||!CommitVideo(true))return false;
         var dialog=new SaveFileDialog{Filter="LiveCG 작업|*.livecg.json",FileName=Path.GetFileName(_projectPath??"방송자막.livecg.json")};if(dialog.ShowDialog(this)!=true)return false;
-        try{DocumentStore.Save(dialog.FileName,new ProjectDocument{Jobs=_jobs.Select(j=>j.Snapshot()).ToList(),Video=_video with{},OutputDirectory=OutputFolderBox.Text.Trim()});_projectPath=dialog.FileName;_dirty=false;Notify("작업과 타임라인을 저장했습니다.");return true;}
+        try{DocumentStore.Save(dialog.FileName,ProjectSources.ForSave(CaptureProject(),dialog.FileName));_projectPath=dialog.FileName;_dirty=false;Notify("작업과 타임라인을 저장했습니다.");return true;}
         catch(Exception ex){Error(ex);return false;}
     }
     private void SaveProject(object sender,RoutedEventArgs e){if(!_busy)SaveProjectInternal();}
@@ -409,15 +409,15 @@ public partial class MainWindow : Window
         if(_busy||!ConfirmDiscard())return;var dialog=new OpenFileDialog{Filter="LiveCG 작업|*.livecg.json;*.json"};if(dialog.ShowDialog(this)!=true)return;
         try
         {
-            var doc=DocumentStore.Load<ProjectDocument>(dialog.FileName);var missing=doc.Jobs.Where(j=>!File.Exists(j.SourcePath)).ToList();
-            if(missing.Count>0)throw new FileNotFoundException("원본 이미지를 찾을 수 없습니다. 원래 위치로 복원한 뒤 다시 여세요.\n"+string.Join("\n",missing.Take(4).Select(j=>j.SourcePath)));
+            var doc=DocumentStore.Load<ProjectDocument>(dialog.FileName);
+            ProjectSources.Resolve(doc,dialog.FileName);
             ApplyDocument(doc);_projectPath=dialog.FileName;_dirty=false;Notify("영역·타임라인·영상 옵션을 복원했습니다.");
         }catch(Exception ex){Error(ex);}
     }
     public void ApplyDocument(ProjectDocument document,bool resetHistory=true)
     {
         document.Validate();StopPlayback();_loading=true;_region=null;_clip=null;_current=null;
-        _jobs.Clear();foreach(var job in document.Jobs){job.Status="작업 복원";_jobs.Add(job);}
+        _jobs.Clear();foreach(var job in document.Jobs){job.Status=File.Exists(job.SourcePath)?"작업 복원":"원본 다시 연결 필요";_jobs.Add(job);}
         _video=document.Video;OutputFolderBox.Text=document.OutputDirectory;_loading=false;ShowVideo();RefreshFiles();
         DisplayJob(_jobs.FirstOrDefault());if(_jobs.Count>0){_loading=true;FileList.SelectedItem=_jobs[0];_loading=false;}
         if(resetHistory)ResetHistory();
@@ -444,7 +444,7 @@ public partial class MainWindow : Window
     {if(_busy)return;var dialog=new OpenFolderDialog{Title="출력 폴더 · WebM / OBS 패키지"};if(dialog.ShowDialog(this)==true){OutputFolderBox.Text=dialog.FolderName;_dirty=true;}}
     private void OutputFolderChanged(object sender,TextChangedEventArgs e){if(!_loading)_dirty=true;}
 
-    private async void ExportFiles(object sender,RoutedEventArgs e)=>await ExportAsync(ExportTargets());
+    private async void ExportFiles(object sender,RoutedEventArgs e){if(!OutputExpander.IsExpanded){OutputExpander.IsExpanded=true;return;}await ExportAsync(ExportTargets());}
     private async void RetryFailed(object sender,RoutedEventArgs e)=>await ExportAsync(_jobs.Where(j=>j.Status=="실패").ToList());
     private async Task ExportAsync(List<ImageJob> jobs)
     {
@@ -452,7 +452,7 @@ public partial class MainWindow : Window
         if(jobs.Count==0){Notify("출력할 PNG가 없습니다.");return;}
         try
         {
-            WebmExporter.ValidateOutputNames(jobs);
+            if(jobs.Any(job=>!File.Exists(job.SourcePath))){Notify("출력 전에 누락된 원본을 다시 연결하세요.");return;} WebmExporter.ValidateOutputNames(jobs);
             if(string.IsNullOrWhiteSpace(OutputFolderBox.Text)){ChooseOutput(this,new RoutedEventArgs());if(string.IsNullOrWhiteSpace(OutputFolderBox.Text))return;}
             var output=Path.GetFullPath(OutputFolderBox.Text.Trim());Directory.CreateDirectory(output);
             var video=_video with{};var kinds=video.Output==OutputKind.Both?new[]{OutputKind.Webm,OutputKind.Browser}:new[]{video.Output};

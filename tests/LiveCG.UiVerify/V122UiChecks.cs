@@ -12,7 +12,7 @@ internal static class V122UiChecks
         void Pump()=>Dispatcher.CurrentDispatcher.Invoke(()=>{},DispatcherPriority.ApplicationIdle);
         static IEnumerable<T> Children<T>(DependencyObject host) where T:DependencyObject{for(var i=0;i<System.Windows.Media.VisualTreeHelper.GetChildrenCount(host);i++){var child=System.Windows.Media.VisualTreeHelper.GetChild(host,i);if(child is T value)yield return value;foreach(var nested in Children<T>(child))yield return nested;}}
         void Await(Task task){var timer=System.Diagnostics.Stopwatch.StartNew();while(!task.IsCompleted&&timer.ElapsedMilliseconds<15000){Pump();Thread.Sleep(10);}if(!task.IsCompleted)throw new TimeoutException("numeric preset preview timed out");task.GetAwaiter().GetResult();Pump();}
-        using var map=new SKBitmap(640,400);map.Erase(new(20,46,72));var legacy=TravelRoute.Example();var window=new TravelRouteWindow(map,legacy){Owner=owner,WindowStartupLocation=WindowStartupLocation.Manual,Left=-16000,Top=-16000,ShowActivated=false,ShowInTaskbar=false};
+        using var map=new SKBitmap(640,400);map.Erase(new(20,46,72));var legacy=TravelRoute.Example();foreach(var point in legacy.Points)point.Stop=1;var window=new TravelRouteWindow(map,legacy){Owner=owner,WindowStartupLocation=WindowStartupLocation.Manual,Left=-16000,Top=-16000,ShowActivated=false,ShowInTaskbar=false};
         try
         {
             window.Show();Pump();check(window.Route.DurationBudget==7&&Math.Abs(window.Route.Duration-7)<1e-8,"opening legacy route preserves its total and enables automatic movement allocation");window.PointsList.SelectedIndex=1;Pump();check(window.StopExactBox is {IsVisible:true},"selected waypoint exposes a directly visible precise stop-time input");

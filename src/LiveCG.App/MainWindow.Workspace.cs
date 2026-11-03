@@ -29,7 +29,7 @@ public partial class MainWindow
             _workspace=WorkspaceState.Load();_workspaceReady=true;
             SetLayerPanelSize(_workspace.LayerPanelHeight,_workspace.RightWidth);
             _workspace.Main?.Apply(this);EditorGrid.ColumnDefinitions[0].Width=new GridLength(Math.Clamp(_workspace.LeftWidth,240,450));
-            _timelineHeight=Math.Clamp(_workspace.TimelineHeight,170,700);AutoFocusCheck.IsChecked=_workspace.AutoFocus;OutputExpander.IsExpanded=_workspace.OutputExpanded;
+            _timelineHeight=Math.Clamp(_workspace.TimelineHeight,170,700);AutoFocusCheck.IsChecked=_workspace.AutoFocus;OutputExpander.IsExpanded=false;
             SetFocusMode(_workspace.FocusMode);
             if(_workspace.PreviewDetached)DetachPreview(this,new RoutedEventArgs());if(_workspace.EffectsDetached)DetachEffects(this,new RoutedEventArgs());
         };
@@ -72,7 +72,7 @@ public partial class MainWindow
     private void ResetWorkspace(object sender,RoutedEventArgs e)
     {
         if(_busy)return;AreaDetailsPopup.IsOpen=false;_previewWindow?.Close();_effectsWindow?.Close();SetLayerPanelSize(240,335);_timelineHeight=245;SetFocusMode(false);AutoFocusCheck.IsChecked=true;
-        EditorGrid.ColumnDefinitions[0].Width=new GridLength(280);EditorGrid.ColumnDefinitions[4].Width=new GridLength(335);OutputExpander.IsExpanded=true;Preview.Fit(false);_workspace=new();SaveWorkspace();
+        EditorGrid.ColumnDefinitions[0].Width=new GridLength(280);EditorGrid.ColumnDefinitions[4].Width=new GridLength(335);OutputExpander.IsExpanded=false;Preview.Fit(false);_workspace=new();SaveWorkspace();
     }
     private void SaveWorkspace()
     {
@@ -95,6 +95,11 @@ public partial class MainWindow
         Add("이 파일 출력",()=>clicked is null?[]:[clicked]);Add("선택한 파일 출력",SelectedJobs);Add("전체 파일 출력",()=>_jobs.ToList());
         menu.Items.Add(new Separator());var open=new MenuItem{Header="출력 폴더 열기"};open.Click+=OpenOutputFolder;menu.Items.Add(open);
         menu.Opened+=(_,_)=>{menu.Items.Cast<object>().OfType<MenuItem>().First().IsEnabled=clicked is not null&&!_busy;foreach(var item in menu.Items.Cast<object>().OfType<MenuItem>().Skip(1))item.IsEnabled=!_busy;var selected=(MenuItem)menu.Items[1];selected.Header=$"선택한 {SelectedJobs().Count}개 파일 출력";selected.IsEnabled=!_busy&&SelectedJobs().Count>0;};FileList.ContextMenu=menu;
+        void SourceCommand(string name, Action action){var item=new MenuItem{Header=name};item.Click+=(_,_)=>action();menu.Items.Add(item);}
+        menu.Items.Add(new Separator());
+        SourceCommand("원본 다시 연결",()=>ChangeSource(clicked,false));
+        SourceCommand("누락 원본 폴더 지정",RelinkFolder);
+        SourceCommand("원본 이미지 교체",()=>ChangeSource(clicked,true));
     }
     private void OpenOutputFolder(object sender,RoutedEventArgs e)
     {

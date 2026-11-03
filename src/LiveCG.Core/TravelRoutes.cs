@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using SkiaSharp;
 
 namespace LiveCG.Core;
-[JsonConverter(typeof(JsonStringEnumConverter))] public enum TravelIcon { Plane, Car, Camper, Bicycle, Custom }
+[JsonConverter(typeof(JsonStringEnumConverter))] public enum TravelIcon { Plane, Car, Camper, Bicycle, Custom, Boat }
 [JsonConverter(typeof(JsonStringEnumConverter))] public enum RouteLineStyle { Solid, Dashed, Dotted, Arrows }
 [JsonConverter(typeof(JsonStringEnumConverter))] public enum RouteDirection { Follow, Horizontal, Fixed }
 public record RouteCurvePoint
@@ -15,7 +15,7 @@ public record RoutePoint
 {
     public double X { get; set; }=.2; public double Y { get; set; }=.5;
     public double InX { get; set; } public double InY { get; set; } public double OutX { get; set; } public double OutY { get; set; }
-    public string Name { get; set; }="경유지";public double Stop { get; set; }=1;public double Move { get; set; }=2;
+    public string Name { get; set; }="경유지";public double Stop { get; set; }=.5;public double Move { get; set; }=2;
     public TravelIcon? Icon { get; set; }
     public List<RouteCurvePoint> CurvePoints { get; set; }=[];
     public RoutePoint Copy()=>this with{CurvePoints=CurvePoints.Select(p=>p with{}).ToList()};
@@ -26,8 +26,8 @@ public record TravelRoute
     public static TravelRoute Example()=>new(){Points=[new(){X=.15,Y=.65,Name="출발"},new(){X=.5,Y=.3,Name="경유지"},new(){X=.85,Y=.6,Name="도착"}]};
     public double? DurationBudget { get; set; }
     public TravelIcon Icon { get; set; }=TravelIcon.Plane;public string CustomPng { get; set; }="";
-    public RouteDirection Direction { get; set; }=RouteDirection.Follow;public bool Animate { get; set; }public bool Curved { get; set; }public bool Repeat { get; set; }=true;
-    public RouteLineStyle LineStyle { get; set; }=RouteLineStyle.Dashed;public string Color { get; set; }="#58F5A6";public string OutlineColor { get; set; }="#102947";
+    public RouteDirection Direction { get; set; }=RouteDirection.Horizontal;public bool Animate { get; set; }public bool Curved { get; set; }public bool Repeat { get; set; }=true;
+    public RouteLineStyle LineStyle { get; set; }=RouteLineStyle.Dotted;public string Color { get; set; }="#FF0000";public string OutlineColor { get; set; }="#102947";
     public double LineWidth { get; set; }=4;public double Opacity { get; set; }=1;public double Outline { get; set; }=2;public double IconSize { get; set; }=42;
     public bool FuturePath { get; set; }public bool Arrival { get; set; }=true;
     [JsonIgnore]public double Duration=>Points.Sum(p=>p.Stop)+Points.Skip(1).Sum(p=>p.Move);
@@ -88,6 +88,13 @@ public static class RouteRenderer
         if(kind==TravelIcon.Custom&&route.CustomPng.Length>0)return SKBitmap.Decode(Convert.FromBase64String(route.CustomPng));
         var bitmap=new SKBitmap(128,128);bitmap.Erase(SKColors.Transparent);using var c=new SKCanvas(bitmap);using var p=new SKPaint{Color=SKColors.White,IsAntialias=true,Style=SKPaintStyle.Fill};using var edge=new SKPaint{Color=new(14,37,64),IsAntialias=true,Style=SKPaintStyle.Stroke,StrokeWidth=4,StrokeJoin=SKStrokeJoin.Round};using var path=new SKPath();
         if(kind is TravelIcon.Plane or TravelIcon.Custom){path.MoveTo(113,64);path.LineTo(76,53);path.LineTo(48,15);path.LineTo(34,15);path.LineTo(50,55);path.LineTo(21,56);path.LineTo(10,40);path.LineTo(4,40);path.LineTo(12,64);path.LineTo(4,88);path.LineTo(10,88);path.LineTo(21,72);path.LineTo(50,73);path.LineTo(34,113);path.LineTo(48,113);path.LineTo(76,75);path.Close();c.DrawPath(path,p);c.DrawPath(path,edge);}
+        else if(kind==TravelIcon.Boat)
+        {
+            c.DrawRoundRect(new SKRect(33,45,82,79),6,6,p);
+            c.DrawRect(new SKRect(49,27,61,48),p);
+            path.MoveTo(10,73);path.LineTo(120,73);path.LineTo(99,101);path.LineTo(26,101);path.Close();
+            c.DrawPath(path,p);c.DrawPath(path,edge);
+        }
         else if(kind==TravelIcon.Bicycle){p.Style=SKPaintStyle.Stroke;p.Color=new(255,233,114);p.StrokeWidth=6;c.DrawCircle(29,88,21,p);c.DrawCircle(99,88,21,p);c.DrawLine(29,88,52,51,p);c.DrawLine(52,51,72,88,p);c.DrawLine(72,88,29,88,p);c.DrawLine(52,51,86,51,p);c.DrawLine(86,51,72,88,p);c.DrawLine(86,51,99,88,p);c.DrawLine(86,51,83,40,p);c.DrawLine(77,40,93,40,p);c.DrawLine(43,49,58,49,p);}
         else{var camper=kind==TravelIcon.Camper;c.DrawRoundRect(new(9,camper?31:54,114,91),9,9,p);if(!camper)c.DrawRoundRect(new(32,35,89,75),8,8,p);c.DrawRoundRect(new(9,camper?31:54,114,91),9,9,edge);p.Color=new(70,171,219);c.DrawRect(new(78,43,101,62),p);if(camper){c.DrawRect(new(24,43,48,64),p);c.DrawRect(new(56,44,69,85),p);}else c.DrawRect(new(42,43,65,58),p);p.Color=new(14,37,64);c.DrawCircle(31,91,13,p);c.DrawCircle(94,91,13,p);p.Color=SKColors.LightGray;c.DrawCircle(31,91,6,p);c.DrawCircle(94,91,6,p);}
         return bitmap;

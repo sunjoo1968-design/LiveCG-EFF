@@ -44,6 +44,34 @@ internal static class Program
             bitmap.Render(drawing);
             var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using var output=File.Create(Path.Combine(folder,file));png.Save(output);
         }
+        if(args.Contains("--project-sources"))
+        {
+            var projectWindow=new MainWindow();
+            var folderPath=Directory.CreateDirectory(Path.Combine(folder,Guid.NewGuid().ToString("N"))).FullName;
+            var source=Path.Combine(folderPath,"source.png");
+            var replacement=Path.Combine(folderPath,"replacement.png");
+            using var bitmap=new SKBitmap(80,60);
+            bitmap.Erase(SKColors.Red);SourceImage.SavePng(bitmap,source);
+            bitmap.Erase(SKColors.Blue);SourceImage.SavePng(bitmap,replacement);
+            var clip=new EffectClip{Start=1,Duration=1,Options=new(){Kind=EffectKind.Glow}};
+            var region=new EffectRegion{Bounds=new(.1,.2,.4,.3),Clips=[clip]};
+            var job=new ImageJob{SourcePath=Path.Combine(folderPath,"missing.png"),Width=80,Height=60,Regions=[region]};
+            projectWindow.ApplyDocument(new(){Jobs=[job]});
+            Check(job.Status=="원본 다시 연결 필요","missing image opens without blocking the editor");
+            Check(!Control<Expander>(projectWindow,"OutputExpander").IsExpanded,"output options start collapsed");
+            Call(projectWindow,"ShowFinalOutput",projectWindow,new RoutedEventArgs());
+            Check(Control<Expander>(projectWindow,"OutputExpander").IsExpanded,"final output opens the settings");
+            Call(projectWindow,"ApplySource",job,source,false);
+            Check(job.SourcePath==source&&job.Regions.Single().Clips.Single().Id==clip.Id,"editor relinks while retaining the clip");
+            Call(projectWindow,"ApplySource",job,replacement,true);
+            Check(job.SourcePath==replacement&&job.Regions.Single().Bounds==region.Bounds&&clip.Options.Kind==EffectKind.Glow,"editor replacement retains region and effect");
+            var timeline=Control<TimelineControl>(projectWindow,"TimelineEditor");
+            timeline.SetSelection([clip.Id],clip);
+            Check(projectWindow.HandleEditorKey(System.Windows.Input.Key.Right,System.Windows.Input.ModifierKeys.None,timeline)&&Math.Abs(clip.Start-31d/30)<1e-8,"right arrow moves the selected clip one frame");
+            Check(projectWindow.HandleEditorKey(System.Windows.Input.Key.Left,System.Windows.Input.ModifierKeys.None,timeline)&&Math.Abs(clip.Start-1)<1e-8,"left arrow returns the selected clip one frame");
+            Console.WriteLine($"RESULT {checks-failures.Count}/{checks} passed");
+            return failures.Count==0?0:1;
+        }
         static IEnumerable<T> Children<T>(DependencyObject root)where T:DependencyObject
         {for(var i=0;i<VisualTreeHelper.GetChildrenCount(root);i++){var child=VisualTreeHelper.GetChild(root,i);if(child is T typed)yield return typed;foreach(var next in Children<T>(child))yield return next;}}
         void Await(Task task)
