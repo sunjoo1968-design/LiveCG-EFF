@@ -44,7 +44,7 @@ public static class ProjectSources
                 job.OutputPath = Path.GetRelativePath(folder, absolute);
             }
             var relative = Path.GetRelativePath(folder, job.SourcePath);
-            if (!Path.IsPathRooted(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar))
+            if (!Path.IsPathRooted(relative))
                 job.SourcePath = relative;
         }
         if (!string.IsNullOrEmpty(snapshot.OutputDirectory))
@@ -59,6 +59,12 @@ public static class ProjectSources
             if (!File.Exists(job.SourcePath))
                 throw new FileNotFoundException("원본을 먼저 다시 연결하세요.", job.SourcePath);
 
+        foreach (var job in project.Jobs.Where(job => !string.IsNullOrEmpty(job.OutputPath) && BrowserExporter.IsPackage(job.OutputPath)))
+        {
+            var output = Path.GetFullPath(job.OutputPath).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (Path.GetFullPath(folder).StartsWith(output, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("이동용 저장 위치는 기존 출력 폴더 바깥으로 선택하세요.");
+        }
         var portable = new ProjectDocument { Video = project.Video, Jobs = project.Jobs.Select(job => job.Snapshot()).ToList() };
         for (var i = 0; i < portable.Jobs.Count; i++)
         {

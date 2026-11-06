@@ -1,0 +1,32 @@
+{
+  "Version": "1.5.1",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-07",
+  "Core": 652,
+  "Wpf": 495,
+  "LinkedOutput": 16,
+  "LinkedUi": 6,
+  "Chromium": 10,
+  "ActualObs": 10,
+  "Passed": 1189,
+  "Total": 1189,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "SourceImagesPublished": false,
+  "Migration": "Moved folders and changed names to simulate another PC; rewrote real OBS scene JSON and played its relocated browser source in isolated OBS33",
+  "Verified": [
+    "Saved relative original and output paths",
+    "Legacy output lookup by region identity",
+    "Portable save copies originals, work and output",
+    "Single save-refresh preserves clips and output location",
+    "Undo preserves established output binding",
+    "Current and previous revision retention",
+    "Real refresh while OBS source remains active",
+    "Actual OBS scene browser path relocation and replacement pixels"
+  ],
+  "Limitations": [
+    "Older HTML needs one initial export and OBS source refresh",
+    "OBS connection rewrites recognized browser index paths, not unrelated media files",
+    "Moving files outside the project tree may require explicit source or output selection"
+  ]
+}

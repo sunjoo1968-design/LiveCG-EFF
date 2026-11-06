@@ -63,6 +63,10 @@ internal static class LinkedOutputChecks
         await new BrowserExporter().ExportAsync(legacyJob, video, Path.Combine(origin,"이전버전 임의폴더"),false,null,default);
         var legacyProject = Path.Combine(origin,"이전작업.livecg.json");
         DocumentStore.Save(legacyProject,ProjectSources.ForSave(new(){Jobs=[legacyJob]},legacyProject));
+        var nestedPath = Path.Combine(origin,"작업 파일","중첩.livecg.json");
+        DocumentStore.Save(nestedPath,ProjectSources.ForSave(new(){Jobs=[job.Snapshot()],Video=video},nestedPath));
+        var nestedSaved=DocumentStore.Load<ProjectDocument>(nestedPath);
+        check(!Path.IsPathRooted(nestedSaved.Jobs[0].SourcePath)&&nestedSaved.Jobs[0].SourcePath.StartsWith(".."),"project in a subfolder saves sibling original paths relatively");
         var oldOutput = job.OutputPath;
         var scene = Path.Combine(test, "obs.json");
         File.WriteAllText(scene, JsonSerializer.Serialize(new { sources = new[] { new { id = "browser_source", settings = new { local_file = Path.Combine(oldOutput, "index.html") } } } }));
@@ -71,6 +75,10 @@ internal static class LinkedOutputChecks
         var loaded = DocumentStore.Load<ProjectDocument>(projectPath);
         ProjectSources.Resolve(loaded, projectPath);
         var current = loaded.Jobs.Single();
+        var nestedMovedPath=Path.Combine(moved,"작업 파일","중첩.livecg.json");
+        var nestedMoved=DocumentStore.Load<ProjectDocument>(nestedMovedPath);
+        ProjectSources.Resolve(nestedMoved,nestedMovedPath);
+        check(File.Exists(nestedMoved.Jobs[0].SourcePath)&&Directory.Exists(nestedMoved.Jobs[0].OutputPath)&&nestedMoved.Jobs[0].SourcePath.StartsWith(moved),"nested project reconnects sibling original and output after transfer");
         var oldDocument = DocumentStore.Load<ProjectDocument>(Path.Combine(moved,"이전작업.livecg.json"));
         ProjectSources.Resolve(oldDocument,Path.Combine(moved,"이전작업.livecg.json"));
         check(oldDocument.Jobs[0].OutputPath==Path.Combine(moved,"이전버전 임의폴더"), "older projects locate exported folders by their existing region identity");
@@ -83,6 +91,9 @@ internal static class LinkedOutputChecks
         var portable = ProjectSources.SavePortable(loaded, Path.Combine(test,"한번에 이동"));
         var portableDoc = DocumentStore.Load<ProjectDocument>(portable); ProjectSources.Resolve(portableDoc,portable);
         check(File.Exists(Path.Combine(portableDoc.Jobs[0].OutputPath,"index.html")), "portable save includes linked output alongside project and original");
+        var folderCount=Directory.GetDirectories(current.OutputPath).Length;
+        try { ProjectSources.SavePortable(loaded,current.OutputPath); check(false,"portable save cannot recursively include its own output"); }
+        catch(InvalidDataException) { check(Directory.GetDirectories(current.OutputPath).Length==folderCount,"portable save cannot recursively include its own output"); }
         var originalRegion = current.Regions[0].Id; var originalClip = current.Regions[0].Clips[0].Id;
         var replaced = Path.Combine(moved, "새 가격.png"); bitmap.Erase(SKColors.Blue); SourceImage.SavePng(bitmap, replaced);
         ProjectSources.Update(current, replaced, 160, 100, true);
