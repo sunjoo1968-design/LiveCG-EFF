@@ -42,6 +42,7 @@ public partial class MainWindow
         if (_busy || _current is null || !CommitClip(true) || !CommitRegion(true) || !CommitMask(true)) return;
         var duplicate = _current.Snapshot();
         duplicate.BroadcastId = Guid.NewGuid();
+        duplicate.OutputPath = ""; duplicate.OutputAliases.Clear();
         duplicate.Status = "새 방송 자료 복제";
         _jobs.Add(duplicate);
         FileList.SelectedItem = duplicate;

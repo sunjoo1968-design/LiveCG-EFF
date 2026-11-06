@@ -41,6 +41,15 @@ public partial class MainWindow
         try
         {
             var document=JsonSerializer.Deserialize<ProjectDocument>(state.Json)??throw new InvalidDataException("편집 기록을 읽지 못했습니다.");
+            foreach(var restored in document.Jobs)
+            {
+                var live=_jobs.FirstOrDefault(item=>item.BroadcastId==restored.BroadcastId);
+                if(live is not null&&!string.IsNullOrEmpty(live.OutputPath))
+                {
+                    restored.OutputPath=live.OutputPath;
+                    restored.OutputAliases=[..live.OutputAliases];
+                }
+            }
             document.OutputDirectory=OutputFolderBox.Text;ApplyDocument(document,false);var job=_jobs.FirstOrDefault(j=>j.SourcePath==state.File);
             if(job is not null&&job!=_current)DisplayJob(job);
             if(job is not null){_loading=true;FileList.SelectedItem=job;_loading=false;}

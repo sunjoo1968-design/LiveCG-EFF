@@ -11,11 +11,18 @@ await fs.mkdir(path.join(config,'plugin_config/obs-websocket'),{recursive:true})
 await fs.writeFile(path.join(config,'plugin_config/obs-websocket/config.json'),JSON.stringify({server_enabled:true,server_port:port,auth_required:true,server_password:password,alerts_enabled:false,first_load:false}));
 await fs.writeFile(path.join(config,'global.ini'),'[General]\nFirstRun=false\nLastVersion=553648128\nEnableAutoUpdates=false\n\n[Basic]\nProfile=LiveCGTest\nProfileDir=LiveCGTest\nSceneCollection=LiveCGTest\nSceneCollectionFile=LiveCGTest\n\n[BasicWindow]\nStudioMode=true\n');
 await fs.mkdir(path.join(config,'basic/profiles/LiveCGTest'),{recursive:true});await fs.writeFile(path.join(config,'basic/profiles/LiveCGTest/basic.ini'),'[General]\nName=LiveCGTest\n[Video]\nBaseCX=160\nBaseCY=100\nOutputCX=160\nOutputCY=100\nFPSType=0\nFPSCommon=30\n');
-const updateMode=process.argv.includes("--broadcast-updates");
-const updateFixture=updateMode?JSON.parse(await fs.readFile(path.join(root,"artifacts/v010-core/broadcast/browser-test.json"),"utf8")):null;
+const linkedMode=process.argv.includes("--linked-output");
+const updateMode=linkedMode||process.argv.includes("--broadcast-updates");
+let updateFixture=updateMode&&!linkedMode?JSON.parse(await fs.readFile(path.join(root,"artifacts/v010-core/broadcast/browser-test.json"),"utf8")):null;
+if(linkedMode){
+ const linked=JSON.parse(await fs.readFile(path.join(root,"artifacts/v010-core/linked-browser-test.json"),"utf8"));
+ const decode=text=>JSON.parse(text.slice("window.LiveCGUpdate(".length,-2));
+ updateFixture={entry:linked.entry,first:{Revision:decode(linked.firstPointer).revision},second:{Revision:decode(linked.secondPointer).revision}};
+ await fs.writeFile(path.join(path.dirname(linked.entry),"pointer.js"),linked.firstPointer);
+}
 const folder=updateMode?path.dirname(updateFixture.entry):path.join(root,'artifacts/v010-core/한글 로컬 & 패키지.obs');
-const html=await fs.readFile(path.join(folder,updateMode?'entry.html':'index.html'),'utf8');
-const probe=html.replace('</body>','<script>setInterval(()=>{if(window.LiveCG)console.error("[OBS-PROBE] "+JSON.stringify({...LiveCG.status(),probe:"transition"}))},100);window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>');await fs.writeFile(path.join(folder,'obs-probe.html'),probe);
+const html=await fs.readFile(path.join(folder,updateMode&&!linkedMode?'entry.html':'index.html'),'utf8');
+const probe=html.replace('</body>','<script>setInterval(()=>{if(window.LiveCG)console.error("[OBS-PROBE] "+JSON.stringify({...LiveCG.status(),probe:"transition"}))},100);window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>');await fs.writeFile(path.join(folder,'obs-probe.html'),probe);if(linkedMode)await fs.writeFile(path.join(folder,'index.html'),probe);
 const child=spawn(path.join(portable,'bin/64bit/obs64.exe'),['--portable','--multi','--disable-updater','--disable-missing-files-check','--disable-shutdown-check','--minimize-to-tray'],{cwd:path.join(portable,'bin/64bit'),windowsHide:true,stdio:'ignore'});
 let ws,seq=0;const pending=new Map();let logFile;const renderCaptures=[];
 function request(requestType,requestData={}){return new Promise((resolve,reject)=>{const id=String(++seq),timer=setTimeout(()=>{pending.delete(id);reject(new Error('OBS timeout '+requestType));},7000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({op:6,d:{requestType,requestId:id,requestData}}));});}
@@ -30,11 +37,12 @@ async function samples(){if(!logFile){const names=await fs.readdir(path.join(con
 async function waitProbe(predicate){for(let i=0;i<80;i++){const rows=await samples().catch(()=>[]);if(rows.some(predicate))return rows;await sleep(100);}return samples();}
 async function verifyBroadcastUpdates(){
  const fixture=updateFixture;
- await request("CreateSceneCollection",{sceneCollectionName:"LiveCGUpdates-"+Date.now()});
+ const collectionName="LiveCGUpdates-"+Date.now();
+ await request("CreateSceneCollection",{sceneCollectionName:collectionName});
  for(const sceneName of ["Updates Blank","Updates Browser"])await request("CreateScene",{sceneName});
  if(!(await request("GetStudioModeEnabled")).studioModeEnabled)await request("SetStudioModeEnabled",{studioModeEnabled:true});
  await request("SetCurrentProgramScene",{sceneName:"Updates Browser"});
- await request("CreateInput",{sceneName:"Updates Browser",inputName:"Live Updates",inputKind:"browser_source",inputSettings:{is_local_file:true,local_file:path.join(folder,"obs-probe.html"),width:160,height:100,shutdown:false,restart_when_active:false},sceneItemEnabled:true});
+ await request("CreateInput",{sceneName:"Updates Browser",inputName:"Live Updates",inputKind:"browser_source",inputSettings:{is_local_file:true,local_file:path.join(folder,linkedMode?"index.html":"obs-probe.html"),width:160,height:100,shutdown:false,restart_when_active:false},sceneItemEnabled:true});
  async function waitLast(predicate){
   for(let i=0;i<120;i++){const rows=await samples().catch(()=>[]),last=rows.at(-1);if(last&&predicate(last))return last;await sleep(100);}
   throw new Error("OBS update state timeout: "+JSON.stringify((await samples()).at(-1)));
@@ -55,17 +63,47 @@ async function verifyBroadcastUpdates(){
  await request("SetCurrentPreviewScene",{sceneName:"Updates Browser"});
  await request("TriggerStudioModeTransition");
  const restarted=await waitLast(state=>state.programActive===true&&!state.waitingForProgram);
- check(restarted.time<.6,"actual OBS program switch restarts the loaded revision"); const pointer=path.join(folder,"pointer.js"),temporary=pointer+".obs-test.tmp";
- await fs.writeFile(temporary,"window.LiveCGUpdate("+JSON.stringify({revision:fixture.second.Revision,immediate:false,binding:{Active:fixture.second,Previous:fixture.first,Immediate:false}})+");");
- await fs.rename(temporary,pointer);
- await waitLast(state=>state.revision===fixture.second.Revision);
- check(true,"actual OBS changes revision without a source reload");
+ check(restarted.time<.6,"actual OBS program switch restarts the loaded revision"); let expectedRevision=fixture.second.Revision;
+ if(linkedMode){
+  const refreshed=spawnSync(path.join(root,".tools/dotnet/dotnet.exe"),[path.join(root,"tests/LiveCG.Verify/bin/Debug/net10.0/LiveCG.Verify.dll"),root,"--linked-refresh"],{encoding:"utf8",windowsHide:true});
+  if(refreshed.status!==0)throw new Error(refreshed.stderr+" "+refreshed.stdout);
+  const saved=JSON.parse(refreshed.stdout);expectedRevision=saved.revision;
+  check(saved.entry===fixture.entry&&expectedRevision!==fixture.first.Revision,"real save-refresh keeps the registered index path while OBS is active");
+ }else{
+  const pointer=path.join(folder,"pointer.js"),temporary=pointer+".obs-test.tmp";
+  await fs.writeFile(temporary,"window.LiveCGUpdate("+JSON.stringify({revision:fixture.second.Revision,immediate:false,binding:{Active:fixture.second,Previous:fixture.first,Immediate:false}})+");");
+  await fs.rename(temporary,pointer);
+ }
+ await waitLast(state=>state.revision===expectedRevision); check(true,"actual OBS changes revision without a source reload");
  await sleep(200);
  const shot=await request("GetSourceScreenshot",{sourceName:"Live Updates",imageFormat:"png",imageWidth:160,imageHeight:100});
  const actual=path.join(folder,"actual-obs-update.png");
  await fs.writeFile(actual,Buffer.from(shot.imageData.split(",")[1],"base64"));
  const pixels=spawnSync(path.join(root,".tools/dotnet/dotnet.exe"),[path.join(root,"tests/LiveCG.Verify/bin/Debug/net10.0/LiveCG.Verify.dll"),root,"--broadcast-pixel",actual],{encoding:"utf8",windowsHide:true});
  check(pixels.status===0,"actual OBS displays the replacement blue image pixels");
+ if(linkedMode){
+  let scenePath;
+  for(let attempt=0;attempt<80&&!scenePath;attempt++){
+   for(const file of await fs.readdir(path.join(config,"basic/scenes"))){
+    if(!file.endsWith(".json"))continue;
+    const candidate=path.join(config,"basic/scenes",file);
+    try{if(JSON.parse(await fs.readFile(candidate,"utf8")).name===collectionName){scenePath=candidate;break;}}catch{}
+   }
+   if(!scenePath)await sleep(100);
+  }
+  if(!scenePath)throw new Error("Actual OBS scene was not saved");
+  const relocated=spawnSync(path.join(root,".tools/dotnet/dotnet.exe"),[path.join(root,"tests/LiveCG.Verify/bin/Debug/net10.0/LiveCG.Verify.dll"),root,"--linked-scene",scenePath],{encoding:"utf8",windowsHide:true});
+  if(relocated.status!==0)throw new Error(relocated.stderr+" "+relocated.stdout);
+  const migration=JSON.parse(relocated.stdout);
+  check(migration.changed>0,"actual OBS scene JSON reconnects the browser path after relocation");
+  await request("SetInputSettings",{inputName:"Live Updates",inputSettings:{local_file:migration.entry},overlay:true});
+  await sleep(1500);
+  const migratedShot=await request("GetSourceScreenshot",{sourceName:"Live Updates",imageFormat:"png",imageWidth:160,imageHeight:100});
+  const migratedPng=path.join(folder,"actual-obs-relocated.png");
+  await fs.writeFile(migratedPng,Buffer.from(migratedShot.imageData.split(",")[1],"base64"));
+  const migratedPixels=spawnSync(path.join(root,".tools/dotnet/dotnet.exe"),[path.join(root,"tests/LiveCG.Verify/bin/Debug/net10.0/LiveCG.Verify.dll"),root,"--broadcast-pixel",migratedPng],{encoding:"utf8",windowsHide:true});
+  check(migratedPixels.status===0,"actual OBS renders the rebound scene from the moved folder");
+ }
 }
 try{
     await connect();let version;for(let i=0;i<150;i++){try{version=await request('GetVersion');break;}catch(error){if(!error.message.includes('207'))throw error;await sleep(100);}}if(!version)throw new Error('OBS frontend initialization did not finish');check(version.obsVersion.startsWith('33.'),'isolated actual OBS 33 started with test-only profile');

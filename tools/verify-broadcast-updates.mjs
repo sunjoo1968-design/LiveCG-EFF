@@ -29,8 +29,10 @@ async function evaluate(expression) {
     const r = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true }, session);
     if (r.exceptionDetails) throw new Error(JSON.stringify(r.exceptionDetails)); return r.result.value;
 }
-const fixture=JSON.parse(await fs.readFile(path.join(folder,"broadcast/browser-test.json"),"utf8"));
-
+const linkedMode=process.argv.includes("--linked-output");
+const linked=linkedMode?JSON.parse(await fs.readFile(path.join(folder,"linked-browser-test.json"),"utf8")):null;
+const decodePointer=text=>JSON.parse(text.slice("window.LiveCGUpdate(".length,-2));
+const fixture=linkedMode?{entry:linked.entry,first:{Revision:decodePointer(linked.firstPointer).revision},second:{Revision:decodePointer(linked.secondPointer).revision},shortLoops:[]}:JSON.parse(await fs.readFile(path.join(folder,"broadcast/browser-test.json"),"utf8"));
 const update=async(revision,immediate,entry=fixture.entry,previous=null)=>{
  const pointer=path.join(path.dirname(entry),"pointer.js");
  const temporary=pointer+".test.tmp";

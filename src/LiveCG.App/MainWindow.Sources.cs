@@ -26,6 +26,8 @@ public partial class MainWindow
         catch (Exception ex) { Error(ex); }
     }
 
+    private void ReplaceCurrentSource(object sender, RoutedEventArgs e) => ChangeSource(_current, true);
+
     private void ChangeSource(ImageJob? job, bool replace)
     {
         if (_busy || job is null) return;

@@ -45,6 +45,47 @@ internal static class Program
             bitmap.Render(drawing);
             var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using var output=File.Create(Path.Combine(folder,file));png.Save(output);
         }
+        if(args.Contains("--linked-ui"))
+        {
+            var fixture=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"artifacts/v010-core/linked-browser-test.json"))).RootElement;
+            var path=fixture.GetProperty("projectPath").GetString()!;
+            var doc=DocumentStore.Load<ProjectDocument>(path);
+            ProjectSources.Resolve(doc,path);
+            var linkedWindow=new MainWindow();
+            linkedWindow.ApplyDocument(doc);
+            typeof(MainWindow).GetField("_projectPath",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(linkedWindow,path);
+            var job=doc.Jobs.Single();
+            var before=job.Regions[0].Clips[0].Id;
+            var destination=job.OutputPath;
+            Call(linkedWindow,"ApplySource",job,Path.Combine(Path.GetDirectoryName(path)!,"새 가격.png"),true);
+            var task=linkedWindow.SaveAndRefreshAsync();
+            var clock=Stopwatch.StartNew();
+            while(!task.IsCompleted&&clock.ElapsedMilliseconds<20000){Pump();Thread.Sleep(10);}
+            if(!task.IsCompleted)throw new TimeoutException("linked refresh timed out");
+            task.GetAwaiter().GetResult();
+            var staticWindow=new MainWindow();
+            var staticJob=new ImageJob{SourcePath=job.SourcePath,Width=job.Width,Height=job.Height,OutputPath=""};
+            staticWindow.ApplyDocument(new(){Jobs=[staticJob],OutputDirectory=Path.Combine(Path.GetDirectoryName(path)!,"static-"+Guid.NewGuid().ToString("N"))});
+            typeof(MainWindow).GetField("_projectPath",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(staticWindow,Path.Combine(Path.GetDirectoryName(path)!,"정지 작업.livecg.json"));
+            var staticTask=staticWindow.SaveAndRefreshAsync();clock.Restart();
+            while(!staticTask.IsCompleted&&clock.ElapsedMilliseconds<20000){Pump();Thread.Sleep(10);}
+            if(!staticTask.IsCompleted)throw new TimeoutException("static refresh timed out");
+            staticTask.GetAwaiter().GetResult();
+            var staticSuccess=staticJob.Status=="방송 갱신 완료";
+            var staticOutput=staticJob.OutputPath;
+            Call(staticWindow,"MarkEdited");
+            Call(staticWindow,"UndoEdit",staticWindow,new RoutedEventArgs());
+            Check(Field<ImageJob>(staticWindow,"_current").OutputPath==staticOutput,"undo preserves the already-saved output folder binding");
+            Check(staticSuccess&&File.Exists(Path.Combine(staticJob.OutputPath,"index.html")),"single action also refreshes a static image without effect regions");
+            Check(job.Status=="방송 갱신 완료","single save-refresh action updates the linked output");
+            Check(job.OutputPath==destination&&job.Regions[0].Clips[0].Id==before,"save-refresh retains output path and existing effects");
+            var saved=DocumentStore.Load<ProjectDocument>(path);ProjectSources.Resolve(saved,path);
+            Check(saved.Jobs[0].OutputPath==destination&&saved.Jobs[0].SourcePath.EndsWith("새 가격.png"),"single action persists replaced source and output binding");
+            Layout(linkedWindow);
+            Check(Children<Button>((DependencyObject)linkedWindow.Content).Any(button=>Equals(button.Content,"저장·방송 갱신"))&&!Children<Button>((DependencyObject)linkedWindow.Content).Any(button=>Equals(button.Content,"방송 갱신 ZIP 저장")),"main toolbar exposes the simple workflow instead of ZIP actions");
+            Console.WriteLine($"RESULT {checks-failures.Count}/{checks} passed");
+            return failures.Count==0?0:1;
+        }
         if(args.Contains("--broadcast-ui"))
         {
             var fixture=System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"artifacts/v010-core/broadcast/browser-test.json"))).RootElement;

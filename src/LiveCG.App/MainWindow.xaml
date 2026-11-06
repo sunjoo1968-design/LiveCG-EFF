@@ -22,11 +22,25 @@
    <TextBlock x:Name="CreditText" HorizontalAlignment="Right" VerticalAlignment="Top" FontWeight="SemiBold" Margin="0,5"/>
   </Grid>
   <ScrollViewer Grid.Row="1" Margin="-3,0,0,8" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel"><StackPanel Orientation="Horizontal">
-   <Button Content="＋ 이미지" Click="AddFiles"/><Button Content="폴더" Click="AddFolder"/><Button Content="새 작업" Click="NewProject"/>
-   <Button Content="작업 열기" Click="OpenProject"/><Button Content="작업 저장" Click="SaveProject"/><Button Content="이동용 작업 저장" Click="SavePortableProject"/>
-   <Button Content="방송 갱신 ZIP 저장" Click="ExportBroadcastUpdates"/><Button Content="방송 자료 관리" Click="OpenBroadcastManager"/><Button Content="새 방송 자료로 복제" Click="DuplicateBroadcastSource"/><Button Content="템플릿 저장" Click="SaveTemplate"/><Button Content="템플릿 적용" Click="ApplyTemplate"/>
-   <Button Content="현재 옵션을 기본값으로 저장" Click="SaveDefaults"/><Button Content="기본값 복원" Click="ResetDefaults"/><Button Content="단축키 설정" Click="ConfigureShortcuts"/><Button Content="배치 초기화" Click="ResetWorkspace"/><Button Content="도움말" Click="ShowHelp"/>
-  </StackPanel></ScrollViewer>
+   <Button Content="＋ 이미지" Click="AddFiles"/><Button Content="작업 열기" Click="OpenProject"/><Button Content="작업 저장" Click="SaveProject"/>
+   <Button Content="이미지 교체" Click="ReplaceCurrentSource"/>
+   <Button Content="저장·방송 갱신" Click="SaveAndRefreshBroadcast" Background="#246F5B" FontWeight="Bold"/>
+   <Menu Background="#E4EAF0" Foreground="#17212D" VerticalAlignment="Center">
+    <MenuItem Header="작업">
+     <MenuItem Header="새 작업" Click="NewProject"/><MenuItem Header="폴더 추가" Click="AddFolder"/>
+     <MenuItem Header="이동용 작업 저장" Click="SavePortableProject"/><MenuItem Header="다른 PC OBS 연결" Click="ConnectObsScene"/>
+     <MenuItem Header="출력 폴더 변경" Click="ChooseOutput"/><MenuItem Header="새 방송 자료로 복제" Click="DuplicateBroadcastSource"/>
+    </MenuItem>
+    <MenuItem Header="편집·설정">
+     <MenuItem Header="템플릿 저장" Click="SaveTemplate"/><MenuItem Header="템플릿 적용" Click="ApplyTemplate"/>
+     <MenuItem Header="현재 옵션을 기본값으로 저장" Click="SaveDefaults"/><MenuItem Header="기본값 복원" Click="ResetDefaults"/>
+     <MenuItem Header="단축키 설정" Click="ConfigureShortcuts"/><MenuItem Header="배치 초기화" Click="ResetWorkspace"/>
+    </MenuItem>
+    <MenuItem Header="이전 방식">
+     <MenuItem Header="방송 갱신 ZIP 저장" Click="ExportBroadcastUpdates"/><MenuItem Header="방송 자료 관리" Click="OpenBroadcastManager"/>
+    </MenuItem>
+   </Menu>
+   <Button Content="도움말" Click="ShowHelp"/>  </StackPanel></ScrollViewer>
   <Grid Grid.Row="2" x:Name="EditorGrid">
    <Grid.ColumnDefinitions><ColumnDefinition Width="280" MinWidth="240"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*" MinWidth="300"/><ColumnDefinition Width="10"/><ColumnDefinition Width="335" MinWidth="300"/></Grid.ColumnDefinitions>
    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="7"/><RowDefinition Height="280" MinHeight="260"/></Grid.RowDefinitions>

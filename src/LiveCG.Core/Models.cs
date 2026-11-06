@@ -188,6 +188,8 @@ public class ImageJob : INotifyPropertyChanged
     private string _status = "영역 지정 대기", _detail = "";
     private double _progress;
     public Guid BroadcastId { get; set; } = Guid.NewGuid();
+    public string OutputPath { get; set; } = "";
+    public List<string> OutputAliases { get; set; } = [];
     public string SourceFingerprint { get; set; } = "";
     public long SourceBytes { get; set; }
     public string SourcePath { get; set; } = "";
@@ -201,7 +203,7 @@ public class ImageJob : INotifyPropertyChanged
     [JsonIgnore] public string Detail { get => _detail; set { _detail = value; Changed(); } }
     [JsonIgnore] public double Progress { get => _progress; set { _progress = Math.Clamp(value, 0, 100); Changed(); } }
     [JsonIgnore] public string ProgressColor => Status == "실패" ? "#FF7386" : Status == "취소" ? "#E4AE60" : Status == "건너뜀" ? "#7891A5" : "#5DE2B1";
-    public ImageJob Snapshot() => new() { BroadcastId = BroadcastId, SourceFingerprint = SourceFingerprint, SourceBytes = SourceBytes, SourcePath = SourcePath, Width = Width, Height = Height, Regions = LayerGraph.Copy(Regions,false), Playback=Playback with{} };
+    public ImageJob Snapshot() => new() { BroadcastId = BroadcastId, OutputPath = OutputPath, OutputAliases = [..OutputAliases], SourceFingerprint = SourceFingerprint, SourceBytes = SourceBytes, SourcePath = SourcePath, Width = Width, Height = Height, Regions = LayerGraph.Copy(Regions,false), Playback=Playback with{} };
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Changed([CallerMemberName] string? property = null) => PropertyChanged?.Invoke(this, new(property));
 }
@@ -218,6 +220,7 @@ public class ProjectDocument
         Video.Validate();
         foreach (var job in Jobs)
         {
+            if(job.OutputPath is null || job.OutputAliases is null || job.OutputAliases.Any(alias=>alias is null)) throw new InvalidDataException("출력 연결 정보가 올바르지 않습니다.");
             if(job.Playback is null)throw new InvalidDataException("재생 구간 정보가 없습니다.");job.Playback.Validate();
             if (string.IsNullOrWhiteSpace(job.SourcePath) || job.Width <= 0 || job.Height <= 0 || job.Regions is null || job.Regions.Count > 100)
                 throw new InvalidDataException("작업 이미지 또는 영역 정보가 올바르지 않습니다.");

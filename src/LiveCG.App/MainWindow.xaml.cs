@@ -76,7 +76,7 @@ public partial class MainWindow : Window
     {
         _dirty=true;Preview.ModelChanged();
         foreach(var job in allFiles?_jobs:_current is null?Enumerable.Empty<ImageJob>():new[]{_current})
-        {job.Progress=0;job.Status=!File.Exists(job.SourcePath)?"원본 다시 연결 필요":job.Regions.Count==0?"영역 지정 대기":$"편집 중 · 영역 {job.Regions.Count}개";job.Detail="";}
+        {job.Progress=0;job.Status=!File.Exists(job.SourcePath)?"원본 다시 연결 필요":job.Regions.Count==0?"영역 지정 대기":$"편집 중 · 영역 {job.Regions.Count}개";job.Detail=string.IsNullOrEmpty(job.OutputPath)?"":"연결된 출력 · "+job.OutputPath;}
         RecordEdit();
     }
     private void Error(Exception ex){Notify(ex.Message);MessageBox.Show(this,ex.Message,"LiveCG-EFF · 확인",MessageBoxButton.OK,MessageBoxImage.Warning);}
@@ -417,7 +417,7 @@ public partial class MainWindow : Window
     public void ApplyDocument(ProjectDocument document,bool resetHistory=true)
     {
         document.Validate();StopPlayback();_loading=true;_region=null;_clip=null;_current=null;
-        _jobs.Clear();foreach(var job in document.Jobs){job.Status=File.Exists(job.SourcePath)?"작업 복원":"원본 다시 연결 필요";_jobs.Add(job);}
+        _jobs.Clear();foreach(var job in document.Jobs){job.Status=File.Exists(job.SourcePath)?"작업 복원":"원본 다시 연결 필요";job.Detail=string.IsNullOrEmpty(job.OutputPath)?"":"연결된 출력 · "+job.OutputPath;_jobs.Add(job);}
         _video=document.Video;OutputFolderBox.Text=document.OutputDirectory;_loading=false;ShowVideo();RefreshFiles();
         DisplayJob(_jobs.FirstOrDefault());if(_jobs.Count>0){_loading=true;FileList.SelectedItem=_jobs[0];_loading=false;}
         if(resetHistory)ResetHistory();
@@ -441,7 +441,7 @@ public partial class MainWindow : Window
         }catch(Exception ex){Error(ex);}
     }
     private void ChooseOutput(object sender,RoutedEventArgs e)
-    {if(_busy)return;var dialog=new OpenFolderDialog{Title="출력 폴더 · WebM / OBS 패키지"};if(dialog.ShowDialog(this)==true){OutputFolderBox.Text=dialog.FolderName;_dirty=true;}}
+    {if(_busy)return;var dialog=new OpenFolderDialog{Title="출력 폴더 · WebM / OBS 패키지"};if(dialog.ShowDialog(this)==true){OutputFolderBox.Text=dialog.FolderName;foreach(var job in SelectedJobs())job.OutputPath="";_dirty=true;}}
     private void OutputFolderChanged(object sender,TextChangedEventArgs e){if(!_loading)_dirty=true;}
 
     private async void ExportFiles(object sender,RoutedEventArgs e){if(!OutputExpander.IsExpanded){OutputExpander.IsExpanded=true;return;}await ExportAsync(ExportTargets());}
@@ -457,7 +457,7 @@ public partial class MainWindow : Window
             var output=Path.GetFullPath(OutputFolderBox.Text.Trim());Directory.CreateDirectory(output);
             var video=_video with{};var kinds=video.Output==OutputKind.Both?new[]{OutputKind.Webm,OutputKind.Browser}:new[]{video.Output};
             var encoder=kinds.Contains(OutputKind.Webm)?RuntimePaths.Ffmpeg:"";var snapshots=jobs.Select(j=>j.Snapshot()).ToList();
-            string Target(ImageJob j,OutputKind kind)=>Path.Combine(output,kind==OutputKind.Browser?BrowserExporter.OutputName(j):j.OutputName);
+            string Target(ImageJob j,OutputKind kind)=>kind==OutputKind.Browser&&!string.IsNullOrEmpty(j.OutputPath)?j.OutputPath:Path.Combine(output,kind==OutputKind.Browser?BrowserExporter.OutputName(j):j.OutputName);
             bool Exists(string path)=>File.Exists(path)||Directory.Exists(path);
             if(jobs.Any(j=>j.Regions.All(r=>r.Clips.Count==0))&&MessageBox.Show(this,"효과가 없는 파일은 정지 영상으로 출력합니다. 계속할까요?","출력 확인",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;
             var overwrite=false;var existing=jobs.Sum(j=>kinds.Count(k=>Exists(Target(j,k))));
@@ -481,7 +481,8 @@ public partial class MainWindow : Window
                         var progress=new Progress<double>(p=>{job.Progress=(part+p)/kinds.Length*100;ExportProgress.Value=(index+(part+p)/kinds.Length)/jobs.Count*100;ProgressText.Text=$"{index+1}/{jobs.Count} · {kind}";});
                         try
                         {
-                            await Task.Run(()=>kind==OutputKind.Browser?new BrowserExporter().ExportAsync(snapshot,video,target,overwrite,progress,token):new WebmExporter(encoder).ExportAsync(snapshot,video,target,overwrite,progress,token),token);
+                            await Task.Run(()=>kind==OutputKind.Browser?LinkedOutput.ExportAsync(snapshot,video,target,token,progress):new WebmExporter(encoder).ExportAsync(snapshot,video,target,overwrite,progress,token),token);
+                            if(kind==OutputKind.Browser){job.OutputPath=target;_dirty=true;}
                             written.Add(target);
                         }
                         catch(Exception ex)when(ex is not OperationCanceledException){errors.Add(Path.GetFileName(target)+": "+ex.Message);}
@@ -505,23 +506,11 @@ public partial class MainWindow : Window
         CloseWorkspace();_clock.Stop();(Resources["LayerThumbnail"] as IDisposable)?.Dispose();Preview.Dispose();foreach(var t in _thumbnails)t.Dispose();
     }
     private void ShowHelp(object sender,RoutedEventArgs e)=>MessageBox.Show(this,
-        "1. 도형은 다음 그리기에만 적용됩니다. 기존 도형은 선택 도형 변경, 펜/자유손은 점 편집으로 점 이동·선분 추가·Delete 삭제합니다.\n"+
-        "2. 편집 크게는 타임라인을 접습니다. 지정 시 크게를 켜면 자동 확대 배치합니다. 창 분리는 별도 창, 닫기는 복귀입니다.\n"+
-        "3. 영역 빠른 조절: 소프트·내용만·배경색. 정밀 분리·보정은 현재 마스크에서 이어서 편집, 범위 맞춤은 선택 옵션. 브러시 [ / ] 1px, Shift+[ / ] 10px.\n"+
-        "4. 위 행이 위 레이어입니다. 자동 잘라내기는 해제했습니다. 큰 영역은 그룹, 안쪽 배지 등은 그룹 안 효과 영역으로 연결하세요.\n"+
-        "5. 내 효과 > 새 모션에서 프레임별 위치·크기·회전·불투명도·기준점을 편집합니다. 불투명도 0은 숨김, 100은 표시입니다.\n"+
-        "6. 제작실의 키와 기존 효과 조합을 에셋 저장 후 삽입하세요. 마우스 이동·크기·회전은 현재 프레임에 자동 키를 만듭니다.\n"+
-        "7. Ctrl+클릭은 효과 다중 선택/해제. 함께 이동·Delete 삭제·Ctrl+C/V 복사/붙여넣기·Ctrl+Z/Ctrl+Shift+Z 되돌리기/다시.\n"+
-        "8. 직접 배경색은 중심 픽셀 확대경의 스포이드 또는 HSV/RGBA 색상표로 고릅니다. 사용자색16칸을 저장할 수 있습니다.\n"+
-        "9. 뒤 클립 자석은 다음 블록을 새 끝에 붙입니다. ✂ 분할/Ctrl+K는 현재 커서에서 나누고 원래 모션·루프 진행을 유지합니다.\n"+
-        "10. 왼쪽에서 출력 폴더·화질·범위를 정합니다. 휠·+/− 확대, Space/중간 버튼 이동. 현재 옵션은 기본값으로 저장할 수 있습니다.\n\n"+
-        "숫자 롤링은 숫자만 지정하세요. 원 단위 보호는 보류입니다. 복잡한 배경과 가려진 사진은 완벽히 복원하지 못합니다.\n"+
-        "11. 그룹·마스크에서 마스크를 그리면 타임라인 하위 행이 생깁니다. 더하기/빼기/교차·반전과 시간·경계·불투명도를 조정합니다.\n"+
-        "12. 마스크 편집은 휠/+−/100%/맞춤·Space 이동과 본체 이동·8핸들 크기·위 원 회전·기준점 도구를 제공합니다.\n"+
-        "13. 속성 슬라이더는 즉시 반영, 값의 ↔ 부분 좌우 드래그는 세밀 조절, Shift는1/10입니다. 정밀 입력은 펼쳐 사용합니다.\n"+
-        "14. 새 마스크는 부모 효과 구간만큼 만들고 양끝을 드래그합니다. 구간 후 원본 복귀가 기본이며 기존 마스크 설정은 유지합니다.\n"+
-        "15. 구간 설정을 적용한 뒤 색상 바의 경계를 드래그합니다. 방송 재생은 등장 한 번·강조 반복·퇴장 버튼 순서입니다.\n"+
-        "16. 좌측 출력 형식에서 WebM/OBS 브라우저/둘 다를 고릅니다. WebM은 지정 횟수 반복, 브라우저는 무한 반복합니다.\n"+
-        "17. OBS 브라우저 소스에 index.html을 넣고 원본 크기/FPS로 설정합니다. 상호작용 R=재등장, E=퇴장, Space=일시정지입니다.\n"+
-        "원본 유지 배경은 의도적인 원본 잔상을 남깁니다. 원본 크기·파일명·투명·무음을 유지합니다. 사용안내/README.md를 참조하세요.\n\n"+ProductInfo.Credit,"사용법 · "+ProductInfo.Credit);
+        "최초 제작: 이미지 추가 → 효과 적용 → 좌측 출력 설정에서 OBS 출력 → 작업 저장\n\n"+
+        "다른 PC 이전: 작업 파일·원본·출력 폴더를 함께 압축해 옮기세요. 작업을 열면 원본과 출력 폴더를 다시 찾습니다.\n\n"+
+        "OBS 장면 경로가 바뀌었으면 작업 메뉴의 다른 PC OBS 연결에서 내보낸 장면 JSON을 선택하고, 생성된 연결 사본을 OBS에서 불러오세요.\n\n"+
+        "방송 중 수정: 작업 열기 → 이미지 교체 → 미리보기 확인 → 저장·방송 갱신. 연결된 같은 폴더의 index.html에 반영합니다.\n\n"+
+        "이전 버전에서 만든 출력은 새 버전으로 한 번 갱신하고 OBS 소스를 새로고침하세요. 이후부터 자동 반영됩니다.\n\n"+
+        "템플릿·단축키는 편집·설정 메뉴에 있습니다. 세부 편집과 출력 안내는 배포 폴더의 사용안내/README.md를 참조하세요.\n\n"+
+        ProductInfo.Credit,"사용법 · "+ProductInfo.Credit);
 }

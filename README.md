@@ -1,12 +1,23 @@
 # LiveCG-EFF
 
-**제작자 SunjooAn · 현재 버전 1.4.1 · Windows x64**
+**제작자 SunjooAn · 현재 버전 1.5.0 · Windows x64**
 
 이미지에서 마우스로 지정한 영역에 효과를 배치하고 **투명 WebM / OBS 브라우저 패키지**로 출력하는 라이브커머스 자막 편집기입니다. 가격 자동 탐지와 사운드는 포함하지 않습니다.
 
 ## 다운로드와 실행
 
-[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.4.1-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.5.0-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+
+## v1.5.0 같은 폴더에 저장·방송 갱신
+
+1. 최초에는 이미지 추가 → 효과 적용 → 좌측 출력 설정에서 OBS 출력 → 작업 저장을 합니다. OBS에는 각 출력 폴더의 **index.html**을 등록합니다.
+2. 다른 PC로 옮길 때는 작업 파일·원본·출력 폴더를 함께 압축하세요. **작업 → 이동용 작업 저장**으로 함께 모을 수도 있습니다. 옮긴 작업을 열면 원본과 출력 위치를 찾습니다.
+3. OBS 장면 경로도 달라졌다면 **작업 → 다른 PC OBS 연결**에서 OBS가 내보낸 장면 JSON을 선택합니다. 생성된 _연결.json 사본을 OBS에서 불러옵니다. 브라우저 index 경로를 연결하며 다른 미디어 경로는 수정하지 않습니다.
+4. 방송 중에는 **작업 열기 → 이미지 교체 → 미리보기 확인 → 저장·방송 갱신**을 사용합니다. 작업과 연결된 출력 폴더를 한 번에 갱신하며 OBS는 같은 파일에서 새 자료를 읽습니다.
+
+최초 출력부터 index.html은 자동 갱신을 지원합니다. 이전 버전에서 만든 출력은 새 버전으로 한 번 갱신한 뒤 OBS 소스를 새로고침해야 합니다. 이후에는 다시 등록하지 않아도 됩니다.
+
+출력 폴더를 작업에 기록하며 상대 위치, 출력 ID와 이전 영역 ID를 이용해 이전한 자료를 찾습니다. 자료 목록의 툴팁에서 연결된 출력 경로를 확인할 수 있습니다. 출력 안의 .livecg는 프로그램이 관리하며 현재·직전 두 자료만 보관합니다. 이미지 파일명이 바뀌어도 방송 진입 파일 이름을 늘리지 않습니다. 실제 보관 위치 자체를 다시 옮겼다면 작업과 OBS 장면의 경로도 연결하세요.
 
 ## v1.4.1 두 PC 사이 방송 자료 갱신
 
@@ -208,6 +219,6 @@ node .\tools\verify-obs-program.mjs .
 
 실제 브라우저 검증에는 Node24·Chrome, OBS 통합에는 OBS33 개발용 설치본이 필요합니다. 일반 배포 사용자에게는 필요하지 않습니다. OBS 검증은 별도 portable 설정을 쓰며 송출·녹화를 시작하지 않습니다. 네이티브/Canvas의 블러·글자 경계에는 소폭 차이가 있을 수 있습니다.
 
-[검증 요약](docs/verification/v1.4.1/summary.json) · [계획](docs/01-plan/features/broadcast-updates.plan.md) · [설계](docs/02-design/features/broadcast-updates.design.md) · [검토](docs/03-analysis/broadcast-updates.analysis.md) · [완료 보고](docs/04-report/broadcast-updates.report.md)
+[검증 요약](docs/verification/v1.5.0/summary.json) · [계획](docs/01-plan/features/linked-broadcast-save.plan.md) · [설계](docs/02-design/features/linked-broadcast-save.design.md) · [검토](docs/03-analysis/linked-broadcast-save.analysis.md) · [완료 보고](docs/04-report/linked-broadcast-save.report.md)
 
 외부 구성 요소의 제작자·라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), licenses 및 배포본의 FFmpeg/.NET 고지에 유지합니다. 개인 원본·작업·사용자 설정과 인증 정보는 공개하지 않습니다.

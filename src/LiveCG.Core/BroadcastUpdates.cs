@@ -167,7 +167,7 @@ public static class BroadcastUpdates
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
-    private const string Bridge = """
+    internal const string Bridge = """
 <script>
 window.obsstudio={};
 window.addEventListener("message",event=>{
@@ -179,7 +179,7 @@ window.addEventListener("message",event=>{
 setInterval(()=>{if(window.LiveCG)parent.postMessage({type:"LiveCGStatus",state:LiveCG.status()},"*");},20);
 </script>
 """;
-    private static string Loader() => """
+    internal static string Loader() => """
 <!doctype html><html><head><meta charset="utf-8"><title>__CREDIT__</title>
 <style>html,body{margin:0;background:transparent;overflow:hidden}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style></head><body><script>
 let active=null,pending=null,current="",wanted="",immediate=false,last=null,program=null,visible=true;
