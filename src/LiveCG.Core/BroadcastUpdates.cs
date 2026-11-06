@@ -223,7 +223,7 @@ setInterval(()=>{
  const live=api(active),state=live?.status(),next=api(pending);
  if(next?.status().loaded&&!next.status().error){
   next.pause();
-  const boundary=state&&last&&(state.time<last.time-.001||state.phase==="쉬기"&&last.phase!=="쉬기");
+  const boundary=state&&last&&((last.loopIndex>=0&&state.loopIndex>last.loopIndex&&["반복","쉬기"].includes(state.phase))||state.time<last.time-.001||state.phase==="쉬기"&&last.phase!=="쉬기");
   if(!active||immediate||!visible||program===false||state?.paused||state?.waitingForProgram||["완료","퇴장 완료"].includes(state?.phase)||boundary){
    const old=active;active=pending;pending=null;current=active.dataset.revision;
    if(program!==false)api(active).restart();

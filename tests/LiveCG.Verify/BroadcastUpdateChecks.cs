@@ -88,8 +88,24 @@ internal static class BroadcastUpdateChecks
         }
         try { BroadcastUpdates.Prepare(root, corrupt); check(false, "corrupted transfer rejected"); }
         catch (InvalidDataException) { check(BroadcastUpdates.List(root).First(b => b.Active.Id == originalId).Active == second, "corrupted transfer leaves current revision intact"); }
+        var shortLoops = new List<object>();
+        foreach (var fps in new[] { 1, 60 })
+        {
+            var shortJob = job.Snapshot(); shortJob.BroadcastId = Guid.NewGuid();
+            shortJob.Regions[0].Clips[0].Duration = 1d / fps;
+            shortJob.Playback = new() { Enabled = true, IntroEnd = 0, LoopEnd = 1d / fps, ExitEnabled = false, LoopRest = 0 };
+            var shortVideo = video with { Fps = fps };
+            var shortZip = Path.Combine(folder, "short-" + fps + ".zip");
+            await BroadcastUpdates.ExportAsync(shortJob, shortVideo, shortZip, default);
+            var shortFirst = BroadcastUpdates.Prepare(root, shortZip);
+            BroadcastUpdates.Apply(root, shortFirst, true);
+            await BroadcastUpdates.ExportAsync(shortJob, shortVideo, shortZip, default);
+            var shortSecond = BroadcastUpdates.Prepare(root, shortZip);
+            check(PlaybackPlan.Create(shortJob, shortVideo).LoopFrames == 1, "single-frame loop fixture at " + fps + "fps");
+            shortLoops.Add(new { entry = BroadcastUpdates.Entry(root, shortJob.BroadcastId), first = shortFirst, second = shortSecond, fps });
+        }
         // Leave immutable packages and explicit pointers for the real local-file browser test.
         BroadcastUpdates.Apply(root, first, true);
-        File.WriteAllText(Path.Combine(fixtureFolder, "browser-test.json"), JsonSerializer.Serialize(new { root, entry, first, second }));
+        File.WriteAllText(Path.Combine(fixtureFolder, "browser-test.json"), JsonSerializer.Serialize(new { root, entry, first, second, shortLoops }));
     }
 }

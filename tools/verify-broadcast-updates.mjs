@@ -30,10 +30,11 @@ async function evaluate(expression) {
     if (r.exceptionDetails) throw new Error(JSON.stringify(r.exceptionDetails)); return r.result.value;
 }
 const fixture=JSON.parse(await fs.readFile(path.join(folder,"broadcast/browser-test.json"),"utf8"));
-const pointer=path.join(path.dirname(fixture.entry),"pointer.js");
-const update=async(revision,immediate)=>{
+
+const update=async(revision,immediate,entry=fixture.entry,previous=null)=>{
+ const pointer=path.join(path.dirname(entry),"pointer.js");
  const temporary=pointer+".test.tmp";
- await fs.writeFile(temporary,"window.LiveCGUpdate("+JSON.stringify({revision:revision.Revision,immediate,binding:{Active:revision,Previous:revision.Revision===fixture.first.Revision?fixture.second:fixture.first,Immediate:immediate}})+");");
+ await fs.writeFile(temporary,"window.LiveCGUpdate("+JSON.stringify({revision:revision.Revision,immediate,binding:{Active:revision,Previous:previous??(revision.Revision===fixture.first.Revision?fixture.second:fixture.first),Immediate:immediate}})+");");
  await fs.rename(temporary,pointer);
 };
 const waitFor=async(predicate)=>{
@@ -84,6 +85,13 @@ try{
  await sleep(1800);
  check((await evaluate("LiveCG.status()")).revision===fixture.second.Revision,"missing revision keeps the previous package visible");
  await update(fixture.first,true);
+ for(const short of fixture.shortLoops){
+  await send("Page.navigate",{url:pathToFileURL(short.entry).href},session);
+  await waitFor(s=>s?.loaded&&s.revision===short.first.Revision);
+  await update(short.second,false,short.entry,short.first);
+  const switched=await waitFor(s=>s?.revision===short.second.Revision);
+  check(switched.loaded,"single-frame loop at "+short.fps+"fps activates deferred update");
+ }
  console.log("RESULT "+results.filter(r=>r.ok).length+"/"+results.length+" passed");
  if(results.some(r=>!r.ok))process.exitCode=1;
 }finally{await send("Browser.close").catch(()=>{});child.kill();}

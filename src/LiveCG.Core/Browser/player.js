@@ -296,7 +296,7 @@
         resume() { if (pausedAt !== null) { started += performance.now() - pausedAt; pausedAt = null; } manualTime = null;manualElapsed=null; },
         togglePause() { pausedAt === null ? api.pause() : api.resume(); },
         seek(seconds) { api.pause(); manualElapsed=null;manualTime = clamp(Number(seconds) || 0, 0, END); lastFrame = -1; if (loaded) render(manualTime); },
-        status() { const s = sample(manualElapsed??elapsed()); return { loaded, ...s, ...(waitingForProgram&&data.playback.replayOnShow?{phase:"프로그램 대기"}:{}), ...(manualTime !== null ? { time: manualTime, phase: "프레임 확인" } : {}), paused: pausedAt !== null, exitRequested: exitAt !== null, visible,programActive,waitingForProgram, error: api.error ?? null }; },
+        status() { const clock=manualElapsed??elapsed(),s = sample(clock); return { loaded, loopIndex:plan.enabled&&clock>=A?Math.floor((clock-A)/CYCLE):-1, ...s, ...(waitingForProgram&&data.playback.replayOnShow?{phase:"프로그램 대기"}:{}), ...(manualTime !== null ? { time: manualTime, phase: "프레임 확인" } : {}), paused: pausedAt !== null, exitRequested: exitAt !== null, visible,programActive,waitingForProgram, error: api.error ?? null }; },
         // Deterministic frame rendering is also used by browser/native regression checks.
         renderAt(seconds) { if (!loaded) throw new Error("이미지를 읽는 중입니다."); api.seek(seconds); return api.status(); },
         renderElapsedAt(seconds) { if(!loaded)throw new Error("이미지를 읽는 중입니다.");api.pause();manualTime=null;manualElapsed=Math.max(0,Number(seconds)||0);lastFrame=-1;const s=sample(manualElapsed);render(s.time,s.rest);return api.status(); }
