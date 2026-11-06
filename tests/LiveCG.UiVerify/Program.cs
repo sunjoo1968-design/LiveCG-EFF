@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -43,6 +44,37 @@ internal static class Program
             {dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(12,21,32)),null,new Rect(0,0,width,height));dc.DrawRectangle(new VisualBrush((FrameworkElement)w.Content),null,new Rect(14,14,width-28,height-28));}
             bitmap.Render(drawing);
             var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(bitmap));using var output=File.Create(Path.Combine(folder,file));png.Save(output);
+        }
+        if(args.Contains("--broadcast-ui"))
+        {
+            var fixture=System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"artifacts/v010-core/broadcast/browser-test.json"))).RootElement;
+            var storage=fixture.GetProperty("root").GetString()!;
+            var first=fixture.GetProperty("first").Deserialize<BroadcastRevision>()!;
+            var second=fixture.GetProperty("second").Deserialize<BroadcastRevision>()!;
+            var source=Path.Combine(BroadcastUpdates.Slot(storage,first.Id),"revisions",first.Revision,"original.png");
+            var broadcastMain=new MainWindow();
+            var sourceJob=new ImageJob{SourcePath=source,Width=160,Height=100,Regions=[new(){Bounds=new(.1,.1,.5,.5),Clips=[new(){Duration=1,Options=new(){Kind=EffectKind.Glow}}]}]};
+            broadcastMain.ApplyDocument(new(){Jobs=[sourceJob]});
+            Call(broadcastMain,"DuplicateBroadcastSource",broadcastMain,new RoutedEventArgs());
+            var jobs=Field<ObservableCollection<ImageJob>>(broadcastMain,"_jobs");
+            Check(jobs.Count==2&&jobs[0].BroadcastId!=jobs[1].BroadcastId,"new broadcast duplicate receives its own identity");
+            Check(jobs[0].Regions[0].Clips[0].Options==jobs[1].Regions[0].Clips[0].Options,"broadcast duplicate retains effect options");
+            var manager=new BroadcastManagerWindow{Left=-16000,Top=-16000,ShowActivated=false,ShowInTaskbar=false,WindowStartupLocation=WindowStartupLocation.Manual};
+            manager.Show();Pump();
+            var type=typeof(BroadcastManagerWindow);
+            ((TextBox)type.GetField("_root",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(manager)!).Text=storage;
+            type.GetField("_prepared",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(manager,second);
+            var apply=Children<Button>(manager).First(button=>Equals(button.Content,"방송에 반영"));
+            apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+            Check(BroadcastUpdates.List(storage).First(binding=>binding.Active.Id==second.Id).Active==second,"manager apply button publishes the prepared revision");
+            var items=(ListBox)type.GetField("_items",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(manager)!;
+            items.SelectedIndex=items.Items.Cast<object>().ToList().FindIndex(item=>item.ToString()!.Contains(second.Id.ToString()));
+            Children<Button>(manager).First(button=>Equals(button.Content,"이전 버전 복구")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Pump();
+            Check(BroadcastUpdates.List(storage).First(binding=>binding.Active.Id==first.Id).Active==first,"manager rollback button restores the prior broadcast revision");
+            Check(manager.Title.Contains("SunjooAn")&&manager.Title.Contains(ProductInfo.Version),"broadcast manager displays creator and version");
+            manager.Close();
+            Console.WriteLine($"RESULT {checks-failures.Count}/{checks} passed");
+            return failures.Count==0?0:1;
         }
         if(args.Contains("--project-sources"))
         {

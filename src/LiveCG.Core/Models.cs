@@ -187,6 +187,9 @@ public class ImageJob : INotifyPropertyChanged
 {
     private string _status = "영역 지정 대기", _detail = "";
     private double _progress;
+    public Guid BroadcastId { get; set; } = Guid.NewGuid();
+    public string SourceFingerprint { get; set; } = "";
+    public long SourceBytes { get; set; }
     public string SourcePath { get; set; } = "";
     public int Width { get; set; }
     public int Height { get; set; }
@@ -198,7 +201,7 @@ public class ImageJob : INotifyPropertyChanged
     [JsonIgnore] public string Detail { get => _detail; set { _detail = value; Changed(); } }
     [JsonIgnore] public double Progress { get => _progress; set { _progress = Math.Clamp(value, 0, 100); Changed(); } }
     [JsonIgnore] public string ProgressColor => Status == "실패" ? "#FF7386" : Status == "취소" ? "#E4AE60" : Status == "건너뜀" ? "#7891A5" : "#5DE2B1";
-    public ImageJob Snapshot() => new() { SourcePath = SourcePath, Width = Width, Height = Height, Regions = LayerGraph.Copy(Regions,false), Playback=Playback with{} };
+    public ImageJob Snapshot() => new() { BroadcastId = BroadcastId, SourceFingerprint = SourceFingerprint, SourceBytes = SourceBytes, SourcePath = SourcePath, Width = Width, Height = Height, Regions = LayerGraph.Copy(Regions,false), Playback=Playback with{} };
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Changed([CallerMemberName] string? property = null) => PropertyChanged?.Invoke(this, new(property));
 }

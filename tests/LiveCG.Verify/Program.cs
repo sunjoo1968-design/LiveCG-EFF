@@ -5,11 +5,13 @@ using LiveCG.Testing;
 using SkiaSharp;
 
 var root=Path.GetFullPath(args.FirstOrDefault()??Environment.CurrentDirectory);
+if(args.Contains("--broadcast-pixel")){using var pixelImage=SKBitmap.Decode(args.Last());var pixel=pixelImage.GetPixel(0,0);return pixel.Blue>200&&pixel.Red<30?0:1;}
 if(args.Contains("--browser-compare"))return BrowserCompare.Run(root);
 var folder=Path.Combine(root,"artifacts","v010-core");Directory.CreateDirectory(folder);
 Environment.SetEnvironmentVariable("LIVECG_DATA_DIR",Path.Combine(folder,"user-data"));
 var failures=new List<string>();var count=0;
 void Check(bool ok,string name){count++;Console.WriteLine((ok?"PASS ":"FAIL ")+name);if(!ok)failures.Add(name);}
+if(args.Contains("--broadcast-updates")){await BroadcastUpdateChecks.Run(folder,Check);Console.WriteLine($"RESULT {count-failures.Count}/{count} passed");return failures.Count==0?0:1;}
 ProjectSourceChecks.Run(folder,Check);
 if(args.Contains("--project-sources"))return failures.Count==0?0:1;
 void Reject(Action action,string name){try{action();Check(false,name);}catch(InvalidDataException){Check(true,name);}}

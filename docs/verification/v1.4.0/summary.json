@@ -1,0 +1,33 @@
+{
+  "Version": "1.4.0",
+  "Creator": "SunjooAn",
+  "Date": "2026-11-06",
+  "Core": 652,
+  "Wpf": 495,
+  "BroadcastTransfer": 14,
+  "BroadcastManager": 5,
+  "ChromiumUpdates": 10,
+  "ActualObsUpdates": 7,
+  "Passed": 1183,
+  "Total": 1183,
+  "BuildWarnings": 0,
+  "BuildErrors": 0,
+  "SourceImagesPublished": false,
+  "MigrationTest": "Synthetic projects, moved/renamed folders and source images, independent receiver storage; real OBS33 Studio Mode with isolated portable profile",
+  "Checks": [
+    "Immutable broadcast identity in saved projects and snapshots",
+    "Fingerprint-based source relink after folder/file renaming",
+    "Atomic on-air pointer replacement and rollback",
+    "Failed pointer replacement retains current binding",
+    "Transport integrity and path traversal rejection",
+    "Chromium local-file auto update and actual replacement pixels",
+    "Actual OBS activation replay, preview wait and update without reloading source"
+  ],
+  "Limitations": [
+    "Existing OBS packages require one initial switch to the managed entry.html",
+    "Moving receiver storage requires updating OBS local-file path",
+    "Changed image dimensions require checking OBS browser width/height",
+    "Fingerprint lookup needs saved fingerprints and unchanged source bytes; otherwise use manual relink",
+    "Earlier broadcast revisions remain in receiver storage"
+  ]
+}

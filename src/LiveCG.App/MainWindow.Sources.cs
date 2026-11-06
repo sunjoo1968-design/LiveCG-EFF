@@ -60,8 +60,8 @@ public partial class MainWindow
         {
             foreach (var job in _jobs.Where(j => !File.Exists(j.SourcePath)))
             {
-                var candidate = Path.Combine(dialog.FolderName, job.FileName);
-                if (File.Exists(candidate)) ApplySource(job, candidate, false);
+                var candidate = ProjectSources.Find(dialog.FolderName, job);
+                if (candidate is not null) ApplySource(job, candidate, false);
             }
             Notify("원본 연결 완료 · 미연결 " + _jobs.Count(j => !File.Exists(j.SourcePath)) + "개");
         }

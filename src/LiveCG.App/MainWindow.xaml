@@ -24,7 +24,7 @@
   <ScrollViewer Grid.Row="1" Margin="-3,0,0,8" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ToolbarMouseWheel"><StackPanel Orientation="Horizontal">
    <Button Content="＋ 이미지" Click="AddFiles"/><Button Content="폴더" Click="AddFolder"/><Button Content="새 작업" Click="NewProject"/>
    <Button Content="작업 열기" Click="OpenProject"/><Button Content="작업 저장" Click="SaveProject"/><Button Content="이동용 작업 저장" Click="SavePortableProject"/>
-   <Button Content="템플릿 저장" Click="SaveTemplate"/><Button Content="템플릿 적용" Click="ApplyTemplate"/>
+   <Button Content="방송 갱신 ZIP 저장" Click="ExportBroadcastUpdates"/><Button Content="방송 자료 관리" Click="OpenBroadcastManager"/><Button Content="새 방송 자료로 복제" Click="DuplicateBroadcastSource"/><Button Content="템플릿 저장" Click="SaveTemplate"/><Button Content="템플릿 적용" Click="ApplyTemplate"/>
    <Button Content="현재 옵션을 기본값으로 저장" Click="SaveDefaults"/><Button Content="기본값 복원" Click="ResetDefaults"/><Button Content="단축키 설정" Click="ConfigureShortcuts"/><Button Content="배치 초기화" Click="ResetWorkspace"/><Button Content="도움말" Click="ShowHelp"/>
   </StackPanel></ScrollViewer>
   <Grid Grid.Row="2" x:Name="EditorGrid">

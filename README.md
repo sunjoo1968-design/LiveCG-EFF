@@ -1,12 +1,26 @@
 # LiveCG-EFF
 
-**제작자 SunjooAn · 현재 버전 1.3.0 · Windows x64**
+**제작자 SunjooAn · 현재 버전 1.4.0 · Windows x64**
 
 이미지에서 마우스로 지정한 영역에 효과를 배치하고 **투명 WebM / OBS 브라우저 패키지**로 출력하는 라이브커머스 자막 편집기입니다. 가격 자동 탐지와 사운드는 포함하지 않습니다.
 
 ## 다운로드와 실행
 
-[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.3.0-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.4.0-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+
+## v1.4.0 두 PC 사이 방송 자료 갱신
+
+1. 작업용 PC에서 작업을 열고 PNG 교체와 효과 확인을 마칩니다. **방송 갱신 ZIP 저장**을 누르면 선택한 자료마다 ZIP이 생성되고 작업에 방송 자료 ID가 저장됩니다.
+2. 방송용 PC에서 같은 앱을 실행해 **방송 자료 관리 → 보관 폴더 선택 → 갱신 ZIP 가져오기**를 사용합니다. 준비 자료 미리보기로 확인하고 **방송에 반영**을 누릅니다.
+3. 최초에는 목록에서 해당 자료를 선택하고 **OBS HTML 경로 복사**로 복사한 entry.html을 OBS 브라우저의 로컬 파일로 등록합니다. 너비·높이는 관리창에 표시된 값으로 맞춥니다. OBS의 소스 종료/장면 활성화 새로고침 옵션은 끕니다.
+4. 다음 수정본은 같은 작업에서 출력해 방송용 PC로 전달합니다. 원본 이름·전달 ZIP 이름·작업 폴더가 바뀌어도 방송 ID로 기존 자료를 갱신합니다. 기본은 반복 종료 후 교체이며 **즉시 교체**도 선택할 수 있습니다.
+5. **이전 버전 복구**는 직전 반영 자료를 다시 요청합니다. 새 상품에 같은 효과를 쓰려면 **새 방송 자료로 복제**해 새 ID를 만든 뒤 이미지 교체와 작업 저장을 진행합니다.
+
+기존 OBS 패키지는 계속 사용할 수 있습니다. 방송 갱신 기능을 처음 적용할 때에는 관리창이 제공하는 새 entry.html을 OBS에 한 번 등록해야 합니다. 방송용 보관 폴더 자체를 이동하면 OBS 로컬 파일 경로를 다시 연결해야 합니다. 이름과 크기가 달라진 이미지는 반영 전 확인하세요.
+
+작업 저장 시 원본 파일 지문도 기록합니다. 작업 폴더 안에서 하위 폴더명이나 파일명이 바뀌면 같은 내용의 원본을 다시 찾습니다. 내용까지 바뀐 파일은 원본 다시 연결 또는 이미지 교체로 지정하세요.
+
+작업 파일을 보관해야 방송 ID가 다음 수정에도 유지됩니다. 이미지를 새로 가져오면 새 자료로 생성됩니다. 관리 도구는 ZIP을 검사하고 새 버전을 준비한 후 반영하며, OBS에는 준비가 끝난 화면을 교체합니다. 방송용 PC에서 관리창을 닫아도 고정 HTML의 갱신 감지는 계속 동작합니다. 이전 출력 자료는 보관 폴더에 남습니다.
 
 ## v1.3.0 작업 이동과 자료 교체
 
@@ -194,6 +208,6 @@ node .\tools\verify-obs-program.mjs .
 
 실제 브라우저 검증에는 Node24·Chrome, OBS 통합에는 OBS33 개발용 설치본이 필요합니다. 일반 배포 사용자에게는 필요하지 않습니다. OBS 검증은 별도 portable 설정을 쓰며 송출·녹화를 시작하지 않습니다. 네이티브/Canvas의 블러·글자 경계에는 소폭 차이가 있을 수 있습니다.
 
-[검증 요약](docs/verification/v1.2.3/summary.json) · [계획](docs/01-plan/features/region-redraw-digit-integrity.plan.md) · [설계](docs/02-design/features/region-redraw-digit-integrity.design.md) · [검토](docs/03-analysis/region-redraw-digit-integrity.analysis.md) · [완료 보고](docs/04-report/region-redraw-digit-integrity.report.md)
+[검증 요약](docs/verification/v1.4.0/summary.json) · [계획](docs/01-plan/features/broadcast-updates.plan.md) · [설계](docs/02-design/features/broadcast-updates.design.md) · [검토](docs/03-analysis/broadcast-updates.analysis.md) · [완료 보고](docs/04-report/broadcast-updates.report.md)
 
 외부 구성 요소의 제작자·라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), licenses 및 배포본의 FFmpeg/.NET 고지에 유지합니다. 개인 원본·작업·사용자 설정과 인증 정보는 공개하지 않습니다.
