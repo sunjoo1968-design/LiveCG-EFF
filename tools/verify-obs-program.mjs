@@ -12,6 +12,7 @@ await fs.writeFile(path.join(config,'plugin_config/obs-websocket/config.json'),J
 await fs.writeFile(path.join(config,'global.ini'),'[General]\nFirstRun=false\nLastVersion=553648128\nEnableAutoUpdates=false\n\n[Basic]\nProfile=LiveCGTest\nProfileDir=LiveCGTest\nSceneCollection=LiveCGTest\nSceneCollectionFile=LiveCGTest\n\n[BasicWindow]\nStudioMode=true\n');
 await fs.mkdir(path.join(config,'basic/profiles/LiveCGTest'),{recursive:true});await fs.writeFile(path.join(config,'basic/profiles/LiveCGTest/basic.ini'),'[General]\nName=LiveCGTest\n[Video]\nBaseCX=160\nBaseCY=100\nOutputCX=160\nOutputCY=100\nFPSType=0\nFPSCommon=30\n');
 const linkedMode=process.argv.includes("--linked-output");
+const digitPreview=process.argv.includes("--digit-preview");
 const updateMode=linkedMode||process.argv.includes("--broadcast-updates");
 let updateFixture=updateMode&&!linkedMode?JSON.parse(await fs.readFile(path.join(root,"artifacts/v010-core/broadcast/browser-test.json"),"utf8")):null;
 if(linkedMode){
@@ -20,9 +21,21 @@ if(linkedMode){
  updateFixture={entry:linked.entry,first:{Revision:decode(linked.firstPointer).revision},second:{Revision:decode(linked.secondPointer).revision}};
  await fs.writeFile(path.join(path.dirname(linked.entry),"pointer.js"),linked.firstPointer);
 }
-const folder=updateMode?path.dirname(updateFixture.entry):path.join(root,'artifacts/v010-core/한글 로컬 & 패키지.obs');
+const folder=digitPreview?path.join(root,'artifacts/digit-preview-test.obs'):updateMode?path.dirname(updateFixture.entry):path.join(root,'artifacts/v010-core/한글 로컬 & 패키지.obs');
+if(digitPreview){
+    await fs.cp(path.join(root,'artifacts/v010-core/redraw-price.obs'),folder,{recursive:true});
+    await fs.copyFile(path.join(root,'src/LiveCG.Core/Browser/player.js'),path.join(folder,'player.js'));
+    await fs.appendFile(path.join(folder,'data.js'),'\nLIVECG_DATA.plan.endFrame=42;\n');
+}
 const html=await fs.readFile(path.join(folder,updateMode&&!linkedMode?'entry.html':'index.html'),'utf8');
-const probe=html.replace('</body>','<script>setInterval(()=>{if(window.LiveCG)console.error("[OBS-PROBE] "+JSON.stringify({...LiveCG.status(),probe:"transition"}))},100);window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>');await fs.writeFile(path.join(folder,'obs-probe.html'),probe);if(linkedMode)await fs.writeFile(path.join(folder,'index.html'),probe);
+const priceProbe=digitPreview?`const original=new Image();original.src=LIVECG_DATA.source;let pixels;
+function originalPrice(){if(!original.complete||!original.naturalWidth)return null;const canvas=document.getElementById("livecg");
+if(!pixels){const ref=document.createElement("canvas");ref.width=canvas.width;ref.height=canvas.height;const ctx=ref.getContext("2d");ctx.drawImage(original,0,0);pixels=ctx.getImageData(0,0,ref.width,ref.height).data;}
+const live=canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data;
+return pixels.every((value,index)=>value===live[index]);}`:'function originalPrice(){return null;}';
+const probe=html.replace('</body>',`<script>${priceProbe}
+setInterval(()=>{if(window.LiveCG)console.error("[OBS-PROBE] "+JSON.stringify({...LiveCG.status(),probe:"transition",originalPrice:originalPrice()}))},100);
+window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>`);await fs.writeFile(path.join(folder,'obs-probe.html'),probe);if(linkedMode)await fs.writeFile(path.join(folder,'index.html'),probe);
 const child=spawn(path.join(portable,'bin/64bit/obs64.exe'),['--portable','--multi','--disable-updater','--disable-missing-files-check','--disable-shutdown-check','--minimize-to-tray'],{cwd:path.join(portable,'bin/64bit'),windowsHide:true,stdio:'ignore'});
 let ws,seq=0;const pending=new Map();let logFile;const renderCaptures=[];
 function request(requestType,requestData={}){return new Promise((resolve,reject)=>{const id=String(++seq),timer=setTimeout(()=>{pending.delete(id);reject(new Error('OBS timeout '+requestType));},7000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({op:6,d:{requestType,requestId:id,requestData}}));});}
@@ -112,16 +125,25 @@ try{
     for(const sceneName of ['LiveCG Blank','LiveCG Browser'])await request('CreateScene',{sceneName});
     const mode=await request('GetStudioModeEnabled');if(!mode.studioModeEnabled)await request('SetStudioModeEnabled',{studioModeEnabled:true});await request('SetCurrentProgramScene',{sceneName:'LiveCG Blank'});
     const inputName='LiveCG Program Probe';try{await request('RemoveInput',{inputName});}catch{}
-    await request('CreateInput',{sceneName:'LiveCG Browser',inputName,inputKind:'browser_source',inputSettings:{is_local_file:true,local_file:path.join(folder,'obs-probe.html'),width:160,height:100,fps_custom:true,fps:30,shutdown:false,restart_when_active:false},sceneItemEnabled:true});
+    const size=digitPreview?JSON.parse(await fs.readFile(path.join(folder,'manifest.json'),'utf8')):{width:160,height:100};
+    await request('CreateInput',{sceneName:'LiveCG Browser',inputName,inputKind:'browser_source',inputSettings:{is_local_file:true,local_file:path.join(folder,'obs-probe.html'),width:size.width,height:size.height,fps_custom:true,fps:30,shutdown:false,restart_when_active:false},sceneItemEnabled:true});
     await request('SetCurrentPreviewScene',{sceneName:'LiveCG Browser'});
     let rows=await waitProbe(s=>s.loaded);await sleep(700);rows=await samples();const last=rows.at(-1);const sourceState=await request('GetSourceActive',{sourceName:inputName});
     check(sourceState.videoShowing&&!sourceState.videoActive&&last?.loaded,'actual OBS preview is showing but not program-active before transition');
+    if(digitPreview)check(last?.originalPrice===true,'parked OBS preview displays original price pixels');
     const transitions=await request('GetSceneTransitionList');const cut=transitions.transitions.find(t=>t.transitionKind==='cut_transition');if(cut)await request('SetCurrentSceneTransition',{transitionName:cut.transitionName});
     const before=rows.length;await request('TriggerStudioModeTransition');rows=await waitProbe((s,i)=>s.programActive===true&&s.time<.3);await sleep(350);rows=await samples();const shown=rows.slice(before).filter(s=>s.programActive===true);
     check(shown.length>0&&shown[0].time<.3&&!shown[0].waitingForProgram,'actual preview-to-program transition starts entrance from frame zero');
+    if(digitPreview)check(shown.some(s=>s.originalPrice===false),'program displays rolling price pixels');
     await sleep(500);rows=await samples();check(rows.at(-1)?.time>.4,'actual program playback advances after the first entrance frame');
+    if(digitPreview){
+        rows=await waitProbe(s=>s.programActive&&s.phase==='완료'&&s.originalPrice===true);
+        check(rows.some(s=>s.programActive&&s.phase==='완료'&&s.originalPrice===true),'program stops on original price pixels');
+    }
     await request('SetCurrentPreviewScene',{sceneName:'LiveCG Blank'});await request('TriggerStudioModeTransition');await sleep(400);rows=await samples();check(rows.at(-1)?.waitingForProgram&&rows.at(-1)?.time<.01,'returning source to preview resets the waiting frame');
+    if(digitPreview)check(rows.at(-1)?.originalPrice===true,'returning to preview shows the original price again');
     await request('SetCurrentPreviewScene',{sceneName:'LiveCG Browser'});await sleep(700);const start=(await samples()).length;await request('TriggerStudioModeTransition');await sleep(500);rows=(await samples()).slice(start).filter(s=>s.programActive===true);check(rows.length>0&&rows[0].time<.3,'second actual program transition replays entrance even after a long preview');
+    if(!digitPreview){
     const reloadStart=(await samples()).length;await request('PressInputPropertiesButton',{inputName,propertyName:'refreshnocache'});await sleep(1000);rows=(await samples()).slice(reloadStart);check(rows.some(s=>s.loaded&&!s.waitingForProgram&&s.time>.1),'actual source refresh while program-active also starts playback');
     // Studio Mode may output a private scene copy; new inputs must be tested in the actual program scene.
     await request('SetStudioModeEnabled',{studioModeEnabled:false});await request('SetCurrentProgramScene',{sceneName:'LiveCG Browser'});
@@ -163,6 +185,6 @@ try{
     await fs.writeFile(path.join(restDir,'obs-rest.html'),restProbe);await request('CreateInput',{sceneName:'LiveCG Browser',inputName:'V1 Original Rest',inputKind:'browser_source',inputSettings:{is_local_file:true,local_file:path.join(restDir,'obs-rest.html'),width:160,height:100,shutdown:false,restart_when_active:false},sceneItemEnabled:true});
     let restReady=false;for(let i=0;i<100;i++){if((await fs.readFile(logFile,'utf8')).includes('[V1-REST]')){restReady=true;break;}await sleep(100);}check(restReady,'actual OBS loads named-entry package and reaches the rest phase');await sleep(150);
     const restShot=await request('GetSourceScreenshot',{sourceName:'V1 Original Rest',imageFormat:'png',imageWidth:160,imageHeight:100}),restActual=path.join(restDir,'actual-obs-rest.png');await fs.writeFile(restActual,Buffer.from(restShot.imageData.split(',')[1],'base64'));renderCaptures.push({package:'Actual OBS v1 original rest',premultiplied:true,time:1.8,expected:path.join(restDir,'original.png'),actual:restActual});check(restShot.imageData.startsWith('data:image/png;base64,'),'actual OBS rest captured for exact source comparison');
-}}catch(error){check(false,error.stack);}
+}}}catch(error){check(false,error.stack);}
 finally{if(ws)ws.close();await fs.writeFile(path.join(root,'artifacts/v010-obs-results.json'),JSON.stringify({passed:results.filter(r=>r.ok).length,total:results.length,log:logFile,results},null,2));await fs.writeFile(path.join(root,'artifacts/v010-obs-render-captures.json'),JSON.stringify(renderCaptures,null,2));child.kill();}
 console.log(`RESULT ${results.filter(r=>r.ok).length}/${results.length} passed`);process.exitCode=results.some(r=>!r.ok)?1:0;

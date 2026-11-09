@@ -280,8 +280,11 @@
     const activeStorageKey="LiveCG.programActive:"+data.sourceName;
     function storedActive(){try{const v=window.sessionStorage?.getItem(activeStorageKey);return v==="true"?true:v==="false"?false:null;}catch{return null;}}
     // OBS sends activation edges, but a newly opened/reloaded page may not receive its current state.
-    // Unknown state must autoplay; the next real program activation still restarts from zero.
-    let obsHost=!!window.obsstudio,programActive=obsHost?storedActive():null,waitingForProgram=obsHost&&data.playback.replayOnShow&&programActive===false;
+    const hasDigitRoll = data.regions.some(region => region.enabled && region.clips.some(
+        clip => clip.enabled && clip.options.kind === "DigitRoll"));
+    let obsHost=!!window.obsstudio,programActive=obsHost?storedActive():null;
+    const awaitingActivation = () => obsHost && (programActive === false || hasDigitRoll && programActive === null);
+    let waitingForProgram = data.playback.replayOnShow && awaitingActivation();
     const elapsed = () => waitingForProgram&&data.playback.replayOnShow?0:((pausedAt ?? performance.now()) - started) / 1000;
     const sample = e => {
         if (!plan.enabled) return { time: Math.min(e, END - 1 / fps), phase: e >= END ? "완료" : "전체 재생" };
@@ -309,12 +312,22 @@
     const names = new Set([data.source]);
     for (const a of data.assets) { for (const key of ["raw", "shape", "numericShape", "image", "backing", "erase", "fill"]) if(a[key])names.add(a[key]); for(const glyph of a.rollGlyphs??[])names.add(glyph.image); for (const m of a.masks) names.add(m.image);for(const route of a.routes??[])for(const icon of Object.values(route.icons))names.add(icon); }
     Promise.all([...names].map(name => new Promise((resolve, reject) => { const img = new Image(); img.onload = () => { images.set(name, img); resolve(); }; img.onerror = () => reject(new Error("이미지 로드 실패: " + name)); img.src = name; }))).then(() => {
-        loaded = true; api.restart();waitingForProgram=obsHost&&data.playback.replayOnShow&&programActive===false; const credit = document.getElementById("credit"); if (credit) credit.textContent = data.credit;
+        loaded = true; api.restart();waitingForProgram=data.playback.replayOnShow&&awaitingActivation(); const credit = document.getElementById("credit"); if (credit) credit.textContent = data.credit;
         document.title = "LiveCG-EFF · " + data.credit;
         function tick() {
             try {
                 const s = sample(manualElapsed??elapsed()), time = manualTime ?? s.time, frame = Math.floor(time * fps + 1e-7), rest=manualTime===null&&s.rest;
-                const key=frame+(rest?":rest":"");if (key !== lastFrame) { render(frame / fps,rest); lastFrame = key; }
+                // A parked OBS preview must show the source price, not the first animated digit frame.
+                const showOriginal = hasDigitRoll && awaitingActivation() && manualTime === null && manualElapsed === null;
+                const key = showOriginal ? "obs-preview-original" : frame + (rest ? ":rest" : "");
+                if (key !== lastFrame) {
+                    if (showOriginal) {
+                        ctx.resetTransform(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(image(data.source), 0, 0);
+                    } else render(frame / fps, rest);
+                    lastFrame = key;
+                }
                 const label = document.getElementById("status"); if (label) label.textContent = `${s.phase} · ${time.toFixed(2)}초`;
                 requestAnimationFrame(tick);
             } catch (error) { fail(error); }

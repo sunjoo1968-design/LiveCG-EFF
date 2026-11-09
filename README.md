@@ -1,12 +1,16 @@
 # LiveCG-EFF
 
-**제작자 SunjooAn · 현재 버전 1.5.1 · Windows x64**
+**제작자 SunjooAn · 현재 버전 1.5.2 · Windows x64**
 
 이미지에서 마우스로 지정한 영역에 효과를 배치하고 **투명 WebM / OBS 브라우저 패키지**로 출력하는 라이브커머스 자막 편집기입니다. 가격 자동 탐지와 사운드는 포함하지 않습니다.
 
 ## 다운로드와 실행
 
-[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.5.1-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+[최신 Windows 배포](https://github.com/sunjoo1968-design/LiveCG-EFF/releases/latest)에서 **LiveCG-EFF-1.5.2-win-x64.zip**을 받아 압축을 풀고 최상단 **LiveCG-EFF.exe**를 실행하세요. app / 사용안내 / licenses 폴더를 함께 보관하세요. .NET·SkiaSharp·FFmpeg가 포함되어 별도 런타임 설치가 필요하지 않습니다.
+
+## v1.5.2 OBS 프리뷰 가격 표시
+
+숫자 롤링 자료가 OBS 스튜디오 모드의 프리뷰에서 대기할 때 원본 가격을 표시합니다. 프로그램 화면으로 전환하면 설정에 따라 숫자 롤링을 처음부터 재생합니다. 기존 브라우저 소스에는 앱에서 작업을 열고 **저장·방송 갱신**을 한 번 실행해 적용하세요.
 
 ## v1.5.1 같은 폴더에 저장·방송 갱신
 
