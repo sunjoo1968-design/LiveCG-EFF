@@ -76,7 +76,7 @@ internal static class Program
             Call(staticWindow,"MarkEdited");
             Call(staticWindow,"UndoEdit",staticWindow,new RoutedEventArgs());
             Check(Field<ImageJob>(staticWindow,"_current").OutputPath==staticOutput,"undo preserves the already-saved output folder binding");
-            Check(staticSuccess&&File.Exists(Path.Combine(staticJob.OutputPath,"index.html")),"single action also refreshes a static image without effect regions");
+            Check(staticSuccess&&LinkedOutput.IsFlat(staticJob.OutputPath)&&File.Exists(staticJob.OutputPath),"single action also publishes a static image as a flat HTML");
             Check(job.Status=="방송 갱신 완료","single save-refresh action updates the linked output");
             Check(job.OutputPath==destination&&job.Regions[0].Clips[0].Id==before,"save-refresh retains output path and existing effects");
             var saved=DocumentStore.Load<ProjectDocument>(path);ProjectSources.Resolve(saved,path);

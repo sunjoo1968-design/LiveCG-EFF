@@ -4,6 +4,54 @@ using SkiaSharp;
 
 internal static class LinkedOutputChecks
 {
+    private static string Pointer(ImageJob job) => LinkedOutput.IsFlat(job.OutputPath)
+        ? Path.Combine(Path.GetDirectoryName(job.OutputPath)!, ".livecg", job.BroadcastId.ToString("N"), "pointer.js")
+        : Path.Combine(job.OutputPath, "pointer.js");
+
+    public static async Task RunFlat(string folder, Action<bool, string> check)
+    {
+        var origin = Directory.CreateDirectory(Path.Combine(folder, "flat-" + Guid.NewGuid().ToString("N"))).FullName;
+        var output = Path.Combine(origin, "공용 출력");
+        var source = Path.Combine(origin, "가격 #1.png");
+        var replacement = Path.Combine(origin, "새 가격.png");
+        using var bitmap = new SKBitmap(160, 100);
+        bitmap.Erase(SKColors.Red); SourceImage.SavePng(bitmap, source);
+        bitmap.Erase(SKColors.Blue); SourceImage.SavePng(bitmap, replacement);
+        var job = new ImageJob { SourcePath = source, Width = 160, Height = 100, Playback = PlaybackSections.NewDefault() };
+        job.OutputPath = LinkedOutput.Target(job, output);
+        var other = new ImageJob { SourcePath = replacement, Width = 160, Height = 100 };
+        other.OutputPath = LinkedOutput.Target(other, output);
+        var projectPath = Path.Combine(origin, "작업.livecg.json");
+        var video = new VideoOptions();
+        await LinkedOutput.ExportAsync(job, video, job.OutputPath, default);
+        await LinkedOutput.ExportAsync(other, video, other.OutputPath, default);
+        check(Directory.GetFiles(output).Order().SequenceEqual(new[] { job.OutputPath, other.OutputPath }.Order()) &&
+            Directory.GetDirectories(output).Single() == Path.Combine(output, ".livecg"), "two HTML sources share one data folder");
+        var firstPointer = File.ReadAllText(Pointer(job));
+        var otherPointer = File.ReadAllText(Pointer(other));
+        var loader = File.ReadAllText(job.OutputPath);
+        var changed = job.Snapshot();
+        ProjectSources.Update(changed, replacement, 160, 100, true);
+        await LinkedOutput.ExportAsync(changed, video, changed.OutputPath, default);
+        var secondPointer = File.ReadAllText(Pointer(job));
+        check(firstPointer != secondPointer && File.ReadAllText(job.OutputPath) == loader &&
+            File.ReadAllText(Pointer(other)) == otherPointer, "refresh changes only the bound source revision");
+        check(!Directory.EnumerateFiles(Path.Combine(output, ".livecg"), "*", SearchOption.AllDirectories)
+            .Any(path => Path.GetFileName(path).Contains("preview", StringComparison.OrdinalIgnoreCase) || Path.GetFileName(path) == "사용안내.txt"),
+            "compact revisions omit preview and guide files");
+        try { await LinkedOutput.ExportAsync(other, video, job.OutputPath, default); check(false, "same-name source cannot overwrite HTML"); }
+        catch (IOException) { check(File.ReadAllText(job.OutputPath) == loader, "same-name source cannot overwrite HTML"); }
+        var portable = ProjectSources.SavePortable(new() { Jobs = [job.Snapshot(), other.Snapshot()], Video = video }, folder);
+        var copied = DocumentStore.Load<ProjectDocument>(portable);
+        ProjectSources.Resolve(copied, portable);
+        check(copied.Jobs.All(j => File.Exists(Pointer(j))) &&
+            Path.GetDirectoryName(copied.Jobs[0].OutputPath) == Path.GetDirectoryName(copied.Jobs[1].OutputPath), "portable save copies HTML and shared data");
+        DocumentStore.Save(projectPath, ProjectSources.ForSave(new() { Jobs = [job.Snapshot()], Video = video }, projectPath));
+        File.WriteAllText(Pointer(job), firstPointer);
+        File.WriteAllText(Path.Combine(folder, "linked-browser-test.json"),
+            JsonSerializer.Serialize(new { entry = job.OutputPath, pointer = Pointer(job), firstPointer, secondPointer, projectPath }));
+    }
+
     public static async Task<object> Refresh(string folder)
     {
         using var fixture=JsonDocument.Parse(File.ReadAllText(Path.Combine(folder,"linked-browser-test.json")));
@@ -16,9 +64,9 @@ internal static class LinkedOutputChecks
         ProjectSources.Update(job,replacement,image.Width,image.Height,true);
         DocumentStore.Save(projectPath,ProjectSources.ForSave(new(){Jobs=[job.Snapshot()],Video=project.Video,OutputDirectory=project.OutputDirectory},projectPath));
         await LinkedOutput.ExportAsync(job,project.Video,job.OutputPath,default);
-        var pointer=File.ReadAllText(Path.Combine(job.OutputPath,"pointer.js"));
+        var pointer=File.ReadAllText(Pointer(job));
         using var json=JsonDocument.Parse(pointer.Substring("window.LiveCGUpdate(".Length,pointer.Length-"window.LiveCGUpdate(".Length-2));
-        return new{revision=json.RootElement.GetProperty("revision").GetString(),entry=Path.Combine(job.OutputPath,"index.html")};
+        return new{revision=json.RootElement.GetProperty("revision").GetString(),entry=LinkedOutput.Entry(job.OutputPath)};
     }
     public static object MoveScene(string folder, string scene)
     {
@@ -40,7 +88,7 @@ internal static class LinkedOutputChecks
         ProjectSources.Resolve(moved,movedProjectPath);
         var rebound=Path.Combine(target,"OBS_연결.json");
         var changed=ObsScenePaths.Relink(scene,rebound,moved);
-        return new{changed,entry=Path.Combine(moved.Jobs[0].OutputPath,"index.html"),scene=rebound};
+        return new{changed,entry=LinkedOutput.Entry(moved.Jobs[0].OutputPath),scene=rebound};
     }
     public static async Task Run(string folder, Action<bool, string> check)
     {

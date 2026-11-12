@@ -20,13 +20,14 @@ public partial class MainWindow
             if (string.IsNullOrWhiteSpace(OutputFolderBox.Text)) ChooseOutput(this, new RoutedEventArgs());
             if (string.IsNullOrWhiteSpace(OutputFolderBox.Text)) return;
             foreach (var job in jobs.Where(job => string.IsNullOrEmpty(job.OutputPath)))
-                job.OutputPath = Path.Combine(Path.GetFullPath(OutputFolderBox.Text), BrowserExporter.OutputName(job));
+                job.OutputPath = LinkedOutput.Target(job, Path.GetFullPath(OutputFolderBox.Text.Trim()));
         }
         try
         {
             if (jobs.Any(job => !File.Exists(job.SourcePath))) throw new FileNotFoundException("누락된 원본을 다시 연결하세요.");
             if (jobs.Select(job => Path.GetFullPath(job.OutputPath)).Distinct(StringComparer.OrdinalIgnoreCase).Count() != jobs.Count)
                 throw new InvalidOperationException("출력 폴더가 겹칩니다. 자료 이름이나 연결 폴더를 확인하세요.");
+            foreach (var job in jobs) LinkedOutput.CheckTarget(job.OutputPath, job.BroadcastId, true);
             DocumentStore.Save(_projectPath!, ProjectSources.ForSave(CaptureProject(), _projectPath!));
             SetBusy(true);
             _workCts = new();
@@ -42,7 +43,7 @@ public partial class MainWindow
                 ExportProgress.Value = 100d * (index + 1) / jobs.Count;
             }
             _dirty = false;
-            Notify("작업 저장·방송 갱신 완료 · 기존 index.html에서 자동 반영됩니다.");
+            Notify("작업 저장·방송 갱신 완료 · 등록된 OBS 소스에 자동 반영됩니다.");
         }
         catch (OperationCanceledException) { foreach (var job in jobs.Where(job => job.Status == "방송 갱신 중")) job.Status = "취소"; _dirty = true; Notify("방송 갱신을 취소했습니다. 완료된 자료는 유지됩니다."); }
         catch (Exception error) { foreach (var job in jobs.Where(job => job.Status == "방송 갱신 중")) { job.Status = "실패"; job.Detail = error.Message; } _dirty = true; Error(error); }

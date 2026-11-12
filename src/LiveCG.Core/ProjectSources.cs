@@ -10,12 +10,18 @@ public static class ProjectSources
             var candidate = Path.GetFullPath(job.SourcePath, folder);
             job.SourcePath = File.Exists(candidate) ? candidate : Find(folder, job) ?? candidate;
             var output = string.IsNullOrEmpty(job.OutputPath) ? "" : Path.GetFullPath(job.OutputPath, folder);
-            if (!string.IsNullOrEmpty(output) && BrowserExporter.IsPackage(output)) job.OutputPath = output;
+            if (!string.IsNullOrEmpty(output) && (LinkedOutput.MatchesFlat(output, job.BroadcastId) || BrowserExporter.IsPackage(output))) job.OutputPath = output;
             else
             {
                 var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
                 var manifests = Directory.EnumerateFiles(folder, "manifest.json", options).ToArray();
                 job.OutputPath = manifests.Select(Path.GetDirectoryName).FirstOrDefault(path => LinkedOutput.Matches(path!, job.BroadcastId)) ?? "";
+                if (job.OutputPath.Length == 0)
+                {
+                    var bindings = Directory.EnumerateFiles(folder, "binding.json", options)
+                        .Select(path => LinkedOutput.FindFlat(path, job.BroadcastId)).OfType<string>().Take(2).ToArray();
+                    if (bindings.Length == 1) job.OutputPath = bindings[0];
+                }
                 if (job.OutputPath.Length == 0)
                 {
                     var legacyMatches = manifests.Select(Path.GetDirectoryName).Where(path => LinkedOutput.MatchesLegacy(path!, job)).Take(2).ToArray();
@@ -25,6 +31,7 @@ public static class ProjectSources
                 {
                     var legacy = Path.Combine(Path.GetFullPath(project.OutputDirectory, folder), BrowserExporter.OutputName(job));
                     if (BrowserExporter.IsPackage(legacy)) job.OutputPath = legacy;
+                    else job.OutputPath = LinkedOutput.FindFlat(Path.Combine(Path.GetDirectoryName(legacy)!, ".livecg", job.BroadcastId.ToString("N"), "binding.json"), job.BroadcastId) ?? "";
                 }
             }
         }
@@ -74,7 +81,30 @@ public static class ProjectSources
             Fingerprint(job);
             File.Copy(job.SourcePath, path);
             job.SourcePath = Path.GetRelativePath(folder, path);
-            if (!string.IsNullOrEmpty(job.OutputPath) && BrowserExporter.IsPackage(job.OutputPath))
+            if (LinkedOutput.MatchesFlat(job.OutputPath, job.BroadcastId))
+            {
+                var output = Path.Combine(folder, "출력", Path.GetFileName(job.OutputPath));
+                if (File.Exists(output))
+                    output = Path.Combine(folder, "출력", (i + 1).ToString("D3"), Path.GetFileName(job.OutputPath));
+                Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+                File.Copy(job.OutputPath, output);
+                var slot = LinkedOutput.FlatStorage(job.OutputPath, job.BroadcastId);
+                foreach (var file in Directory.EnumerateFiles(slot, "*", SearchOption.AllDirectories))
+                {
+                    if (Path.GetFileName(file) == ".refresh.lock") continue;
+                    var copy = Path.Combine(LinkedOutput.FlatStorage(output, job.BroadcastId), Path.GetRelativePath(slot, file));
+                    Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
+                    File.Copy(file, copy);
+                }
+                if (OperatingSystem.IsWindows())
+                {
+                    var shared = Path.GetDirectoryName(LinkedOutput.FlatStorage(output, job.BroadcastId))!;
+                    File.SetAttributes(shared, File.GetAttributes(shared) | FileAttributes.Hidden);
+                }
+                if (!job.OutputAliases.Contains(job.OutputPath, StringComparer.OrdinalIgnoreCase)) job.OutputAliases.Add(job.OutputPath);
+                job.OutputPath = Path.GetRelativePath(folder, output);
+            }
+            else if (!string.IsNullOrEmpty(job.OutputPath) && BrowserExporter.IsPackage(job.OutputPath))
             {
                 var output = Path.Combine(folder, "출력", (i + 1).ToString("D3"), Path.GetFileName(job.OutputPath));
                 if (!job.OutputAliases.Contains(job.OutputPath, StringComparer.OrdinalIgnoreCase)) job.OutputAliases.Add(job.OutputPath);

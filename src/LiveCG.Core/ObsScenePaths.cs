@@ -7,8 +7,14 @@ public static class ObsScenePaths
     public static int Relink(string source, string destination, ProjectDocument project)
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var job in project.Jobs.Where(job => Directory.Exists(job.OutputPath)))
+        foreach (var job in project.Jobs.Where(job => Directory.Exists(job.OutputPath) || LinkedOutput.MatchesFlat(job.OutputPath, job.BroadcastId)))
         {
+            if (LinkedOutput.IsFlat(job.OutputPath))
+            {
+                foreach (var old in job.OutputAliases.Append(job.OutputPath).Where(path => Path.IsPathRooted(path) && LinkedOutput.IsFlat(path)))
+                    map[Path.GetFullPath(old)] = job.OutputPath;
+                continue;
+            }
             var names = Directory.GetFiles(job.OutputPath, "*index.html", SearchOption.TopDirectoryOnly).Select(Path.GetFileName).ToArray();
             foreach (var old in job.OutputAliases.Append(job.OutputPath).Where(Path.IsPathRooted))
                 foreach (var name in names)

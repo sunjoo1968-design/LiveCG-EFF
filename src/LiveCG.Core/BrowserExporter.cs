@@ -25,7 +25,7 @@ public sealed class BrowserExporter
         if(!overwrite)throw new IOException("같은 이름의 OBS 패키지가 있습니다.");
         if(!IsPackage(path))throw new IOException("LiveCG가 생성한 패키지가 아닌 폴더는 교체하지 않습니다: "+path);
     }
-    public async Task ExportAsync(ImageJob job,VideoOptions video,string target,bool overwrite,IProgress<double>? progress,CancellationToken cancellation)
+    public async Task ExportAsync(ImageJob job,VideoOptions video,string target,bool overwrite,IProgress<double>? progress,CancellationToken cancellation,bool compact=false)
     {
         cancellation.ThrowIfCancellationRequested();new ProjectDocument{Jobs=[job],Video=video}.Validate();
         var plan=PlaybackPlan.Create(job,video);target=Path.GetFullPath(target);CheckTarget(target,overwrite);
@@ -43,17 +43,17 @@ public sealed class BrowserExporter
             var payload=new{version=ProductInfo.Version,credit=ProductInfo.Credit,sourceName=job.FileName,width=job.Width,height=job.Height,fps=video.Fps,source="original.png",plan,playback=job.Playback,regions,assets,
                 seeds=job.Regions.SelectMany(r=>r.Clips).GroupBy(c=>c.Id).ToDictionary(g=>g.Key.ToString(),g=>unchecked((uint)g.Key.GetHashCode()))};
             await File.WriteAllTextAsync(Path.Combine(temporary,"data.js"),"window.LIVECG_DATA = "+JsonSerializer.Serialize(payload,Json)+";\n",Utf8,cancellation);
-            foreach(var name in new[]{"player.js","index.html","preview.html"})
+            foreach(var name in compact?new[]{"player.js","index.html"}:new[]{"player.js","index.html","preview.html"})
             {
                 using var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("LiveCG.Core.Browser."+name)??throw new FileNotFoundException("브라우저 출력 리소스가 없습니다: "+name);
                 using var reader=new StreamReader(stream);var html=await reader.ReadToEndAsync(cancellation);
                 if(name=="preview.html")html=html.Replace("OBS에는 index.html을 넣으세요.","OBS에는 "+System.Net.WebUtility.HtmlEncode(EntryName(job))+"을 넣으세요.").Replace("원본 PNG 변경", "원본 이미지 변경");
                 await File.WriteAllTextAsync(Path.Combine(temporary,name),html,Utf8,cancellation);
-                if(name.EndsWith(".html"))await File.WriteAllTextAsync(Path.Combine(temporary,name=="index.html"?EntryName(job):PreviewName(job)),html,Utf8,cancellation);
+                if(!compact&&name.EndsWith(".html"))await File.WriteAllTextAsync(Path.Combine(temporary,name=="index.html"?EntryName(job):PreviewName(job)),html,Utf8,cancellation);
             }
             var manifest=new{format=Marker,version=ProductInfo.Version,creator="SunjooAn",sourceName=job.FileName,entry=EntryName(job),preview=PreviewName(job),width=job.Width,height=job.Height,fps=video.Fps,sections=job.Playback};
             await File.WriteAllTextAsync(Path.Combine(temporary,"manifest.json"),JsonSerializer.Serialize(manifest,Json),Utf8,cancellation);
-            await File.WriteAllTextAsync(Path.Combine(temporary,"사용안내.txt"),Guide(job,video),Utf8,cancellation);
+            if(!compact)await File.WriteAllTextAsync(Path.Combine(temporary,"사용안내.txt"),Guide(job,video),Utf8,cancellation);
             cancellation.ThrowIfCancellationRequested();CheckTarget(target,overwrite);
             if(Directory.Exists(target))Directory.Move(target,backup);
             try{Directory.Move(temporary,target);}catch{if(Directory.Exists(backup)&&!Directory.Exists(target))Directory.Move(backup,target);throw;}

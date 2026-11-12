@@ -60,7 +60,7 @@ public partial class MainWindow
         {
             var p=PlaybackPlan.Create(job,_video);var suffix=duplicate.Contains(job.OutputName)?" ⚠ 출력 이름 중복":"";
             if(_video.Output!=OutputKind.Browser)lines.Add($"{Path.Combine(folder,job.OutputName)} · {p.WebmDuration:0.##}초 / {p.WebmFrameCount:N0}프레임{suffix}");
-            if(_video.Output!=OutputKind.Webm)lines.Add($"{Path.Combine(folder,BrowserExporter.OutputName(job),BrowserExporter.EntryName(job))} · "+(p.Enabled?$"등장 {((double)p.IntroFrames/p.Fps):0.##}초 / 반복 {((double)p.LoopFrames/p.Fps):0.##}초 + 쉬기 {((double)p.RestFrames/p.Fps):0.##}초 · 무한":$"전체 {p.Duration:0.##}초 · 1회")+suffix);
+            if(_video.Output!=OutputKind.Webm)lines.Add($"{LinkedOutput.Entry(LinkedOutput.Target(job,folder))} · "+(p.Enabled?$"등장 {((double)p.IntroFrames/p.Fps):0.##}초 / 반복 {((double)p.LoopFrames/p.Fps):0.##}초 + 쉬기 {((double)p.RestFrames/p.Fps):0.##}초 · 무한":$"전체 {p.Duration:0.##}초 · 1회")+suffix);
         }return lines;
     }
     private void ShowOutputPlan(object sender,RoutedEventArgs e)
@@ -72,7 +72,7 @@ public partial class MainWindow
     }
     private void OpenBrowserEntry(object sender,RoutedEventArgs e)
     {
-        if(_current is null)return;var entry=Path.GetFullPath(Path.Combine(OutputFolderBox.Text.Trim(),BrowserExporter.OutputName(_current),BrowserExporter.EntryName(_current)));
+        if(_current is null)return;var entry=Path.GetFullPath(LinkedOutput.Entry(LinkedOutput.Target(_current,OutputFolderBox.Text.Trim())));
         if(!File.Exists(entry)){Notify("OBS 패키지를 먼저 출력하세요.");return;}Process.Start(new ProcessStartInfo("explorer.exe"){Arguments="/select,\""+entry+"\"",UseShellExecute=true});
     }
 }

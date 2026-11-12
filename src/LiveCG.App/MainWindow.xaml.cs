@@ -441,7 +441,7 @@ public partial class MainWindow : Window
         }catch(Exception ex){Error(ex);}
     }
     private void ChooseOutput(object sender,RoutedEventArgs e)
-    {if(_busy)return;var dialog=new OpenFolderDialog{Title="출력 폴더 · WebM / OBS 패키지"};if(dialog.ShowDialog(this)==true){OutputFolderBox.Text=dialog.FolderName;foreach(var job in SelectedJobs())job.OutputPath="";_dirty=true;}}
+    {if(_busy)return;var dialog=new OpenFolderDialog{Title="출력 폴더 · WebM / 신규 OBS HTML"};if(dialog.ShowDialog(this)==true){OutputFolderBox.Text=dialog.FolderName;_dirty=true;}}
     private void OutputFolderChanged(object sender,TextChangedEventArgs e){if(!_loading)_dirty=true;}
 
     private async void ExportFiles(object sender,RoutedEventArgs e){if(!OutputExpander.IsExpanded){OutputExpander.IsExpanded=true;return;}await ExportAsync(ExportTargets());}
@@ -457,7 +457,7 @@ public partial class MainWindow : Window
             var output=Path.GetFullPath(OutputFolderBox.Text.Trim());Directory.CreateDirectory(output);
             var video=_video with{};var kinds=video.Output==OutputKind.Both?new[]{OutputKind.Webm,OutputKind.Browser}:new[]{video.Output};
             var encoder=kinds.Contains(OutputKind.Webm)?RuntimePaths.Ffmpeg:"";var snapshots=jobs.Select(j=>j.Snapshot()).ToList();
-            string Target(ImageJob j,OutputKind kind)=>kind==OutputKind.Browser&&!string.IsNullOrEmpty(j.OutputPath)?j.OutputPath:Path.Combine(output,kind==OutputKind.Browser?BrowserExporter.OutputName(j):j.OutputName);
+            string Target(ImageJob j,OutputKind kind)=>kind==OutputKind.Browser?LinkedOutput.Target(j,output):Path.Combine(output,j.OutputName);
             bool Exists(string path)=>File.Exists(path)||Directory.Exists(path);
             if(jobs.Any(j=>j.Regions.All(r=>r.Clips.Count==0))&&MessageBox.Show(this,"효과가 없는 파일은 정지 영상으로 출력합니다. 계속할까요?","출력 확인",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;
             var overwrite=false;var existing=jobs.Sum(j=>kinds.Count(k=>Exists(Target(j,k))));
@@ -466,7 +466,7 @@ public partial class MainWindow : Window
                 var result=MessageBox.Show(this,$"같은 이름 {existing}개: 예=덮어쓰기 / 아니요=건너뛰기 / 취소=중단","파일 충돌",MessageBoxButton.YesNoCancel);
                 if(result==MessageBoxResult.Cancel)return;overwrite=result==MessageBoxResult.Yes;
             }
-            foreach(var snapshot in snapshots){var plan=PlaybackPlan.Create(snapshot,video);if(kinds.Contains(OutputKind.Webm))plan.ValidateWebm();if(kinds.Contains(OutputKind.Browser)&&(!Exists(Target(snapshot,OutputKind.Browser))||overwrite))BrowserExporter.CheckTarget(Target(snapshot,OutputKind.Browser),overwrite);}
+            foreach(var snapshot in snapshots){var plan=PlaybackPlan.Create(snapshot,video);if(kinds.Contains(OutputKind.Webm))plan.ValidateWebm();if(kinds.Contains(OutputKind.Browser)&&(!Exists(Target(snapshot,OutputKind.Browser))||overwrite))LinkedOutput.CheckTarget(Target(snapshot,OutputKind.Browser),snapshot.BroadcastId,overwrite);}
             SetBusy(true);StopPlayback();_workCts=new();var token=_workCts.Token;var failures=0;var completed=0;
             try
             {
@@ -506,10 +506,10 @@ public partial class MainWindow : Window
         CloseWorkspace();_clock.Stop();(Resources["LayerThumbnail"] as IDisposable)?.Dispose();Preview.Dispose();foreach(var t in _thumbnails)t.Dispose();
     }
     private void ShowHelp(object sender,RoutedEventArgs e)=>MessageBox.Show(this,
-        "최초 제작: 이미지 추가 → 효과 적용 → 좌측 출력 설정에서 OBS 출력 → 작업 저장\n\n"+
-        "다른 PC 이전: 작업 파일·원본·출력 폴더를 함께 압축해 옮기세요. 작업을 열면 원본과 출력 폴더를 다시 찾습니다.\n\n"+
+        "최초 제작: 이미지 추가 → 효과 적용 → 좌측 출력 설정에서 OBS 출력 → 작업 저장. OBS에 자료명.html을 등록하세요.\n\n"+
+        "다른 PC 이전: 작업 파일·원본·출력 폴더를 함께 옮기세요. 출력 폴더의 숨김 .livecg 폴더도 필요합니다.\n\n"+
         "OBS 장면 경로가 바뀌었으면 작업 메뉴의 다른 PC OBS 연결에서 내보낸 장면 JSON을 선택하고, 생성된 연결 사본을 OBS에서 불러오세요.\n\n"+
-        "방송 중 수정: 작업 열기 → 이미지 교체 → 미리보기 확인 → 저장·방송 갱신. 연결된 같은 폴더의 index.html에 반영합니다.\n\n"+
+        "방송 중 수정: 작업 열기 → 이미지 교체 → 미리보기 확인 → 저장·방송 갱신. 등록한 OBS 경로에 반영합니다.\n\n"+
         "이전 버전에서 만든 출력은 새 버전으로 한 번 갱신하고 OBS 소스를 새로고침하세요. 이후부터 자동 반영됩니다.\n\n"+
         "템플릿·단축키는 편집·설정 메뉴에 있습니다. 세부 편집과 출력 안내는 배포 폴더의 사용안내/README.md를 참조하세요.\n\n"+
         ProductInfo.Credit,"사용법 · "+ProductInfo.Credit);

@@ -19,7 +19,7 @@ if(linkedMode){
  const linked=JSON.parse(await fs.readFile(path.join(root,"artifacts/v010-core/linked-browser-test.json"),"utf8"));
  const decode=text=>JSON.parse(text.slice("window.LiveCGUpdate(".length,-2));
  updateFixture={entry:linked.entry,first:{Revision:decode(linked.firstPointer).revision},second:{Revision:decode(linked.secondPointer).revision}};
- await fs.writeFile(path.join(path.dirname(linked.entry),"pointer.js"),linked.firstPointer);
+ await fs.writeFile(linked.pointer??path.join(path.dirname(linked.entry),"pointer.js"),linked.firstPointer);
 }
 const folder=digitPreview?path.join(root,'artifacts/digit-preview-test.obs'):updateMode?path.dirname(updateFixture.entry):path.join(root,'artifacts/v010-core/한글 로컬 & 패키지.obs');
 if(digitPreview){
@@ -27,7 +27,7 @@ if(digitPreview){
     await fs.copyFile(path.join(root,'src/LiveCG.Core/Browser/player.js'),path.join(folder,'player.js'));
     await fs.appendFile(path.join(folder,'data.js'),'\nLIVECG_DATA.plan.endFrame=42;\n');
 }
-const html=await fs.readFile(path.join(folder,updateMode&&!linkedMode?'entry.html':'index.html'),'utf8');
+const html=await fs.readFile(linkedMode?updateFixture.entry:path.join(folder,updateMode?'entry.html':'index.html'),'utf8');
 const priceProbe=digitPreview?`const original=new Image();original.src=LIVECG_DATA.source;let pixels;
 function originalPrice(){if(!original.complete||!original.naturalWidth)return null;const canvas=document.getElementById("livecg");
 if(!pixels){const ref=document.createElement("canvas");ref.width=canvas.width;ref.height=canvas.height;const ctx=ref.getContext("2d");ctx.drawImage(original,0,0);pixels=ctx.getImageData(0,0,ref.width,ref.height).data;}
@@ -35,7 +35,7 @@ const live=canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).
 return pixels.every((value,index)=>value===live[index]);}`:'function originalPrice(){return null;}';
 const probe=html.replace('</body>',`<script>${priceProbe}
 setInterval(()=>{if(window.LiveCG)console.error("[OBS-PROBE] "+JSON.stringify({...LiveCG.status(),probe:"transition",originalPrice:originalPrice()}))},100);
-window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>`);await fs.writeFile(path.join(folder,'obs-probe.html'),probe);if(linkedMode)await fs.writeFile(path.join(folder,'index.html'),probe);
+window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>`);if(linkedMode)await fs.writeFile(updateFixture.entry,probe);else await fs.writeFile(path.join(folder,'obs-probe.html'),probe);
 const child=spawn(path.join(portable,'bin/64bit/obs64.exe'),['--portable','--multi','--disable-updater','--disable-missing-files-check','--disable-shutdown-check','--minimize-to-tray'],{cwd:path.join(portable,'bin/64bit'),windowsHide:true,stdio:'ignore'});
 let ws,seq=0;const pending=new Map();let logFile;const renderCaptures=[];
 function request(requestType,requestData={}){return new Promise((resolve,reject)=>{const id=String(++seq),timer=setTimeout(()=>{pending.delete(id);reject(new Error('OBS timeout '+requestType));},7000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({op:6,d:{requestType,requestId:id,requestData}}));});}
@@ -55,7 +55,7 @@ async function verifyBroadcastUpdates(){
  for(const sceneName of ["Updates Blank","Updates Browser"])await request("CreateScene",{sceneName});
  if(!(await request("GetStudioModeEnabled")).studioModeEnabled)await request("SetStudioModeEnabled",{studioModeEnabled:true});
  await request("SetCurrentProgramScene",{sceneName:"Updates Browser"});
- await request("CreateInput",{sceneName:"Updates Browser",inputName:"Live Updates",inputKind:"browser_source",inputSettings:{is_local_file:true,local_file:path.join(folder,linkedMode?"index.html":"obs-probe.html"),width:160,height:100,shutdown:false,restart_when_active:false},sceneItemEnabled:true});
+ await request("CreateInput",{sceneName:"Updates Browser",inputName:"Live Updates",inputKind:"browser_source",inputSettings:{is_local_file:true,local_file:linkedMode?fixture.entry:path.join(folder,"obs-probe.html"),width:160,height:100,shutdown:false,restart_when_active:false},sceneItemEnabled:true});
  async function waitLast(predicate){
   for(let i=0;i<120;i++){const rows=await samples().catch(()=>[]),last=rows.at(-1);if(last&&predicate(last))return last;await sleep(100);}
   throw new Error("OBS update state timeout: "+JSON.stringify((await samples()).at(-1)));
