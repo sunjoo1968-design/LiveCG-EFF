@@ -452,12 +452,19 @@ public partial class MainWindow : Window
         if(jobs.Count==0){Notify("출력할 PNG가 없습니다.");return;}
         try
         {
-            if(jobs.Any(job=>!File.Exists(job.SourcePath))){Notify("출력 전에 누락된 원본을 다시 연결하세요.");return;} WebmExporter.ValidateOutputNames(jobs);
-            if(string.IsNullOrWhiteSpace(OutputFolderBox.Text)){ChooseOutput(this,new RoutedEventArgs());if(string.IsNullOrWhiteSpace(OutputFolderBox.Text))return;}
-            var output=Path.GetFullPath(OutputFolderBox.Text.Trim());Directory.CreateDirectory(output);
+            if(jobs.Any(job=>!File.Exists(job.SourcePath))){Notify("출력 전에 누락된 원본을 다시 연결하세요.");return;}
             var video=_video with{};var kinds=video.Output==OutputKind.Both?new[]{OutputKind.Webm,OutputKind.Browser}:new[]{video.Output};
+            if(kinds.Contains(OutputKind.Webm))
+            {
+                WebmExporter.ValidateOutputNames(jobs);
+                if(string.IsNullOrWhiteSpace(OutputFolderBox.Text)){ChooseOutput(this,new RoutedEventArgs());if(string.IsNullOrWhiteSpace(OutputFolderBox.Text))return;}
+            }
+            var output=OutputFolderBox.Text.Trim();
+            if(kinds.Contains(OutputKind.Webm)) Directory.CreateDirectory(output=Path.GetFullPath(output));
             var encoder=kinds.Contains(OutputKind.Webm)?RuntimePaths.Ffmpeg:"";var snapshots=jobs.Select(j=>j.Snapshot()).ToList();
-            string Target(ImageJob j,OutputKind kind)=>kind==OutputKind.Browser?LinkedOutput.Target(j,output):Path.Combine(output,j.OutputName);
+            string Target(ImageJob j,OutputKind kind)=>kind==OutputKind.Browser?LinkedOutput.SourceTarget(j,output):Path.Combine(output,j.OutputName);
+            if(kinds.Contains(OutputKind.Browser)&&jobs.Select(j=>Path.GetFullPath(Target(j,OutputKind.Browser))).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=jobs.Count)
+                throw new InvalidOperationException("OBS 출력 경로가 겹칩니다. 자료 이름이나 연결을 확인하세요.");
             bool Exists(string path)=>File.Exists(path)||Directory.Exists(path);
             if(jobs.Any(j=>j.Regions.All(r=>r.Clips.Count==0))&&MessageBox.Show(this,"효과가 없는 파일은 정지 영상으로 출력합니다. 계속할까요?","출력 확인",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;
             var overwrite=false;var existing=jobs.Sum(j=>kinds.Count(k=>Exists(Target(j,k))));
@@ -490,7 +497,7 @@ public partial class MainWindow : Window
                     job.Progress=100;job.Detail=string.Join("\n",written.Concat(errors));
                     if(errors.Count>0){job.Status="실패";failures++;}else if(skipped==kinds.Length)job.Status="건너뜀";else{job.Status="출력 완료";completed++;}
                 }
-                ExportProgress.Value=100;ProgressText.Text=$"완료 {completed} · 실패 {failures}";Notify($"출력 종료 · {output}");
+                ExportProgress.Value=100;ProgressText.Text=$"완료 {completed} · 실패 {failures}";Notify("출력 종료 · 자료 목록에서 출력 경로를 확인하세요.");
                 if(failures>0)MessageBox.Show(this,string.Join("\n",jobs.Where(j=>j.Status=="실패").Take(4).Select(j=>j.FileName+": "+j.Detail)),"실패 항목 · 재시도 가능");
             }
             catch(OperationCanceledException){foreach(var job in jobs.Where(j=>j.Status=="출력 중")){job.Status="취소";job.Detail="완료된 파일과 기존 출력은 유지합니다.";}Notify("출력을 취소했습니다.");}

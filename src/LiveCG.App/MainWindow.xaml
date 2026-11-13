@@ -80,7 +80,8 @@
       </UniformGrid>
       <Expander Header="정밀 설정 · 타임라인 끝 여유" Foreground="#A9BDCC"><StackPanel><TextBlock Text="편집 끝 여유 · 반복 사이 쉬기와 별도" FontSize="10"/><ComboBox x:Name="EndHoldBox" IsEditable="True" LostFocus="VideoOptionsChanged" SelectionChanged="VideoComboChanged"/></StackPanel></Expander>
       <Separator Margin="3,7"/><TextBlock Text="④ 저장 · 출력 대상" Style="{StaticResource OutputHeader}"/><ComboBox x:Name="ExportScopeBox"/>
-      <TextBlock Text="출력 폴더" Margin="3,5,0,0"/><TextBox x:Name="OutputFolderBox" TextChanged="OutputFolderChanged" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}"/>
+      <TextBlock Text="WebM 출력 폴더" Margin="3,5,0,0"/><TextBox x:Name="OutputFolderBox" TextChanged="OutputFolderChanged" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}"/>
+      <TextBlock Text="신규 OBS HTML은 원본 아래 ‘OBS 출력’에 저장" TextWrapping="Wrap" Margin="3,5,0,0"/>
       <WrapPanel><Button Content="폴더 선택" Click="ChooseOutput" Padding="8,6"/><Button Content="폴더 열기" Click="OpenOutputFolder" Padding="8,6"/><Button Content="OBS 파일 위치" Click="OpenBrowserEntry" Padding="8,6"/></WrapPanel>
       <Button Content="출력 예정 목록 확인" Click="ShowOutputPlan"/>
       <Separator Margin="3,7"/><TextBlock Text="⑤ 실행 · 진행" Style="{StaticResource OutputHeader}"/>

@@ -11,20 +11,23 @@ internal static class LinkedOutputChecks
     public static async Task RunFlat(string folder, Action<bool, string> check)
     {
         var origin = Directory.CreateDirectory(Path.Combine(folder, "flat-" + Guid.NewGuid().ToString("N"))).FullName;
-        var output = Path.Combine(origin, "공용 출력");
+        var output = Path.Combine(origin, "OBS 출력");
         var source = Path.Combine(origin, "가격 #1.png");
         var replacement = Path.Combine(origin, "새 가격.png");
         using var bitmap = new SKBitmap(160, 100);
         bitmap.Erase(SKColors.Red); SourceImage.SavePng(bitmap, source);
         bitmap.Erase(SKColors.Blue); SourceImage.SavePng(bitmap, replacement);
         var job = new ImageJob { SourcePath = source, Width = 160, Height = 100, Playback = PlaybackSections.NewDefault() };
-        job.OutputPath = LinkedOutput.Target(job, output);
+        job.OutputPath = LinkedOutput.SourceTarget(job, "");
         var other = new ImageJob { SourcePath = replacement, Width = 160, Height = 100 };
-        other.OutputPath = LinkedOutput.Target(other, output);
+        other.OutputPath = LinkedOutput.SourceTarget(other, Path.Combine(origin, "다른 출력"));
         var projectPath = Path.Combine(origin, "작업.livecg.json");
         var video = new VideoOptions();
         await LinkedOutput.ExportAsync(job, video, job.OutputPath, default);
         await LinkedOutput.ExportAsync(other, video, other.OutputPath, default);
+        var existing = job.Snapshot();
+        existing.OutputPath = "";
+        check(LinkedOutput.SourceTarget(existing, "") == job.OutputPath, "existing subfolder binding is reused even without a saved path");
         check(Directory.GetFiles(output).Order().SequenceEqual(new[] { job.OutputPath, other.OutputPath }.Order()) &&
             Directory.GetDirectories(output).Single() == Path.Combine(output, ".livecg"), "two HTML sources share one data folder");
         var firstPointer = File.ReadAllText(Pointer(job));

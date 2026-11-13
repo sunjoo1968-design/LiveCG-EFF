@@ -42,7 +42,8 @@ internal static class PlaybackUiChecks
         C<ComboBox>("OutputKindBox").SelectedIndex=2;Pump();check(F<VideoOptions>("_video").Output==OutputKind.Both,"both-output choice updates project options");
         var output=Path.Combine(folder,"dual-export-"+Guid.NewGuid().ToString("N"));C<TextBox>("OutputFolderBox").Text=output;
         var task=(Task)Call("ExportAsync",new List<ImageJob>{Job()})!;var frame=new DispatcherFrame();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(15)};timer.Tick+=(_,_)=>{if(task.IsCompleted){timer.Stop();frame.Continue=false;}};timer.Start();Dispatcher.PushFrame(frame);task.GetAwaiter().GetResult();
-        check(File.Exists(Path.Combine(output,"sections.webm"))&&File.Exists(Path.Combine(output,"sections.html"))&&Directory.Exists(Path.Combine(output,".livecg")),"main output command produces original-named WebM and HTML with shared browser data");
+        var obsOutput=Path.Combine(Path.GetDirectoryName(png)!,"OBS 출력");
+        check(File.Exists(Path.Combine(output,"sections.webm"))&&File.Exists(Path.Combine(obsOutput,"sections.html"))&&Directory.Exists(Path.Combine(obsOutput,".livecg")),"main output puts WebM in the chosen folder and OBS HTML under its original image folder");
         check(Job().Status=="출력 완료"&&Job().Detail.Contains(".webm")&&Job().Detail.Contains(".html"),"file progress reports both completed outputs");
         check(C<ListBox>("FileList").ContextMenu?.Items.OfType<MenuItem>().Any(i=>i.Header.ToString()!.Contains("이 파일 출력"))==true,"right-click selective output uses the shared output pipeline");
         C<ComboBox>("ExportScopeBox").SelectedIndex=2;check(((List<ImageJob>)Call("ExportTargets")!).Single()==Job(),"current-file scope stays independent of output format");

@@ -6,6 +6,19 @@ public static class LinkedOutput
 {
     public static bool IsFlat(string path) => Path.GetExtension(path).Equals(".html", StringComparison.OrdinalIgnoreCase) && !Directory.Exists(path);
 
+    public static string SourceOutputFolder(ImageJob job) =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(job.SourcePath))!, "OBS 출력");
+
+    public static string SourceTarget(ImageJob job, string previousFolder)
+    {
+        if (!string.IsNullOrEmpty(job.OutputPath)) return job.OutputPath;
+        var original = Path.GetDirectoryName(Path.GetFullPath(job.SourcePath))!;
+        var binding = Path.Combine(".livecg", job.BroadcastId.ToString("N"), "binding.json");
+        return FindFlat(Path.Combine(original, binding), job.BroadcastId)
+            ?? (!string.IsNullOrWhiteSpace(previousFolder) ? FindFlat(Path.Combine(Path.GetFullPath(previousFolder), binding), job.BroadcastId) : null)
+            ?? Target(job, SourceOutputFolder(job));
+    }
+
     public static string Target(ImageJob job, string folder)
     {
         if (!string.IsNullOrEmpty(job.OutputPath)) return job.OutputPath;

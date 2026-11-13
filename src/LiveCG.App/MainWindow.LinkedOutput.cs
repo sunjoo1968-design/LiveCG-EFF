@@ -15,19 +15,14 @@ public partial class MainWindow
         if (_projectPath is null && !SaveProjectInternal()) return;
         var jobs = _jobs.ToList();
         if (jobs.Count == 0) { Notify("갱신할 자료가 없습니다."); return; }
-        if (jobs.Any(job => string.IsNullOrEmpty(job.OutputPath)))
-        {
-            if (string.IsNullOrWhiteSpace(OutputFolderBox.Text)) ChooseOutput(this, new RoutedEventArgs());
-            if (string.IsNullOrWhiteSpace(OutputFolderBox.Text)) return;
-            foreach (var job in jobs.Where(job => string.IsNullOrEmpty(job.OutputPath)))
-                job.OutputPath = LinkedOutput.Target(job, Path.GetFullPath(OutputFolderBox.Text.Trim()));
-        }
         try
         {
             if (jobs.Any(job => !File.Exists(job.SourcePath))) throw new FileNotFoundException("누락된 원본을 다시 연결하세요.");
-            if (jobs.Select(job => Path.GetFullPath(job.OutputPath)).Distinct(StringComparer.OrdinalIgnoreCase).Count() != jobs.Count)
-                throw new InvalidOperationException("출력 폴더가 겹칩니다. 자료 이름이나 연결 폴더를 확인하세요.");
-            foreach (var job in jobs) LinkedOutput.CheckTarget(job.OutputPath, job.BroadcastId, true);
+            var targets = jobs.Select(job => LinkedOutput.SourceTarget(job, OutputFolderBox.Text.Trim())).ToArray();
+            if (targets.Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).Count() != jobs.Count)
+                throw new InvalidOperationException("OBS 출력 경로가 겹칩니다. 자료 이름이나 연결을 확인하세요.");
+            for (var i = 0; i < jobs.Count; i++) LinkedOutput.CheckTarget(targets[i], jobs[i].BroadcastId, true);
+            for (var i = 0; i < jobs.Count; i++) jobs[i].OutputPath = targets[i];
             DocumentStore.Save(_projectPath!, ProjectSources.ForSave(CaptureProject(), _projectPath!));
             SetBusy(true);
             _workCts = new();

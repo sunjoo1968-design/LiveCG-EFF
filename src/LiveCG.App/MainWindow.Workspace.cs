@@ -103,7 +103,15 @@ public partial class MainWindow
     }
     private void OpenOutputFolder(object sender,RoutedEventArgs e)
     {
-        try{var folder=OutputFolderBox.Text.Trim();if(Directory.Exists(folder))Process.Start(new ProcessStartInfo(folder){UseShellExecute=true});else Notify("출력 폴더를 먼저 지정하세요.");}catch(Exception ex){Error(ex);}
+        try
+        {
+            var folder = OutputFolderBox.Text.Trim();
+            if (_video.Output != OutputKind.Webm && _current is not null)
+                folder = Path.GetDirectoryName(LinkedOutput.Entry(LinkedOutput.SourceTarget(_current, folder)))!;
+            if (Directory.Exists(folder)) Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+            else Notify("먼저 자료를 출력하세요.");
+        }
+        catch (Exception ex) { Error(ex); }
     }
     private void PickBackgroundColor(object sender,RoutedEventArgs e)
     {
