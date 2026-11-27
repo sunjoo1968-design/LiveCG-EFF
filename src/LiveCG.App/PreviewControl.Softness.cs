@@ -37,10 +37,14 @@ public sealed partial class PreviewControl
         if(r.Locked)return;var handles=SoftHandles(r);
         for(var i=0;i<4;i++){if(!r.Softness.SeparateSides&&i!=1)continue;var at=Viewport.ToScreen(handles[i]);p.Style=SKPaintStyle.Fill;p.Color=SKColors.Orange;canvas.DrawCircle(at,5,p);p.Style=SKPaintStyle.Stroke;p.Color=SKColors.Black;p.StrokeWidth=1;canvas.DrawCircle(at,5,p);}
     }
+    private int HitSoftHandle(SKPoint screen)
+    {
+        if(!ShowSoftGuides||AddMode||SelectedMask is not null||SelectedRegion is not {Locked:false,Softness.Enabled:true} r||_source is null)return -1;
+        var handles=SoftHandles(r);for(var i=0;i<4;i++){if(!r.Softness.SeparateSides&&i!=1)continue;if(SKPoint.Distance(screen,Viewport.ToScreen(handles[i]))<=9)return i;}return -1;
+    }
     private bool TryBeginSoft(SKPoint screen)
     {
-        if(!ShowSoftGuides||AddMode||SelectedMask is not null||SelectedRegion is not {Locked:false,Softness.Enabled:true} r||_source is null)return false;
-        var handles=SoftHandles(r);for(var i=0;i<4;i++){if(!r.Softness.SeparateSides&&i!=1)continue;if(SKPoint.Distance(screen,Viewport.ToScreen(handles[i]))>9)continue;GestureStarted?.Invoke();_softTarget=r;_softBefore=r.Softness with{};_softSide=i;return true;}return false;
+        var i=HitSoftHandle(screen);if(i<0)return false;GestureStarted?.Invoke();_softTarget=SelectedRegion;_softBefore=SelectedRegion!.Softness with{};_softSide=i;return true;
     }
     private void MoveSoft(SKPoint screen)
     {

@@ -78,7 +78,9 @@ public sealed class TimelineControl : FrameworkElement
     {
         var allEnd=_job?.Regions.SelectMany(r=>r.Clips).Select(c=>c.End).DefaultIfEmpty(0).Max()??0;
         var end=_job is null?1:TimelineRules.Resolve(_job,_video).ActualDuration;
-        Width=Math.Max(680,LabelWidth+(Math.Max(6,Math.Ceiling(Math.Max(allEnd,end)+1)))*PixelsPerSecond+30);
+        var viewportWidth=Parent is System.Windows.Controls.ScrollViewer scroll&&scroll.ViewportWidth>0?scroll.ViewportWidth:0;
+        var targetWidth=Math.Max(Math.Max(680,viewportWidth),LabelWidth+(Math.Max(6,Math.Ceiling(Math.Max(allEnd,end)+1)))*PixelsPerSecond+30);
+        if(double.IsNaN(Width)||Math.Abs(Width-targetWidth)>.1)Width=targetWidth;
         Height=RulerHeight+Math.Max(1,Rows.Count)*RowHeight+8;
         InvalidateVisual();
     }

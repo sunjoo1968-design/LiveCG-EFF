@@ -14,7 +14,9 @@ public partial class MainWindow
     private EditorPreferences _editor=new();
     private readonly EditHistory _history=new();
     private sealed record CopiedClip(EffectClip Clip,int Row,double Offset);
+    private sealed record CopiedRegionBundle(Guid SourceJobId,int PrimaryIndex,List<EffectRegion> Regions,List<(Guid SourceId,double OriginY)> Origins);
     private List<CopiedClip>? _clipboard;
+    private CopiedRegionBundle? _regionClipboard;
     private bool _gestureActive,_gestureDirtyBefore,_restoring,_defaultLoop;
     private double _defaultLoopPeriod=1;
     private MotionDefinition? _defaultMotion;
@@ -67,10 +69,18 @@ public partial class MainWindow
         if(_busy)return;
         if(_selectedMask is not null){_maskClipboard=_selectedMask.Copy();_clipboard=null;Notify("마스크 복사 완료");return;}
         _maskClipboard=null;
-        if(_busy||_clip is null||!CommitClip(true))return;
+        if(_clip is null)
+        {
+            if(JobEffectBundle.CanCopy(_current)){CopyJobEffectsFrom(_current);}
+            return;
+        }
+        if(!CommitClip(true))return;
         var selected=TimelineEditor.SelectedClips.ToList();if(selected.Count==0)selected.Add((_region!,_clip));
         var rows=LayerGraph.Rows(_current!.Regions).Where(r=>r.Mask is null).Select(r=>r.Region).ToList();var firstRow=selected.Min(x=>rows.IndexOf(x.Region));var firstTime=selected.Min(x=>x.Clip.Start);
-        _clipboard=selected.Select(x=>new CopiedClip(x.Clip.Copy(),rows.IndexOf(x.Region)-firstRow,x.Clip.Start-firstTime)).ToList();Notify($"{selected.Count}개 효과 복사 · 대상 영역과 커서에 시간/행 간격을 유지해 붙여넣습니다.");
+        _clipboard=selected.Select(x=>new CopiedClip(x.Clip.Copy(),rows.IndexOf(x.Region)-firstRow,x.Clip.Start-firstTime)).ToList();
+        _regionClipboard=null;
+        if(JobEffectBundle.FromJob(_current) is { } bundle){_jobEffectsClipboard=bundle;UpdateJobEffectButtons();}
+        Notify($"{selected.Count}개 효과 복사 · 타임라인 커서 또는 01 자료 목록에 붙여넣을 수 있습니다.");
     }
     private void PasteClip(object sender,RoutedEventArgs e)
     {
@@ -119,15 +129,107 @@ public partial class MainWindow
         }
         return false;
     }
+    private bool CopySelectedRegion()
+    {
+        if(_busy||_region is null||_current is null||!CommitClip(true)||!CommitRegion(true))return false;
+        var source=_current.Regions.Where(r=>r.Id==_region.Id||r.ParentId==_region.Id).ToList();
+        var snapshots=source.Select(r=>r.Copy(false)).ToList();
+        var origins=source.Select(r=>(r.Id,r.Bounds.Y)).ToList();
+        _regionClipboard=new(_current.BroadcastId,source.IndexOf(_region),snapshots,origins);
+        _clipboard=null;
+        if(JobEffectBundle.FromJob(_current) is { } bundle){_jobEffectsClipboard=bundle;UpdateJobEffectButtons();}
+        Notify("영역 복사 완료 · Ctrl+V로 붙여넣은 뒤 Shift+드래그로 수평 이동할 수 있습니다.");
+        return true;
+    }
+    private bool PasteCopiedRegion()
+    {
+        if(_busy||_current is null||_regionClipboard is not { } bundle||!CommitClip(true)||!CommitRegion(true))return false;
+        if(_current.Regions.Count+bundle.Regions.Count>100){Notify("영역은 파일당 최대 100개입니다.");return false;}
+        var copies=LayerGraph.Copy(bundle.Regions);
+        var copy=copies[Math.Clamp(bundle.PrimaryIndex,0,copies.Count-1)];
+        var originalPrimary=bundle.Regions[Math.Clamp(bundle.PrimaryIndex,0,bundle.Regions.Count-1)];
+        if(originalPrimary.Role==RegionRole.EffectArea&&originalPrimary.ParentId is { } parentId&&_current.Regions.Any(r=>r.Id==parentId&&r.Role==RegionRole.Group))
+        {
+            copy.Role=RegionRole.EffectArea;
+            copy.ParentId=parentId;
+        }
+        copy.Name+=" 복사";
+        copy.Locked=false;
+        for(var i=0;i<copies.Count;i++)
+            Preview.RegisterCopiedRegion(copies[i].Id,bundle.Origins[i].SourceId,bundle.Origins[i].OriginY);
+        _current.Regions.InsertRange(0,copies);
+        RefreshRegionList();
+        SelectRegion(copy);
+        MarkEdited();
+        RefreshTimeline();
+        Notify("영역 붙여넣기 완료 · Shift를 누른 채 드래그하면 원본 영역과 같은 Y(수평선)로 이동합니다.");
+        return true;
+    }
+    private static Key ActualKey(KeyEventArgs e)=>e.Key==Key.ImeProcessed?e.ImeProcessedKey:e.Key==Key.System?e.SystemKey:e.Key;
+    private bool ShouldRouteSpaceToPreview(DependencyObject? focus)
+    {
+        if(_busy||IsTextEditing(focus))return false;
+        if(focus is ComboBox { IsDropDownOpen:true } or MenuItem)return false;
+        return Preview.IsVisible&&(Preview.IsSpaceHeld||Preview.IsPanning||ReferenceEquals(focus,Preview)||Preview.IsMouseOver||PreviewPanel.IsMouseOver);
+    }
     private void EditorKeyDown(object sender,KeyEventArgs e)
-    {if(!e.Handled)e.Handled=HandleEditorKey(e.Key==Key.System?e.SystemKey:e.Key,Keyboard.Modifiers,Keyboard.FocusedElement as DependencyObject);}
+    {
+        var actualKey=ActualKey(e);
+        if(actualKey is Key.LeftShift or Key.RightShift)Preview.UpdateDragConstraint(true);
+        if(actualKey==Key.Space&&ShouldRouteSpaceToPreview(Keyboard.FocusedElement as DependencyObject))
+        {
+            if(!ReferenceEquals(Keyboard.FocusedElement,Preview))Preview.Focus();
+            Preview.SetSpaceHeld(true);
+            e.Handled=true;
+            return;
+        }
+        if(!e.Handled)e.Handled=HandleEditorKey(actualKey,Keyboard.Modifiers,Keyboard.FocusedElement as DependencyObject);
+    }
+    private void EditorKeyUp(object sender,KeyEventArgs e)
+    {
+        var actualKey=ActualKey(e);
+        if(actualKey is Key.LeftShift or Key.RightShift)
+            Preview.UpdateDragConstraint(Keyboard.IsKeyDown(Key.LeftShift)||Keyboard.IsKeyDown(Key.RightShift));
+        if(actualKey==Key.Space&&(Preview.IsSpaceHeld||ShouldRouteSpaceToPreview(Keyboard.FocusedElement as DependencyObject)))
+        {
+            Preview.SetSpaceHeld(false);
+            e.Handled=true;
+        }
+    }
+    private void WindowDeactivated(object? sender,EventArgs e)=>Preview.SetSpaceHeld(false);
+    private bool IsInMaterialPanel(DependencyObject? item)
+    {
+        while(item is not null)
+        {
+            if(ReferenceEquals(item,MaterialPanel))return true;
+            item=item is Visual?VisualTreeHelper.GetParent(item):LogicalTreeHelper.GetParent(item);
+        }
+        return false;
+    }
+    private bool IsInRegionSurface(DependencyObject? focus) =>
+        ReferenceEquals(focus,Preview)||Ancestor<PreviewControl>(focus)==Preview||Ancestor<ListBox>(focus)==RegionList;
     public bool HandleEditorKey(Key key,ModifierKeys modifiers,DependencyObject? focus)
     {
         if(_busy||IsTextEditing(focus))return false;
         var e=new RoutedEventArgs();
+        var inMaterialPanel=IsInMaterialPanel(focus);
+        var inRegionSurface=!inMaterialPanel&&_selectedMask is null&&IsInRegionSurface(focus);
         if(modifiers==ModifierKeys.Control||modifiers==(ModifierKeys.Control|ModifierKeys.Shift))
         {
-            if(key==Key.C)CopyClip(this,e);else if(key==Key.V)PasteClip(this,e);else if(key==Key.K)SplitClips(this,e);
+            if(key==Key.C&&modifiers==ModifierKeys.Control)
+            {
+                if(inMaterialPanel)CopyJobEffects(this,e);
+                else if(inRegionSurface&&_region is not null)CopySelectedRegion();
+                else CopyClip(this,e);
+            }
+            else if(key==Key.V&&modifiers==ModifierKeys.Control)
+            {
+                if(inMaterialPanel||(_jobEffectsClipboard is not null&&SelectedJobs().Count>1))PasteJobEffects(this,e);
+                else if((inRegionSurface||_clipboard is null)&&_regionClipboard is not null)PasteCopiedRegion();
+                else PasteClip(this,e);
+            }
+            else if(key==Key.D&&modifiers==ModifierKeys.Control&&_region is not null)DuplicateRegion(this,e);
+            else if(key==Key.K)SplitClips(this,e);
             else if(key==Key.Z){if(modifiers.HasFlag(ModifierKeys.Shift))RedoEdit(this,e);else UndoEdit(this,e);}
             else if(key==Key.Y)RedoEdit(this,e);else return false;
             return true;

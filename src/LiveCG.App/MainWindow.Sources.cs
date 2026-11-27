@@ -7,6 +7,162 @@ namespace LiveCG.App;
 
 public partial class MainWindow
 {
+    private JobEffectBundle? _jobEffectsClipboard;
+
+    private void UpdateJobEffectButtons()
+    {
+        if (CopyJobEffectsButton is not null) CopyJobEffectsButton.IsEnabled = !_busy;
+        var canPaste = !_busy && _jobEffectsClipboard is not null;
+        if (PasteJobEffectsButton is not null) PasteJobEffectsButton.IsEnabled = canPaste;
+        if (PasteJobEffectsMenu is not null) PasteJobEffectsMenu.IsEnabled = canPaste;
+    }
+
+    private void CopyJobEffects(object sender, RoutedEventArgs e)
+    {
+        var preferred = _current is not null && JobEffectBundle.CanCopy(_current)
+            ? _current
+            : SelectedJobs().FirstOrDefault(JobEffectBundle.CanCopy) ?? _current ?? SelectedJobs().FirstOrDefault();
+        CopyJobEffectsFrom(preferred);
+    }
+
+    public bool CopyJobEffectsFrom(ImageJob? source)
+    {
+        if (_busy) return false;
+        if (source is null)
+        {
+            Notify("효과를 복사할 자료를 먼저 선택하세요.");
+            return false;
+        }
+        if (ReferenceEquals(source, _current) && (!CommitClip(true) || !CommitRegion(true) || !CommitMask(true) || !CommitOutputTiming()))
+            return false;
+        var bundle = JobEffectBundle.FromJob(source);
+        if (bundle is null)
+        {
+            Notify("선택한 자료에 복사할 효과가 없습니다. 효과가 적용된 자료를 선택해 복사하세요.");
+            return false;
+        }
+        _jobEffectsClipboard = bundle;
+        UpdateJobEffectButtons();
+        Notify($"효과 묶음 복사 · {bundle.SourceFileName} (효과 {bundle.ClipCount}개) · 붙여넣을 자료를 선택한 뒤 ‘효과 붙여넣기’(Ctrl+V)를 누르세요.");
+        return true;
+    }
+
+    private void PasteJobEffects(object sender, RoutedEventArgs e) => PasteJobEffectsTo(SelectedJobs());
+
+    public int PasteJobEffectsTo(IReadOnlyList<ImageJob>? targets)
+    {
+        if (_busy) return 0;
+        if (_jobEffectsClipboard is not { } bundle)
+        {
+            Notify("먼저 효과가 있는 자료를 선택하고 ‘효과 복사’(Ctrl+C)를 실행하세요.");
+            return 0;
+        }
+        var selected = (targets is { Count: > 0 } ? targets : _current is null ? [] : new[] { _current })
+            .Where(job => _jobs.Contains(job))
+            .Distinct()
+            .ToList();
+        if (selected.Count == 0)
+        {
+            Notify("효과를 붙여넣을 대상 자료를 선택하세요.");
+            return 0;
+        }
+
+        var candidates = selected.Count > 1 && selected.Any(job => !bundle.IsUnchangedSource(job))
+            ? selected.Where(job => !bundle.IsUnchangedSource(job)).ToList()
+            : selected;
+        if (candidates.Count == 1 && bundle.IsUnchangedSource(candidates[0]))
+        {
+            Notify("현재 복사 원본 자료만 선택되어 있습니다. 붙여넣을 다른 자료를 선택하세요.");
+            return 0;
+        }
+
+        if (!CommitClip(true) || !CommitRegion(true) || !CommitMask(true) || !CommitOutputTiming())
+            return 0;
+
+        StopPlayback();
+        Preview.CancelGesture();
+        TimelineEditor.CancelGesture();
+        RecordEdit();
+
+        var applied = new List<ImageJob>(candidates.Count);
+        var createdRegionJobs = 0;
+        try
+        {
+            foreach (var job in candidates)
+            {
+                var outcome = bundle.ApplyDetailed(job);
+                if (outcome.Applied)
+                {
+                    applied.Add(job);
+                    if (outcome.CreatedRegions) createdRegionJobs++;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Error(ex);
+            return 0;
+        }
+
+        if (applied.Count == 0) return 0;
+
+        _dirty = true;
+        foreach (var job in applied)
+        {
+            job.Progress = 0;
+            job.Status = !File.Exists(job.SourcePath) ? "원본 다시 연결 필요" : $"효과 붙여넣기 · 영역 {job.Regions.Count}개";
+            job.Detail = string.IsNullOrEmpty(job.OutputPath) ? "" : "연결된 출력 · " + job.OutputPath;
+        }
+
+        if (_current is not null && applied.Contains(_current))
+        {
+            Preview.ModelChanged();
+            var keepRegion = _region is not null && _current.Regions.Contains(_region)
+                ? _region
+                : LayerGraph.Rows(_current.Regions).FirstOrDefault()?.Region;
+            _clip = null;
+            var priorRestoring = _restoring;
+            _restoring = true;
+            try
+            {
+                RegionList.ItemsSource = _current.Regions;
+                TimelineEditor.SetJob(_current, _video);
+                SelectRegion(keepRegion);
+                RefreshRegionList();
+                RegionList.Items.Refresh();
+                RefreshTimeline();
+                if (_clip is not null)
+                    Seek(Math.Min(ResolvedVideo.ActualDuration, _clip.Start + _clip.Duration * 0.45), true);
+            }
+            finally
+            {
+                _restoring = priorRestoring;
+            }
+        }
+
+        var previousLoading = _loading;
+        _loading = true;
+        try
+        {
+            FileList.Items.Refresh();
+            FileList.SelectedItems.Clear();
+            foreach (var item in selected)
+                FileList.SelectedItems.Add(item);
+        }
+        finally
+        {
+            _loading = previousLoading;
+        }
+
+        RecordEdit();
+        UpdateJobEffectButtons();
+        var regionNote = createdRegionJobs > 0
+            ? (createdRegionJobs == applied.Count ? " · 미지정 영역 자동 생성" : $" · 기존 영역 유지 / 미지정 {createdRegionJobs}개 영역 자동 생성")
+            : " · 이미지·위치·크기·레이어 유지";
+        Notify($"{applied.Count}개 자료에 효과 묶음 붙여넣기 완료{regionNote}");
+        return applied.Count;
+    }
+
     private ProjectDocument CaptureProject() => new()
     {
         Jobs = _jobs.Select(job => job.Snapshot()).ToList(),

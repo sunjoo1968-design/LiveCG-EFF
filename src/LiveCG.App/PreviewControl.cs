@@ -35,25 +35,31 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     private EffectScene? _scene;
     private ImageJob? _job;
     private SKRect _content;
-    private SKPoint _start, _oldPan;
+    private SKPoint _start, _panStart, _oldPan;
+    private SKPoint? _hoverPoint, _pendingDraftScreen, _lastScreen;
+    private SKPoint _pendingDraftImage;
+    private double? _horizontalGuideY;
+    private readonly Dictionary<Guid, (Guid SourceId, double FallbackY)> _copiedRegionOrigins = [];
     private NormalizedRect? _before;
     private EffectRegion? _dragRegion, _draft;
     private int _handle = -1;
-    private bool _panning;
+    private bool _panning, _spaceHeld, _addMode, _creatingMask, _showOverlays = true;
     private readonly List<SKPoint> _pathPoints=[];
     public PreviewViewport Viewport { get; } = new();
     private SKBitmap? _cachedFrame;private SKImage? _cachedImage;private (double Time,bool Effects,double Opacity,LoopRestMode? RestMode,long Revision)? _frameKey;private long _revision;
     public void ModelChanged(){_revision++;InvalidateVisual();}
     public int DigitCount(EffectRegion region)=>_scene?.DigitCount(region)??0;
     private EffectRegion? _selectedRegion;
-    public EffectRegion? SelectedRegion { get=>_selectedRegion;set{if(_selectedRegion?.Id!=value?.Id)SelectedPathPoint=-1;_selectedRegion=value;} }
-    public bool AddMode { get; set; }
+    public EffectRegion? SelectedRegion { get=>_selectedRegion;set{if(_selectedRegion?.Id!=value?.Id)SelectedPathPoint=-1;_selectedRegion=value;UpdateCursor();} }
+    public bool AddMode { get=>_addMode;set{if(_addMode==value)return;_addMode=value;UpdateCursor();InvalidateVisual();} }
+    public bool IsSpaceHeld => _spaceHeld;
+    public bool IsPanning => _panning;
     public bool ShowEffects { get; set; }
-    public bool ShowOverlays { get; set; } = true;
+    public bool ShowOverlays { get=>_showOverlays;set{_showOverlays=value;UpdateCursor();InvalidateVisual();} }
     public bool ShowAllRegions { get; set; }
     public RegionShape NewShape { get; set; }
     private bool _pickColorMode;
-    public bool PickColorMode { get=>_pickColorMode;set{_pickColorMode=value;Cursor=value?Cursors.Cross:Cursors.Arrow;if(!value)_pickPoint=null;InvalidateVisual();} }
+    public bool PickColorMode { get=>_pickColorMode;set{_pickColorMode=value;if(!value)_pickPoint=null;UpdateCursor();InvalidateVisual();} }
     private SKPoint? _pickPoint;
     public event Action<SKColor>? ColorPicked;
     public double Time { get; set; }
@@ -65,7 +71,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     public event Action<EffectRegion>? MaskCreated;
     public event Action? MaskEdited;
     public event Action? MaskDeleteRequested;
-    public bool CreatingMask { get; set; }
+    public bool CreatingMask { get=>_creatingMask;set{_creatingMask=value;UpdateCursor();InvalidateVisual();} }
     private MaskTrack? _selectedMask;
     public MaskTrack? SelectedMask { get=>_selectedMask;set{if(_selectedMask?.Id!=value?.Id)SelectedPathPoint=-1;_selectedMask=value;} }
     private MaskTrack? _maskDrag;
@@ -80,32 +86,165 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     public PreviewControl()
     {
         Focusable = true;
+        InputMethod.SetIsInputMethodEnabled(this, false);
         PaintSurface += Paint;
         SizeChanged += (_, _) => UpdateViewport();
+        MouseEnter += (_, e) => { SyncSpaceState(); _hoverPoint = PointAt(e); UpdateCursor(); };
         MouseDown += (_, e) =>
         {
             if(e.ChangedButton is not MouseButton.Left and not MouseButton.Middle)return;
-            Focus(); var p = PointAt(e);
+            SyncSpaceState();
+            Focus(); var p = PointAt(e); _hoverPoint = p;
+            var spacePan = e.ChangedButton == MouseButton.Middle || (e.ChangedButton == MouseButton.Left && (_spaceHeld || Keyboard.IsKeyDown(Key.Space)));
+            if(spacePan)
+            {
+                if(BeginPointer(p, true, false)){CaptureMouse();UpdateCursor();e.Handled=true;}
+                return;
+            }
             if(PickColorMode&&e.ChangedButton==MouseButton.Left)
-            {if(TrySampleColor(p,out var color)){PickColorMode=false;_pickPoint=null;ColorPicked?.Invoke(color);InvalidateVisual();}e.Handled=true;return;}
-            if(AddMode&&NewShape==RegionShape.Polygon&&e.ChangedButton==MouseButton.Left&&!Keyboard.IsKeyDown(Key.Space)){AddPathPoint(p,e.ClickCount>1);e.Handled=true;return;}
-            if (BeginPointer(p, e.ChangedButton == MouseButton.Middle || (e.ChangedButton == MouseButton.Left && Keyboard.IsKeyDown(Key.Space)), Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)))
-            { CaptureMouse(); e.Handled = true; }
+            {if(TrySampleColor(p,out var color)){PickColorMode=false;_pickPoint=null;ColorPicked?.Invoke(color);UpdateCursor();InvalidateVisual();}e.Handled=true;return;}
+            if(AddMode&&NewShape==RegionShape.Polygon&&e.ChangedButton==MouseButton.Left){AddPathPoint(p,e.ClickCount>1);e.Handled=true;return;}
+            if (BeginPointer(p, false, Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)))
+            { CaptureMouse(); UpdateCursor(); e.Handled = true; }
         };
-        MouseMove += (_, e) => { if(PickColorMode)HoverPointer(PointAt(e));else MovePointer(PointAt(e), Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)); };
-        MouseLeave+=(_,_)=>{_pickPoint=null;InvalidateVisual();};
-        MouseUp += (_, e) => { if (_softTarget is not null||_pointDragging||_dragRegion is not null || _draft is not null || _panning) { EndPointer(); ReleaseMouseCapture(); e.Handled = true; } };
-        MouseWheel += (_, e) => { ZoomAt(e.Delta > 0 ? 1.25 : .8, PointAt(e)); e.Handled = true; };
+        MouseMove += (_, e) =>
+        {
+            SyncSpaceState();
+            var p = PointAt(e); _hoverPoint = p;
+            if(PickColorMode && !_panning && !_spaceHeld) HoverPointer(p);
+            else MovePointer(p, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+            UpdateCursor();
+        };
+        MouseLeave+=(_,_)=>{_hoverPoint=null;_pickPoint=null;UpdateCursor();InvalidateVisual();};
+        MouseUp += (_, e) =>
+        {
+            if(e.ChangedButton is not MouseButton.Left and not MouseButton.Middle)return;
+            if (_panning || _pendingDraftScreen is not null || _softTarget is not null || _pointDragging || _dragRegion is not null || _draft is not null)
+            { EndPointer(); ReleaseMouseCapture(); UpdateCursor(); e.Handled = true; }
+        };
+        MouseWheel += (_, e) => { _hoverPoint = PointAt(e); ZoomAt(e.Delta > 0 ? 1.25 : .8, _hoverPoint); UpdateCursor(); e.Handled = true; };
         KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Escape) { PickColorMode=false;_pickPoint=null;CancelGesture(); ReleaseMouseCapture(); e.Handled = true; }
-            if(_draft?.Shape==RegionShape.Polygon&&e.Key==Key.Enter){FinishPath();e.Handled=true;}
-            if(_draft?.Shape==RegionShape.Polygon&&e.Key==Key.Back){RemovePathPoint();e.Handled=true;}
-            if(e.Key==Key.Delete&&PointEditMode){DeleteSelectedPathPoint();e.Handled=true;}
-            else if(e.Key==Key.Delete&&SelectedMask is not null){MaskDeleteRequested?.Invoke();e.Handled=true;}
-            else if (e.Key == Key.Delete && SelectedRegion is not null) { DeleteRequested?.Invoke(); e.Handled = true; }
+            var key = e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key == Key.System ? e.SystemKey : e.Key;
+            if (key is Key.LeftShift or Key.RightShift) UpdateDragConstraint(true);
+            if (key == Key.Space) { SetSpaceHeld(true); e.Handled = true; return; }
+            if (key == Key.Escape) { PickColorMode=false;_pickPoint=null;CancelGesture(); ReleaseMouseCapture(); UpdateCursor(); e.Handled = true; }
+            if(_draft?.Shape==RegionShape.Polygon&&key==Key.Enter){FinishPath();e.Handled=true;}
+            if(_draft?.Shape==RegionShape.Polygon&&key==Key.Back){RemovePathPoint();e.Handled=true;}
+            if(key==Key.Delete&&PointEditMode){DeleteSelectedPathPoint();e.Handled=true;}
+            else if(key==Key.Delete&&SelectedMask is not null){MaskDeleteRequested?.Invoke();e.Handled=true;}
+            else if (key == Key.Delete && SelectedRegion is not null) { DeleteRequested?.Invoke(); e.Handled = true; }
         };
-        LostMouseCapture += (_, _) => { if (_softTarget is not null||_pointDragging||_dragRegion is not null || _draft is {Shape:not RegionShape.Polygon} || _panning) CancelGesture(); };
+        KeyUp += (_, e) =>
+        {
+            var key = e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key == Key.System ? e.SystemKey : e.Key;
+            if (key is Key.LeftShift or Key.RightShift)
+                UpdateDragConstraint(Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift));
+            if (key == Key.Space) { SetSpaceHeld(false); e.Handled = true; }
+        };
+        LostKeyboardFocus += (_, _) => { if (!Keyboard.IsKeyDown(Key.Space)) SetSpaceHeld(false); };
+        IsVisibleChanged += (_, _) => { if (!IsVisible) SetSpaceHeld(false); };
+        LostMouseCapture += (_, _) =>
+        {
+            if (_panning) { _panning = false; UpdateCursor(); return; }
+            if (_pendingDraftScreen is not null) { _pendingDraftScreen = null; UpdateCursor(); return; }
+            if (_softTarget is not null || _pointDragging || _dragRegion is not null || _draft is { Shape: not RegionShape.Polygon }) CancelGesture();
+        };
+    }
+    public void RegisterCopiedRegion(Guid copiedRegionId, Guid sourceRegionId, double sourceY) =>
+        _copiedRegionOrigins[copiedRegionId] = (sourceRegionId, sourceY);
+    public void ClearCopiedRegions() => _copiedRegionOrigins.Clear();
+    public bool IsHorizontalGuideActive => _horizontalGuideY is not null && _dragRegion is not null;
+    public bool TryGetCopiedOriginY(EffectRegion region, out double originY)
+    {
+        originY = 0;
+        if (!_copiedRegionOrigins.TryGetValue(region.Id, out var info)) return false;
+        var liveSource = _job?.Regions.FirstOrDefault(r => r.Id == info.SourceId && r.Id != region.Id);
+        originY = liveSource?.Bounds.Y ?? info.FallbackY;
+        return true;
+    }
+    public void UpdateDragConstraint(bool constrain)
+    {
+        if (!_panning && _dragRegion is not null && _handle < 0 && _maskDrag is null && _lastScreen is { } screen)
+            MovePointer(screen, constrain);
+    }
+    private void SyncSpaceState()
+    {
+        if (_spaceHeld && !Keyboard.IsKeyDown(Key.Space)) _spaceHeld = false;
+    }
+    public void SetSpaceHeld(bool held)
+    {
+        if (_spaceHeld == held) { UpdateCursor(); return; }
+        _spaceHeld = held;
+        if (held && _pendingDraftScreen is { } startScreen && _job is not null && _source is not null)
+        {
+            _pendingDraftScreen = null;
+            _panning = true;
+            _panStart = startScreen;
+            _oldPan = Viewport.Pan;
+        }
+        UpdateCursor();
+        InvalidateVisual();
+    }
+    private int HitResizeHandle(SKPoint screen)
+    {
+        if (AddMode || _source is null) return -1;
+        if (SelectedMask is { } mask)
+        {
+            var maskHandles = Handles(Viewport.ToScreen(mask.Bounds));
+            return Array.FindIndex(maskHandles, h => Math.Abs(screen.X - h.X) <= 8 && Math.Abs(screen.Y - h.Y) <= 8);
+        }
+        if (SelectedRegion is { Locked: false } selected)
+        {
+            var handles = Handles(Viewport.ToScreen(selected.Bounds));
+            return Array.FindIndex(handles, h => Math.Abs(screen.X - h.X) <= 8 && Math.Abs(screen.Y - h.Y) <= 8);
+        }
+        return -1;
+    }
+    public void UpdateCursor()
+    {
+        if (_panning) { Cursor = PointerOverlay.GrabHandCursor; return; }
+        if (_spaceHeld) { Cursor = PointerOverlay.OpenHandCursor; return; }
+        if (PickColorMode) { Cursor = _pickPoint is { } at && TrySampleColor(at, out _) ? Cursors.None : Cursors.Cross; return; }
+        if (_job is null || _source is null) { Cursor = Cursors.Arrow; return; }
+        if (_draft is not null) { Cursor = Cursors.Cross; return; }
+        if (AddMode || CreatingMask || (ShowOverlays && _job.Regions.Count == 0))
+        {
+            Cursor = _hoverPoint is not { } p || Viewport.ImageRect.Contains(p) ? Cursors.Cross : Cursors.Arrow;
+            return;
+        }
+        if (ShowOverlays && _hoverPoint is { } hover)
+        {
+            if (HitSoftHandle(hover) >= 0) { Cursor = Cursors.SizeAll; return; }
+            if (PointEditMode && HitsPathEditTarget(hover)) { Cursor = Cursors.Cross; return; }
+            var handle = HitResizeHandle(hover);
+            if (handle >= 0)
+            {
+                Cursor = handle switch
+                {
+                    0 or 4 => Cursors.SizeNWSE,
+                    2 or 6 => Cursors.SizeNESW,
+                    1 or 5 => Cursors.SizeNS,
+                    _ => Cursors.SizeWE
+                };
+                return;
+            }
+            if (Viewport.ImageRect.Contains(hover))
+            {
+                if (SelectedMask is { } mask)
+                {
+                    var rect = Viewport.ToScreen(mask.Bounds);
+                    using var path = RegionMask.Create(mask.Shape, rect, mask.Points);
+                    if (path.Contains(hover.X, hover.Y)) { Cursor = Cursors.SizeAll; return; }
+                }
+                var imagePoint = Viewport.ToImage(hover);
+                var hitRegion = LayerGraph.Rows(_job.Regions).Where(r => r.Mask is null).Select(r => r.Region)
+                    .FirstOrDefault(r => LayerGraph.Visible(r, _job.Regions) && RegionMask.Contains(r, imagePoint, _source.Width, _source.Height));
+                if (hitRegion is not null) { Cursor = hitRegion.Locked ? Cursors.Arrow : Cursors.SizeAll; return; }
+                if (NewShape != RegionShape.Polygon) { Cursor = Cursors.Cross; return; }
+            }
+        }
+        Cursor = Cursors.Arrow;
     }
     private SKPoint PointAt(MouseEventArgs e) { var p = e.GetPosition(this); return new((float)p.X, (float)p.Y); }
     public void SetJob(ImageJob? job)
@@ -145,7 +284,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         if(!PickColorMode||_pickPoint is not { } at||_source is null||!TrySampleColor(at,out var color))return;
         PointerOverlay.Eyedropper(canvas,_source,Viewport.ToImage(at),at,(float)ActualWidth,(float)ActualHeight);
     }
-    public void HoverPointer(SKPoint point){_pickPoint=point;if(PickColorMode)Cursor=TrySampleColor(point,out _)?Cursors.None:Cursors.Cross;InvalidateVisual();}
+    public void HoverPointer(SKPoint point){_hoverPoint=point;_pickPoint=point;UpdateCursor();InvalidateVisual();}
 
     private void Paint(object? sender, SKPaintSurfaceEventArgs e)
     {
@@ -178,6 +317,20 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         DrawEyedropper(canvas);
         if (!ShowOverlays) return;
         for (var i = _job!.Regions.Count-1; i>=0; i--)if(LayerGraph.Visible(_job.Regions[i],_job.Regions))DrawRegion(canvas, _job.Regions[i], i, false);
+        if (_horizontalGuideY is { } guideY && _dragRegion is not null)
+        {
+            var screenY = Viewport.ToScreen(new SKPoint(0, (float)(guideY * _source.Height))).Y;
+            using var guidePaint = new SKPaint
+            {
+                Color = new SKColor(93, 226, 177, 210),
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 1.5f,
+                IsAntialias = true,
+                PathEffect = SKPathEffect.CreateDash([6f, 4f], 0)
+            };
+            canvas.DrawLine(Viewport.ImageRect.Left, screenY, Viewport.ImageRect.Right, screenY, guidePaint);
+            guidePaint.PathEffect?.Dispose();
+        }
         if(SelectedMask is { } mask)DrawRegion(canvas,new(){Id=mask.Id,Name="마스크 · "+mask.Name,Bounds=mask.Bounds,Shape=mask.Shape,Points=mask.Points},1,false);
         DrawPathHandles(canvas);
         DrawSoftGuides(canvas);
@@ -219,10 +372,10 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     public bool BeginPointer(SKPoint screen, bool pan = false, bool cycle = false)
     {
         if (_job is null || _source is null) return false;
-        if (!ShowOverlays && !pan) return false;
-        if(!pan&&AddMode&&NewShape==RegionShape.Polygon){AddPathPoint(screen);return false;}
-        _start = Viewport.ToImage(screen); _oldPan = Viewport.Pan;
-        if (pan) { _panning=true;_start=screen;return true; }
+        if (pan) { _panning = true; _panStart = screen; _oldPan = Viewport.Pan; _horizontalGuideY = null; UpdateCursor(); return true; }
+        if (!ShowOverlays) return false;
+        if(AddMode&&NewShape==RegionShape.Polygon){AddPathPoint(screen);return false;}
+        _start = Viewport.ToImage(screen); _oldPan = Viewport.Pan; _pendingDraftScreen = null; _lastScreen = screen; _horizontalGuideY = null;
         if(TryBeginSoft(screen))return true;
         if(!AddMode&&PointEditMode&&TryBeginPathEdit(screen))return true;
         if(!AddMode&&SelectedMask is { } mask)
@@ -250,15 +403,34 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         var hit = cycle&&hits.Count>0 ? hits[(hits.FindIndex(r=>r.Id==SelectedRegion?.Id)+1)%hits.Count] :
             hits.FirstOrDefault(r=>r.Id==SelectedRegion?.Id)??hits.FirstOrDefault();
         SelectedRegion=hit;RegionSelected?.Invoke(hit);InvalidateVisual();
-        if(hit is null||hit.Locked)return false;
+        if(hit is null)
+        {
+            if(NewShape==RegionShape.Polygon)return false;
+            _pendingDraftScreen=screen;_pendingDraftImage=_start;
+            return true;
+        }
+        if(hit.Locked)return false;
         GestureStarted?.Invoke();_dragRegion=hit;_before=hit.Bounds;return true;
     }
     public void MovePointer(SKPoint screen, bool constrain = false)
     {
+        if(_panning){Viewport.Pan=new(_oldPan.X+screen.X-_panStart.X,_oldPan.Y+screen.Y-_panStart.Y);ViewChanged?.Invoke();InvalidateVisual();return;}
+        _lastScreen = screen;
         if(_softTarget is not null){MoveSoft(screen);return;}
         if(_source is null)return;
-        if(_panning){Viewport.Pan=new(_oldPan.X+screen.X-_start.X,_oldPan.Y+screen.Y-_start.Y);ViewChanged?.Invoke();InvalidateVisual();return;}
         if(_pointDragging){MovePathPoint(screen);return;}
+        if(_pendingDraftScreen is { } pendingScreen && _job is not null)
+        {
+            if(SKPoint.Distance(screen,pendingScreen)<4)return;
+            _pendingDraftScreen=null;
+            if(_job.Regions.Count>=100){Message?.Invoke("영역은 파일당 최대 100개입니다.");return;}
+            _start=_pendingDraftImage;
+            var nx=Math.Clamp(_start.X/_source.Width,0,1);var ny=Math.Clamp(_start.Y/_source.Height,0,1);
+            GestureStarted?.Invoke();
+            _draft=new(){Name="영역 "+(_job.Regions.Count+1),Shape=NewShape,ContentOnly=!CreatingMask,CutoutEnabled=true,Bounds=new(nx,ny,.00001,.00001)};
+            _pathPoints.Clear();if(NewShape==RegionShape.Freehand)_pathPoints.Add(_start);
+            _before=_draft.Bounds;
+        }
         var point=Viewport.ToImage(screen);var dx=(point.X-_start.X)/_source.Width;var dy=(point.Y-_start.Y)/_source.Height;
         if(_draft is not null)
         {
@@ -276,7 +448,23 @@ public sealed partial class PreviewControl : SKElement, IDisposable
         }
         else if(_dragRegion is not null && _before is not null)
         {
-            _dragRegion.Bounds=_handle>=0?RegionGeometry.Resize(_before,_handle,dx,dy,_source.Width,_source.Height):RegionGeometry.Move(_before,dx,dy);
+            if (_handle >= 0)
+            {
+                _horizontalGuideY = null;
+                _dragRegion.Bounds = RegionGeometry.Resize(_before, _handle, dx, dy, _source.Width, _source.Height);
+            }
+            else if (_maskDrag is null && constrain && TryGetCopiedOriginY(_dragRegion, out var originY))
+            {
+                var alignedY = Math.Clamp(originY, 0, 1 - _before.Height);
+                var movedX = Math.Clamp(_before.X + dx, 0, 1 - _before.Width);
+                _dragRegion.Bounds = new NormalizedRect(movedX, alignedY, _before.Width, _before.Height);
+                _horizontalGuideY = alignedY;
+            }
+            else
+            {
+                _horizontalGuideY = null;
+                _dragRegion.Bounds = RegionGeometry.Move(_before, dx, dy);
+            }
             if(_maskDrag is not null){_maskDrag.Bounds=_dragRegion.Bounds;MaskEdited?.Invoke();}else RegionEdited?.Invoke();
         }
         else return;
@@ -284,10 +472,12 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     }
     public void EndPointer()
     {
-        if(EndSoft(true))return;
-        if(_pointDragging){EndPathEdit(true);return;}
-        if(_draft?.Shape==RegionShape.Polygon){_panning=false;return;}
-        if(_draft?.Shape==RegionShape.Freehand){FinishPath();return;}
+        if(_panning){_panning=false;_lastScreen=null;_horizontalGuideY=null;InvalidateVisual();ViewChanged?.Invoke();UpdateCursor();return;}
+        if(_pendingDraftScreen is not null){_pendingDraftScreen=null;_lastScreen=null;_horizontalGuideY=null;UpdateCursor();return;}
+        if(EndSoft(true)){_lastScreen=null;_horizontalGuideY=null;UpdateCursor();return;}
+        if(_pointDragging){EndPathEdit(true);_lastScreen=null;_horizontalGuideY=null;UpdateCursor();return;}
+        if(_draft?.Shape==RegionShape.Polygon){_lastScreen=null;_horizontalGuideY=null;UpdateCursor();return;}
+        if(_draft?.Shape==RegionShape.Freehand){FinishPath();_lastScreen=null;_horizontalGuideY=null;UpdateCursor();return;}
         var edited=_draft is not null||_dragRegion is not null;
         if(_draft is not null && _job is not null && _source is not null)
         {
@@ -296,7 +486,7 @@ public sealed partial class PreviewControl : SKElement, IDisposable
             else Message?.Invoke("지정 영역이 너무 작습니다. 2픽셀 이상 드래그하세요.");
         }
         if(_dragRegion is not null){if(_maskDrag is not null)MaskEdited?.Invoke();else RegionEdited?.Invoke();}
-        _draft=null;_dragRegion=null;_maskDrag=null;_before=null;_panning=false;_handle=-1;InvalidateVisual();ViewChanged?.Invoke();
+        _draft=null;_dragRegion=null;_maskDrag=null;_before=null;_lastScreen=null;_horizontalGuideY=null;_panning=false;_handle=-1;InvalidateVisual();ViewChanged?.Invoke();UpdateCursor();
         if(edited)GestureEnded?.Invoke(true);
     }
     public void AddPathPoint(SKPoint screen,bool finish=false)
@@ -325,12 +515,13 @@ public sealed partial class PreviewControl : SKElement, IDisposable
     }
     public void CancelGesture()
     {
-        if(EndSoft(false))return;
+        _pendingDraftScreen=null;
+        if(EndSoft(false)){_lastScreen=null;_horizontalGuideY=null;UpdateCursor();return;}
         if(_pointDragging)EndPathEdit(false);
         var edited=_draft is not null||_dragRegion is not null;
         if(_dragRegion is not null&&_before is not null)_dragRegion.Bounds=_before;
         if(_maskDrag is not null&&_before is not null){_maskDrag.Bounds=_before;MaskEdited?.Invoke();}_maskDrag=null;
-        _draft=null;_pathPoints.Clear();_dragRegion=null;_before=null;_panning=false;_handle=-1;AddMode=false;InvalidateVisual();ViewChanged?.Invoke();
+        _draft=null;_pathPoints.Clear();_dragRegion=null;_before=null;_lastScreen=null;_horizontalGuideY=null;_panning=false;_handle=-1;AddMode=false;InvalidateVisual();ViewChanged?.Invoke();UpdateCursor();
         if(edited){RegionEdited?.Invoke();GestureEnded?.Invoke(false);}
     }
     public void Dispose(){DisposeSoftGuides();_cachedImage?.Dispose();_cachedFrame?.Dispose();_scene?.Dispose();_source?.Dispose();_background?.Dispose();}
