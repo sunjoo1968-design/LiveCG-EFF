@@ -84,16 +84,17 @@ public partial class MainWindow
         TimelineEditor.CancelGesture();
         RecordEdit();
 
-        var applied = new List<ImageJob>(candidates.Count);
+        var prepared = new List<(ImageJob Job, ImageJob Updated)>(candidates.Count);
         var createdRegionJobs = 0;
         try
         {
             foreach (var job in candidates)
             {
-                var outcome = bundle.ApplyDetailed(job);
+                var updated = job.Snapshot();
+                var outcome = bundle.ApplyDetailed(updated);
                 if (outcome.Applied)
                 {
-                    applied.Add(job);
+                    prepared.Add((job, updated));
                     if (outcome.CreatedRegions) createdRegionJobs++;
                 }
             }
@@ -104,11 +105,17 @@ public partial class MainWindow
             return 0;
         }
 
-        if (applied.Count == 0) return 0;
+        if (prepared.Count == 0) return 0;
 
+        var applied = prepared.Select(item => item.Job).ToList();
         _dirty = true;
-        foreach (var job in applied)
+        foreach (var (job, updated) in prepared)
         {
+            if (job.Regions.Count == 0) job.Regions = updated.Regions;
+            else
+                for (var index = 0; index < job.Regions.Count; index++)
+                    job.Regions[index].Clips = updated.Regions[index].Clips;
+            job.Playback = updated.Playback;
             job.Progress = 0;
             job.Status = !File.Exists(job.SourcePath) ? "원본 다시 연결 필요" : $"효과 붙여넣기 · 영역 {job.Regions.Count}개";
             job.Detail = string.IsNullOrEmpty(job.OutputPath) ? "" : "연결된 출력 · " + job.OutputPath;

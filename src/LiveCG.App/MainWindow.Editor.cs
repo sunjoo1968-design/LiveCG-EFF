@@ -224,10 +224,12 @@ public partial class MainWindow
             }
             else if(key==Key.V&&modifiers==ModifierKeys.Control)
             {
-                if(inMaterialPanel||(_jobEffectsClipboard is not null&&SelectedJobs().Count>1))PasteJobEffects(this,e);
-                else if((inRegionSurface||_clipboard is null)&&_regionClipboard is not null)PasteCopiedRegion();
+                if(inMaterialPanel)PasteJobEffects(this,e);
+                else if(inRegionSurface&&_regionClipboard is not null)PasteCopiedRegion();
                 else PasteClip(this,e);
             }
+            else if(key==Key.C)CopyClip(this,e);
+            else if(key==Key.V)PasteClip(this,e);
             else if(key==Key.D&&modifiers==ModifierKeys.Control&&_region is not null)DuplicateRegion(this,e);
             else if(key==Key.K)SplitClips(this,e);
             else if(key==Key.Z){if(modifiers.HasFlag(ModifierKeys.Shift))RedoEdit(this,e);else UndoEdit(this,e);}
