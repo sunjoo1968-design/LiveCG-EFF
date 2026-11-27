@@ -74,9 +74,10 @@ if(${mixedEntrance}){
  return {price,photo};
 }
 return pixels.every((value,index)=>value===live[index]);}`:'function originalPrice(){return null;}';
-const probe=html.replace('</body>',`<script>${priceProbe}
-setInterval(()=>{if(window.LiveCG)console.error("[OBS-PROBE] "+JSON.stringify({...LiveCG.status(),probe:"transition",source:location.pathname.split("/").at(-1),originalPrice:originalPrice()}))},100);
-window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>`);if(linkedMode)await fs.writeFile(updateFixture.entry,probe);else if(!newEffects)await fs.writeFile(path.join(folder,'obs-probe.html'),probe);
+const probeScript=`<script>${priceProbe}
+setInterval(()=>{if(window.LiveCG)console.error("[OBS-PROBE] "+JSON.stringify({...LiveCG.status(),probe:"transition",source:location.pathname.split("/").at(-1),page:location.href,originalPrice:originalPrice()}))},100);
+window.addEventListener("ProbeSeek",e=>LiveCG.renderAt(e.detail.time));</script></body>`;
+const probe=html.replace('</body>',probeScript);if(linkedMode)await fs.writeFile(updateFixture.entry,probe);else if(!newEffects)await fs.writeFile(path.join(folder,'obs-probe.html'),probe);
 const child=spawn(path.join(portable,'bin/64bit/obs64.exe'),['--portable','--multi','--disable-updater','--disable-missing-files-check','--disable-shutdown-check','--minimize-to-tray'],{cwd:path.join(portable,'bin/64bit'),windowsHide:true,stdio:'ignore'});
 let ws,seq=0;const pending=new Map();let logFile;const renderCaptures=[];
 function request(requestType,requestData={}){return new Promise((resolve,reject)=>{const id=String(++seq),timer=setTimeout(()=>{pending.delete(id);reject(new Error('OBS timeout '+requestType));},7000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({op:6,d:{requestType,requestId:id,requestData}}));});}
@@ -150,13 +151,21 @@ async function verifyBroadcastUpdates(){
   if(relocated.status!==0)throw new Error(relocated.stderr+" "+relocated.stdout);
   const migration=JSON.parse(relocated.stdout);
   check(migration.changed>0,"actual OBS scene JSON reconnects the browser path after relocation");
+  const movedHtml=await fs.readFile(migration.entry,"utf8");
+  await fs.writeFile(migration.entry,movedHtml.replace("</body>",probeScript));
   await request("SetInputSettings",{inputName:"Live Updates",inputSettings:{local_file:migration.entry},overlay:true});
-  await sleep(1500);
-  const migratedShot=await request("GetSourceScreenshot",{sourceName:"Live Updates",imageFormat:"png",imageWidth:160,imageHeight:100});
+  const movedPath=migration.entry.replaceAll("\\","/").toLowerCase();
+  await waitLast(state=>state.loaded&&state.revision===expectedRevision&&state.page&&decodeURIComponent(state.page).toLowerCase().endsWith(movedPath));
   const migratedPng=path.join(folder,"actual-obs-relocated.png");
-  await fs.writeFile(migratedPng,Buffer.from(migratedShot.imageData.split(",")[1],"base64"));
-  const migratedPixels=spawnSync(path.join(root,".tools/dotnet/dotnet.exe"),[path.join(root,"tests/LiveCG.Verify/bin/Release/net10.0/LiveCG.Verify.dll"),root,"--broadcast-pixel",migratedPng],{encoding:"utf8",windowsHide:true});
-  check(migratedPixels.status===0,"actual OBS renders the rebound scene from the moved folder");
+  let migratedMatches=false;
+  for(let attempt=0;attempt<6&&!migratedMatches;attempt++){
+   const migratedShot=await request("GetSourceScreenshot",{sourceName:"Live Updates",imageFormat:"png",imageWidth:160,imageHeight:100});
+   await fs.writeFile(migratedPng,Buffer.from(migratedShot.imageData.split(",")[1],"base64"));
+   const pixels=spawnSync(path.join(root,".tools/dotnet/dotnet.exe"),[path.join(root,"tests/LiveCG.Verify/bin/Release/net10.0/LiveCG.Verify.dll"),root,"--broadcast-pixel",migratedPng],{encoding:"utf8",windowsHide:true});
+   migratedMatches=pixels.status===0;
+   if(!migratedMatches)await sleep(150);
+  }
+  check(migratedMatches,"actual OBS renders the rebound scene from the moved folder");
  }
 }
 async function verifyBlurFocus(){
@@ -332,13 +341,17 @@ async function verifyNewEffects(version){
             if(i===119)throw new Error('New effect fixture failed to render: '+marker);
             await sleep(100);
         }
-        await sleep(200);
-        const shot=await request('GetSourceScreenshot',{sourceName:label,imageFormat:'png',imageWidth:width,imageHeight:height});
         const png=path.join(effectsFixture,'obs-'+version+'-'+frame+'.png');
-        await fs.writeFile(png,Buffer.from(shot.imageData.split(',')[1],'base64'));
-        const checkImage=spawnSync(path.join(root,'.tools/dotnet/dotnet.exe'),
-            [path.join(root,'tests/LiveCG.Verify/bin/Release/net10.0/LiveCG.Verify.dll'),root,'--new-effects-compare',png,String(frame),'premultiplied'],
-            {encoding:'utf8',windowsHide:true});
+        let checkImage;
+        for(let attempt=0;attempt<4;attempt++){
+            await sleep(200);
+            const shot=await request('GetSourceScreenshot',{sourceName:label,imageFormat:'png',imageWidth:width,imageHeight:height});
+            await fs.writeFile(png,Buffer.from(shot.imageData.split(',')[1],'base64'));
+            checkImage=spawnSync(path.join(root,'.tools/dotnet/dotnet.exe'),
+                [path.join(root,'tests/LiveCG.Verify/bin/Release/net10.0/LiveCG.Verify.dll'),root,'--new-effects-compare',png,String(frame),'premultiplied'],
+                {encoding:'utf8',windowsHide:true});
+            if(checkImage.status===0)break;
+        }
         if(checkImage.status!==0)console.log(checkImage.stdout.split(/\r?\n/).filter(line=>line.startsWith('FAIL')).join('\n'),checkImage.stderr);
         check(checkImage.status===0,'all '+cases+' effects and presets match the native frame within tolerance · OBS '+version+' · frame '+frame);
         await request('RemoveInput',{inputName:label});

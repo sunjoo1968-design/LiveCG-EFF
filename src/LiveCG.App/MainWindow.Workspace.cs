@@ -15,7 +15,7 @@ public partial class MainWindow
 {
     private Window? _previewWindow,_effectsWindow;
     private WorkspaceState _workspace=new();private bool _focusMode,_shuttingDown,_workspaceReady;
-    private double _timelineHeight=245;
+    private double _timelineHeight=280;
     private IReadOnlyList<EffectAsset> _assets=[];
     private readonly List<EffectStudioWindow> _studios=[];
     public bool IsEditorFocused=>_focusMode;
@@ -28,9 +28,11 @@ public partial class MainWindow
         {
             if(Environment.GetEnvironmentVariable("LIVECG_DISABLE_WORKSPACE_RESTORE")=="1"){_workspaceReady=true;return;}
             _workspace=WorkspaceState.Load();_workspaceReady=true;
+            _leftPanelWidth=Math.Clamp(_workspace.LeftWidth,220,520);
+            _timelineHeight=Math.Clamp(_workspace.TimelineHeight,180,700);
             SetLayerPanelSize(_workspace.LayerPanelHeight,_workspace.RightWidth);
-            _workspace.Main?.Apply(this);EditorGrid.ColumnDefinitions[0].Width=new GridLength(Math.Clamp(_workspace.LeftWidth,240,450));
-            _timelineHeight=Math.Clamp(_workspace.TimelineHeight,170,700);AutoFocusCheck.IsChecked=_workspace.AutoFocus;OutputExpander.IsExpanded=false;
+            _workspace.Main?.Apply(this);
+            AutoFocusCheck.IsChecked=_workspace.AutoFocus;OutputExpander.IsExpanded=false;
             SetFocusMode(_workspace.FocusMode);
             if(_workspace.PreviewDetached)DetachPreview(this,new RoutedEventArgs());if(_workspace.EffectsDetached)DetachEffects(this,new RoutedEventArgs());
         };
@@ -38,24 +40,25 @@ public partial class MainWindow
     private void ToggleFocusMode(object sender,RoutedEventArgs e)=>SetFocusMode(!_focusMode);
     private void TimelineSplitter_DragCompleted(object sender,DragCompletedEventArgs e)
     {
+        _panelDragging=false;
         if(_focusMode||_previewWindow is not null)return;
-        _timelineHeight=Math.Clamp(EditorGrid.RowDefinitions[2].ActualHeight,170,700);SaveWorkspace();
+        if(!e.Canceled&&EditorGrid.RowDefinitions[2].ActualHeight>0)_timelineHeight=Math.Clamp(EditorGrid.RowDefinitions[2].ActualHeight,180,700);
+        ApplyPanelSizes();SaveWorkspace();
     }
     private void SetFocusMode(bool focus)
     {
-        if(!_focusMode&&_previewWindow is null&&EditorGrid.RowDefinitions[2].Height.IsAbsolute&&EditorGrid.RowDefinitions[2].ActualHeight>0)
-            _timelineHeight=Math.Clamp(EditorGrid.RowDefinitions[2].ActualHeight,170,700);
         _focusMode=focus;TimelinePanel.Visibility=focus?Visibility.Collapsed:Visibility.Visible;TimelineSplitter.Visibility=focus||_previewWindow is not null?Visibility.Collapsed:Visibility.Visible;
-        EditorGrid.RowDefinitions[2].MinHeight=focus?0:170;EditorGrid.RowDefinitions[2].Height=focus?new GridLength(0):new GridLength(_previewWindow is null?_timelineHeight:1,_previewWindow is null?GridUnitType.Pixel:GridUnitType.Star);
-        EditorGrid.RowDefinitions[1].Height=new GridLength(focus?0:7);FocusModeButton.Content=focus?"편집 완료 / 타임라인":"편집 크게";
+        EditorGrid.RowDefinitions[2].MinHeight=focus?0:180;EditorGrid.RowDefinitions[2].Height=focus?new GridLength(0):new GridLength(_previewWindow is null?_timelineHeight:1,_previewWindow is null?GridUnitType.Pixel:GridUnitType.Star);
+        EditorGrid.RowDefinitions[1].Height=new GridLength(focus||_previewWindow is not null?0:7);FocusModeButton.Content=focus?"편집 완료 / 타임라인":"편집 크게";
+        ApplyPanelSizes();
         if(_previewWindow is not null)_previewWindow.Activate();
     }
     private void AutoFocusChanged(object sender,RoutedEventArgs e){if(_workspaceReady)_workspace.AutoFocus=AutoFocusCheck.IsChecked==true;}
     private Window FloatPanel(Grid host,FrameworkElement panel,string title,WindowPlacement? placement,Action<WindowPlacement> restored)
     {
         host.Children.Remove(panel);var dock=new DockPanel();var back=new Button{Content="메인 화면으로 돌리기",HorizontalAlignment=HorizontalAlignment.Right};DockPanel.SetDock(back,Dock.Top);dock.Children.Add(back);dock.Children.Add(panel);
-        var window=new Window{Title=title+" · "+ProductInfo.Credit,Content=dock,Width=title.StartsWith("효과")?850:1100,Height=820,MinWidth=480,MinHeight=420,ResizeMode=ResizeMode.NoResize,Owner=this,Background=Background,Foreground=Foreground,WindowStartupLocation=WindowStartupLocation.CenterOwner};
-        back.Click+=(_,_)=>window.Close();window.PreviewKeyDown+=EditorKeyDown;
+        var window=new Window{Title=title+" · "+ProductInfo.Credit,Content=dock,Width=title.StartsWith("효과")?850:1100,Height=820,MinWidth=480,MinHeight=420,ResizeMode=ResizeMode.CanResize,Owner=this,Background=Background,Foreground=Foreground,WindowStartupLocation=WindowStartupLocation.CenterOwner};
+        back.Click+=(_,_)=>window.Close();window.PreviewKeyDown+=EditorKeyDown;window.PreviewKeyUp+=EditorKeyUp;window.Deactivated+=WindowDeactivated;
         if(panel==PreviewPanel)
         {
             window.AllowDrop=true;
@@ -72,30 +75,28 @@ public partial class MainWindow
         if(_busy)return;if(_previewWindow is not null){_previewWindow.Activate();return;}
         _previewWindow=FloatPanel(PreviewHost,PreviewPanel,"원본 편집",_workspace.Preview,saved=>
         {_workspace.Preview=saved;_previewWindow=null;EditorGrid.RowDefinitions[0].Height=new GridLength(1,GridUnitType.Star);SetFocusMode(_focusMode);});
-        EditorGrid.RowDefinitions[0].Height=new GridLength(0);SetFocusMode(_focusMode);
+        EditorGrid.RowDefinitions[0].MinHeight=0;EditorGrid.RowDefinitions[0].Height=new GridLength(0);SetFocusMode(_focusMode);
     }
     private void DetachEffects(object sender,RoutedEventArgs e)
     {
         if(_busy)return;if(_effectsWindow is not null){_effectsWindow.Activate();return;}
         _effectsWindow=FloatPanel(EffectsHost,EffectsPanel,"효과 보관함 / 클립",_workspace.Effects,saved=>
-        {_workspace.Effects=saved;_effectsWindow=null;foreach(var thumb in _thumbnails)thumb.Height=72;EditorGrid.ColumnDefinitions[4].MinWidth=300;EffectsWidthSplitter.Visibility=Visibility.Visible;EditorGrid.ColumnDefinitions[3].Width=new GridLength(10);ApplyPanelSizes();});
+        {_workspace.Effects=saved;_effectsWindow=null;foreach(var thumb in _thumbnails)thumb.Height=72;EditorGrid.ColumnDefinitions[4].MinWidth=280;EffectsWidthSplitter.Visibility=Visibility.Visible;EditorGrid.ColumnDefinitions[3].Width=new GridLength(10);ApplyPanelSizes();});
         foreach(var thumb in _thumbnails)thumb.Height=128;
-        _effectsWindow.MinHeight=580;EditorGrid.ColumnDefinitions[4].MinWidth=0;EditorGrid.ColumnDefinitions[4].Width=new GridLength(0);EditorGrid.ColumnDefinitions[3].Width=new GridLength(0);EffectsWidthSplitter.Visibility=Visibility.Collapsed;
+        _effectsWindow.MinHeight=580;EditorGrid.ColumnDefinitions[4].MinWidth=0;EditorGrid.ColumnDefinitions[4].MaxWidth=double.PositiveInfinity;EditorGrid.ColumnDefinitions[4].Width=new GridLength(0);EditorGrid.ColumnDefinitions[3].Width=new GridLength(0);EffectsWidthSplitter.Visibility=Visibility.Collapsed;ApplyPanelSizes();
     }
     private void ResetWorkspace(object sender,RoutedEventArgs e)
     {
-        if(_busy)return;AreaDetailsPopup.IsOpen=false;_previewWindow?.Close();_effectsWindow?.Close();SetLayerPanelSize(240,335);_timelineHeight=245;SetFocusMode(false);AutoFocusCheck.IsChecked=true;
-        EditorGrid.ColumnDefinitions[0].Width=new GridLength(280);EditorGrid.ColumnDefinitions[4].Width=new GridLength(335);OutputExpander.IsExpanded=false;Preview.Fit(false);_workspace=new();SaveWorkspace();
+        if(_busy)return;AreaDetailsPopup.IsOpen=false;_previewWindow?.Close();_effectsWindow?.Close();_leftPanelWidth=280;_timelineHeight=245;SetLayerPanelSize(240,335);SetFocusMode(false);AutoFocusCheck.IsChecked=true;
+        OutputExpander.IsExpanded=false;Preview.Fit(false);_workspace=new();SaveWorkspace();
     }
     private void SaveWorkspace()
     {
         if(!_workspaceReady)return;
-        if(!_focusMode&&_previewWindow is null&&EditorGrid.RowDefinitions[2].Height.IsAbsolute&&EditorGrid.RowDefinitions[2].ActualHeight>0)
-            _timelineHeight=Math.Clamp(EditorGrid.RowDefinitions[2].ActualHeight,170,700);
         _workspace.Main=WindowPlacement.Capture(this);_workspace.PreviewDetached=_previewWindow is not null;_workspace.EffectsDetached=_effectsWindow is not null;
-        _workspace.RightWidth=_rightPanelWidth;_workspace.LayerPanelHeight=_layerPanelHeight;
+        _workspace.RightWidth=_rightPanelWidth;_workspace.LayerPanelHeight=_layerPanelHeight;_workspace.LeftWidth=_leftPanelWidth;_workspace.TimelineHeight=_timelineHeight;
         if(_previewWindow is not null)_workspace.Preview=WindowPlacement.Capture(_previewWindow);if(_effectsWindow is not null)_workspace.Effects=WindowPlacement.Capture(_effectsWindow);
-        _workspace.FocusMode=_focusMode;_workspace.AutoFocus=AutoFocusCheck.IsChecked==true;_workspace.OutputExpanded=OutputExpander.IsExpanded;_workspace.LeftWidth=EditorGrid.ColumnDefinitions[0].ActualWidth;_workspace.TimelineHeight=_timelineHeight;
+        _workspace.FocusMode=_focusMode;_workspace.AutoFocus=AutoFocusCheck.IsChecked==true;_workspace.OutputExpanded=OutputExpander.IsExpanded;
         try{_workspace.Save();}catch(IOException ex){Notify("화면 배치 저장: "+ex.Message);}
     }
     private bool ConfirmStudiosClose()=>_studios.All(studio=>studio.ConfirmClose());
@@ -105,16 +106,39 @@ public partial class MainWindow
     {
         var menu=new ContextMenu();ImageJob? clicked=null;
         FileList.PreviewMouseRightButtonDown+=(_,e)=>
-        {var element=e.OriginalSource as DependencyObject;while(element is not null&&element is not ListBoxItem)element=element is Visual?VisualTreeHelper.GetParent(element):null;clicked=(element as ListBoxItem)?.DataContext as ImageJob;};
+        {
+            var element=e.OriginalSource as DependencyObject;while(element is not null&&element is not ListBoxItem)element=element is Visual?VisualTreeHelper.GetParent(element):null;
+            var item=element as ListBoxItem;clicked=item?.DataContext as ImageJob;
+            if(item is {IsSelected:true}&&FileList.SelectedItems.Count>1){item.Focus();e.Handled=true;}
+        };
         void Add(string name,Func<List<ImageJob>> targets){var item=new MenuItem{Header=name};item.Click+=async(_,_)=>await ExportAsync(targets());menu.Items.Add(item);}
         Add("이 파일 출력",()=>clicked is null?[]:[clicked]);Add("선택한 파일 출력",SelectedJobs);Add("전체 파일 출력",()=>_jobs.ToList());
+        menu.Items.Add(new Separator());
+        var copyEffects=new MenuItem{Header="효과 묶음 복사  Ctrl+C"};
+        copyEffects.Click+=(_,_)=>CopyJobEffectsFrom(clicked is not null&&JobEffectBundle.CanCopy(clicked)?clicked:_current is not null&&JobEffectBundle.CanCopy(_current)?_current:clicked??_current);
+        menu.Items.Add(copyEffects);
+        var pasteEffects=new MenuItem{Header="효과 묶음 붙여넣기  Ctrl+V"};
+        pasteEffects.Click+=(_,_)=>{var targets=SelectedJobs();if(clicked is not null&&!targets.Contains(clicked))targets=[clicked];PasteJobEffectsTo(targets);};
+        menu.Items.Add(pasteEffects);
         menu.Items.Add(new Separator());var open=new MenuItem{Header="출력 폴더 열기"};open.Click+=OpenOutputFolder;menu.Items.Add(open);
-        menu.Opened+=(_,_)=>{menu.Items.Cast<object>().OfType<MenuItem>().First().IsEnabled=clicked is not null&&!_busy;foreach(var item in menu.Items.Cast<object>().OfType<MenuItem>().Skip(1))item.IsEnabled=!_busy;var selected=(MenuItem)menu.Items[1];selected.Header=$"선택한 {SelectedJobs().Count}개 파일 출력";selected.IsEnabled=!_busy&&SelectedJobs().Count>0;};FileList.ContextMenu=menu;
         void SourceCommand(string name, Action action){var item=new MenuItem{Header=name};item.Click+=(_,_)=>action();menu.Items.Add(item);}
         menu.Items.Add(new Separator());
         SourceCommand("원본 다시 연결",()=>ChangeSource(clicked,false));
         SourceCommand("누락 원본 폴더 지정",RelinkFolder);
         SourceCommand("원본 이미지 교체",()=>ChangeSource(clicked,true));
+        menu.Opened+=(_,_)=>
+        {
+            foreach(var item in menu.Items.OfType<MenuItem>())item.IsEnabled=!_busy;
+            ((MenuItem)menu.Items[0]).IsEnabled=clicked is not null&&!_busy;
+            var selectedCount=SelectedJobs().Count;
+            var selected=(MenuItem)menu.Items[1];
+            selected.Header=$"선택한 {selectedCount}개 파일 출력";
+            selected.IsEnabled=!_busy&&selectedCount>0;
+            copyEffects.IsEnabled=!_busy&&(JobEffectBundle.CanCopy(clicked)||JobEffectBundle.CanCopy(_current)||SelectedJobs().Any(JobEffectBundle.CanCopy));
+            pasteEffects.Header=selectedCount>1?$"선택한 {selectedCount}개 자료에 효과 붙여넣기  Ctrl+V":"효과 묶음 붙여넣기  Ctrl+V";
+            pasteEffects.IsEnabled=!_busy&&_jobEffectsClipboard is not null&&(selectedCount>0||clicked is not null);
+        };
+        FileList.ContextMenu=menu;
     }
     private void OpenOutputFolder(object sender,RoutedEventArgs e)
     {

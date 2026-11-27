@@ -36,11 +36,6 @@ public partial class MainWindow : Window
         ContentRendered += CheckForUpdateOnStartup;
         var area=SystemParameters.WorkArea;MinWidth=Math.Min(MinWidth,area.Width*.9);MinHeight=Math.Min(MinHeight,area.Height*.9);
         Width=Math.Min(Width,area.Width*.95);Height=Math.Min(Height,area.Height*.95);
-        EditorGrid.SizeChanged+=(_,args)=>
-        {
-            var compact=args.NewSize.Height<500;
-            if(compact&&EditorGrid.RowDefinitions[2].Height.Value>280)EditorGrid.RowDefinitions[2].Height=new GridLength(260);
-        };
         Choices(FpsBox,[VideoOptions.DefaultFps.ToString(),"24","60"]);foreach(var quality in Qualities)QualityBox.Items.Add(quality);
         Choices(ShapeBox,["사각형","원 / 타원","둥근 사각형","자유손","포인트 펜"]);Choices(ExportScopeBox,["전체 파일","선택 파일","현재 파일"]);ExportScopeBox.SelectedIndex=0;
         Choices(LoopPeriodBox,["0.25","0.5","1","1.5","2","3","5"]);
@@ -82,7 +77,7 @@ public partial class MainWindow : Window
         RecordEdit();
     }
     private void Error(Exception ex){Notify(ex.Message);MessageBox.Show(this,ex.Message,"LiveCG-EFF · 확인",MessageBoxButton.OK,MessageBoxImage.Warning);}
-    private void SetBusy(bool busy){_busy=busy;TimelinePanel.IsEnabled=!busy;FileList.IsEnabled=!busy;ExportButton.IsEnabled=!busy;RetryButton.IsEnabled=!busy;CancelButton.IsEnabled=busy;OutputKindBox.IsEnabled=!busy;OutputFolderBox.IsEnabled=!busy;ExportScopeBox.IsEnabled=!busy;FpsBox.IsEnabled=!busy;QualityBox.IsEnabled=!busy;EndHoldBox.IsEnabled=!busy;if(MouseProperties.TryGetValue("EndHoldBox",out var mouse))mouse.IsEnabled=!busy;SetWorkspaceBusy(busy);RefreshOutputSettings();UpdateHistoryButtons();}
+    private void SetBusy(bool busy){_busy=busy;TimelinePanel.IsEnabled=!busy;FileList.IsEnabled=!busy;ExportButton.IsEnabled=!busy;RetryButton.IsEnabled=!busy;CancelButton.IsEnabled=busy;OutputKindBox.IsEnabled=!busy;OutputFolderBox.IsEnabled=!busy;ExportScopeBox.IsEnabled=!busy;FpsBox.IsEnabled=!busy;QualityBox.IsEnabled=!busy;EndHoldBox.IsEnabled=!busy;if(MouseProperties.TryGetValue("EndHoldBox",out var mouse))mouse.IsEnabled=!busy;SetWorkspaceBusy(busy);RefreshOutputSettings();UpdateHistoryButtons();UpdateJobEffectButtons();}
     private void RefreshFiles()=>CountText.Text=$"{_jobs.Count}개 이미지 · 직접 지정 / 파일별 진행 바";
     private List<ImageJob> SelectedJobs()=>FileList.SelectedItems.Cast<ImageJob>().ToList();
     private void QueueEdit(Action action)
@@ -258,7 +253,10 @@ public partial class MainWindow : Window
     {
         if(_busy||_region is null||_current is null||!CommitClip(true)||!CommitRegion(true))return;
         if(_current.Regions.Count>=100){Notify("영역은 파일당 최대 100개입니다.");return;}
-        var source=_current.Regions.Where(r=>r.Id==_region.Id||r.ParentId==_region.Id).ToList();if(_current.Regions.Count+source.Count>100){Notify("영역은 파일당 최대100개입니다.");return;}var copies=LayerGraph.Copy(source);var copy=copies[source.IndexOf(_region)];if(_region.Role==RegionRole.EffectArea){copy.Role=_region.Role;copy.ParentId=_region.ParentId;}copy.Name+=" 복사";copy.Locked=false;_current.Regions.InsertRange(0,copies);SelectRegion(copy);MarkEdited();RefreshTimeline();
+        var source=_current.Regions.Where(r=>r.Id==_region.Id||r.ParentId==_region.Id).ToList();if(_current.Regions.Count+source.Count>100){Notify("영역은 파일당 최대100개입니다.");return;}var copies=LayerGraph.Copy(source);var copy=copies[source.IndexOf(_region)];if(_region.Role==RegionRole.EffectArea){copy.Role=_region.Role;copy.ParentId=_region.ParentId;}copy.Name+=" 복사";copy.Locked=false;
+        for(var i=0;i<copies.Count;i++)Preview.RegisterCopiedRegion(copies[i].Id,source[i].Id,source[i].Bounds.Y);
+        _current.Regions.InsertRange(0,copies);RefreshRegionList();SelectRegion(copy);MarkEdited();RefreshTimeline();
+        Notify("영역 복제 완료 · Shift를 누른 채 드래그하면 원본 영역과 같은 Y(수평선)로 이동합니다.");
     }
     private void DeleteRegion(object sender,RoutedEventArgs e)
     {
@@ -359,11 +357,11 @@ public partial class MainWindow : Window
         if(ZoomText is null)return;ZoomText.Text=$"{Preview.Viewport.Scale*VisualTreeHelper.GetDpi(Preview).DpiScaleX*100:0}%";
         DrawModeButton.Content=Preview.AddMode?"✓ 그리기 모드":"＋ 직접 지정";
     }
-    private void ZoomIn(object sender,RoutedEventArgs e)=>Preview.ZoomAt(1.25);
-    private void ZoomOut(object sender,RoutedEventArgs e)=>Preview.ZoomAt(.8);
-    private void NativeZoom(object sender,RoutedEventArgs e)=>Preview.NativeSize();
-    private void FitContent(object sender,RoutedEventArgs e)=>Preview.Fit(true);
-    private void ResetZoom(object sender,RoutedEventArgs e)=>Preview.Fit(false);
+    private void ZoomIn(object sender,RoutedEventArgs e){Preview.ZoomAt(1.25);Preview.Focus();}
+    private void ZoomOut(object sender,RoutedEventArgs e){Preview.ZoomAt(.8);Preview.Focus();}
+    private void NativeZoom(object sender,RoutedEventArgs e){Preview.NativeSize();Preview.Focus();}
+    private void FitContent(object sender,RoutedEventArgs e){Preview.Fit(true);Preview.Focus();}
+    private void ResetZoom(object sender,RoutedEventArgs e){Preview.Fit(false);Preview.Focus();}
     private void TimelineZoomIn(object sender,RoutedEventArgs e)=>TimelineEditor.Zoom(1.25);
     private void TimelineZoomOut(object sender,RoutedEventArgs e)=>TimelineEditor.Zoom(.8);
     private void ChooseBackground(object sender,RoutedEventArgs e)
@@ -421,7 +419,7 @@ public partial class MainWindow : Window
     private void NewProject(object sender,RoutedEventArgs e)
     {
         if(_busy||!ConfirmDiscard())return;
-        _region=null;_clip=null;_current=null;_jobs.Clear();_projectPath=null;LoadUserDefaults();ShowVideo();DisplayJob(null);ShowEditorOptions();RefreshFiles();_dirty=false;ResetHistory();
+        _region=null;_clip=null;_current=null;_jobs.Clear();_projectPath=null;Preview.ClearCopiedRegions();LoadUserDefaults();ShowVideo();DisplayJob(null);ShowEditorOptions();RefreshFiles();_dirty=false;ResetHistory();
     }
     private void OpenProject(object sender,RoutedEventArgs e)
     {
@@ -439,7 +437,7 @@ public partial class MainWindow : Window
         _jobs.Clear();foreach(var job in document.Jobs){job.Status=File.Exists(job.SourcePath)?"작업 복원":"원본 다시 연결 필요";job.Detail=string.IsNullOrEmpty(job.OutputPath)?"":"연결된 출력 · "+job.OutputPath;_jobs.Add(job);}
         _video=document.Video;OutputFolderBox.Text=document.OutputDirectory;_loading=false;ShowVideo();RefreshFiles();
         DisplayJob(_jobs.FirstOrDefault());if(_jobs.Count>0){_loading=true;FileList.SelectedItem=_jobs[0];_loading=false;}
-        if(resetHistory)ResetHistory();
+        if(resetHistory){Preview.ClearCopiedRegions();ResetHistory();}
     }
     private void SaveTemplate(object sender,RoutedEventArgs e)
     {

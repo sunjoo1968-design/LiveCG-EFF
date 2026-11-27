@@ -42,7 +42,7 @@ public class WorkspaceState
     public double TimelineHeight { get; set; }=245;
     public bool OutputExpanded { get; set; }=true;
     public static string Path=>System.IO.Path.Combine(LiveCG.Core.DocumentStore.DataDirectory,"workspace.json");
-    private WorkspaceState Normalize(){Main=Main?.Normalized();Preview=Preview?.Normalized();Effects=Effects?.Normalized();RightWidth=double.IsFinite(RightWidth)?Math.Clamp(RightWidth,300,700):335;LayerPanelHeight=double.IsFinite(LayerPanelHeight)?Math.Clamp(LayerPanelHeight,110,480):240;LeftWidth=double.IsFinite(LeftWidth)?Math.Clamp(LeftWidth,240,450):280;TimelineHeight=double.IsFinite(TimelineHeight)?Math.Clamp(TimelineHeight,170,700):245;return this;}
+    private WorkspaceState Normalize(){Main=Main?.Normalized();Preview=Preview?.Normalized();Effects=Effects?.Normalized();RightWidth=double.IsFinite(RightWidth)?Math.Clamp(RightWidth,280,700):335;LayerPanelHeight=double.IsFinite(LayerPanelHeight)?Math.Clamp(LayerPanelHeight,110,480):240;LeftWidth=double.IsFinite(LeftWidth)?Math.Clamp(LeftWidth,220,520):280;TimelineHeight=double.IsFinite(TimelineHeight)?Math.Clamp(TimelineHeight,180,700):245;return this;}
     public static WorkspaceState Load(){try{return (JsonSerializer.Deserialize<WorkspaceState>(File.ReadAllText(Path))??new()).Normalize();}catch(IOException){return new();}catch(JsonException){return new();}}
     public void Save()
     {

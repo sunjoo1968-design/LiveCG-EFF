@@ -4,12 +4,24 @@ using SkiaSharp;
 namespace LiveCG.App;
 public sealed partial class PreviewControl
 {
-    public bool PointEditMode { get; set; }
+    private bool _pointEditMode;
+    public bool PointEditMode { get=>_pointEditMode;set{_pointEditMode=value;UpdateCursor();InvalidateVisual();} }
     public int SelectedPathPoint { get; private set; }=-1;
     private bool _pointDragging;private EffectRegion? _pointBefore;private List<SKPoint> _pointWorld=[];private EffectRegion? _pointRegion;private MaskTrack? _pointMask;
     private EffectRegion? PathTarget()=>SelectedMask is { } m?new(){Id=m.Id,Bounds=m.Bounds,Shape=m.Shape,Points=m.Points}:SelectedRegion;
     public SKPoint[] PathScreenPoints()
     {var t=PathTarget();if(t is null||_source is null||t.Shape is not (RegionShape.Polygon or RegionShape.Freehand))return [];var r=t.Bounds.Pixels(_source.Width,_source.Height);return t.Points.Select(p=>Viewport.ToScreen(new SKPoint(r.Left+(float)p.X*r.Width,r.Top+(float)p.Y*r.Height))).ToArray();}
+    private bool HitsPathEditTarget(SKPoint screen)
+    {
+        var target=PathTarget();if(target is null||target.Locked||_source is null)return false;var points=PathScreenPoints();if(points.Length<3)return false;
+        if(points.Any(p=>SKPoint.Distance(p,screen)<=9))return true;
+        for(var i=0;i<points.Length;i++)
+        {
+            var a=points[i];var b=points[(i+1)%points.Length];var dx=b.X-a.X;var dy=b.Y-a.Y;var t=Math.Clamp(((screen.X-a.X)*dx+(screen.Y-a.Y)*dy)/Math.Max(.001f,dx*dx+dy*dy),0,1);
+            if(SKPoint.Distance(new(a.X+t*dx,a.Y+t*dy),screen)<=7)return true;
+        }
+        return false;
+    }
     private void DrawPathHandles(SKCanvas c)
     {
         if(!PointEditMode||AddMode)return;using var p=new SKPaint{IsAntialias=true};var points=PathScreenPoints();for(var i=0;i<points.Length;i++){p.Color=i==SelectedPathPoint?new SKColor(255,193,95):SKColors.White;c.DrawRect(points[i].X-4,points[i].Y-4,8,8,p);p.Style=SKPaintStyle.Stroke;p.Color=new(65,157,206);p.StrokeWidth=1.5f;c.DrawRect(points[i].X-4,points[i].Y-4,8,8,p);p.Style=SKPaintStyle.Fill;}

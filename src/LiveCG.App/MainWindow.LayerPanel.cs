@@ -8,12 +8,14 @@ using LiveCG.Core;
 namespace LiveCG.App;
 public partial class MainWindow
 {
-    private double _layerPanelHeight=240,_rightPanelWidth=335;
+    private double _layerPanelHeight=240,_rightPanelWidth=335,_leftPanelWidth=280;
     private bool _panelLayoutBusy,_panelDragging;
     private Point _layerDragStart;private EffectRegion? _layerDragSource,_layerMenuTarget;
     private ListBoxItem? _layerDropItem;
     public double PreferredLayerHeight=>_layerPanelHeight;
     public double PreferredRightWidth=>_rightPanelWidth;
+    public double PreferredLeftWidth=>_leftPanelWidth;
+    public double PreferredTimelineHeight=>_timelineHeight;
     private static T? Ancestor<T>(DependencyObject? item) where T:DependencyObject
     {while(item is not null){if(item is T result)return result;item=item is Visual?VisualTreeHelper.GetParent(item):LogicalTreeHelper.GetParent(item);}return null;}
     private static T? Child<T>(DependencyObject item,string name) where T:FrameworkElement
@@ -31,31 +33,121 @@ public partial class MainWindow
     }
     public void SetLayerPanelSize(double height,double width,bool save=false)
     {
-        if(!double.IsFinite(height+width))return;_layerPanelHeight=Math.Clamp(height,110,480);_rightPanelWidth=Math.Clamp(width,300,700);ApplyPanelSizes();if(save)SaveWorkspace();
+        if(!double.IsFinite(height+width))return;_layerPanelHeight=Math.Clamp(height,110,480);_rightPanelWidth=Math.Clamp(width,280,700);ApplyPanelSizes();if(save)SaveWorkspace();
+    }
+    public void SetEditorPaneSizes(double leftWidth,double rightWidth,double timelineHeight,bool save=false)
+    {
+        if(!double.IsFinite(leftWidth+rightWidth+timelineHeight))return;
+        _leftPanelWidth=Math.Clamp(leftWidth,220,520);
+        _rightPanelWidth=Math.Clamp(rightWidth,280,700);
+        _timelineHeight=Math.Clamp(timelineHeight,180,700);
+        ApplyPanelSizes();
+        if(save)SaveWorkspace();
     }
     private void ApplyPanelSizes()
     {
-        if(_panelLayoutBusy||_panelDragging||PropertiesLayout is null||PropertiesLayout.ActualHeight<=0)return;
+        if(_panelLayoutBusy||_panelDragging)return;
         _panelLayoutBusy=true;
         try
         {
-            var head=PropertiesLayout.RowDefinitions[0].ActualHeight;
-            var maxHeight=Math.Max(110,Math.Min(480,PropertiesLayout.ActualHeight-head-206));
-            LayerPanelRow.Height=new GridLength(Math.Min(_layerPanelHeight,maxHeight));
-            if(_effectsWindow is null)
+            if(PropertiesLayout is not null&&PropertiesLayout.ActualHeight>0)
             {
-                var maxWidth=Math.Max(300,Math.Min(700,EditorGrid.ActualWidth-EditorGrid.ColumnDefinitions[0].ActualWidth-320));
-                EditorGrid.ColumnDefinitions[4].MinWidth=300;EditorGrid.ColumnDefinitions[4].MaxWidth=maxWidth;
-                EditorGrid.ColumnDefinitions[4].Width=new GridLength(Math.Min(_rightPanelWidth,maxWidth));
+                var head=PropertiesLayout.RowDefinitions[0].ActualHeight;
+                var maxHeight=Math.Max(110,Math.Min(480,PropertiesLayout.ActualHeight-head-206));
+                LayerPanelRow.Height=new GridLength(Math.Min(_layerPanelHeight,maxHeight));
+            }
+            if(EditorGrid is not null&&EditorGrid.ActualWidth>0)
+            {
+                const double leftMin=220,leftCap=520,centerMin=300,rightMin=280,rightCap=700;
+                if(_effectsWindow is not null)
+                {
+                    var maxLeft=Math.Clamp(EditorGrid.ActualWidth-10-centerMin,leftMin,leftCap);
+                    var left=Math.Clamp(_leftPanelWidth,leftMin,maxLeft);
+                    EditorGrid.ColumnDefinitions[0].MinWidth=leftMin;
+                    EditorGrid.ColumnDefinitions[0].MaxWidth=maxLeft;
+                    EditorGrid.ColumnDefinitions[0].Width=new GridLength(left);
+                }
+                else
+                {
+                    var budget=Math.Max(leftMin+rightMin,EditorGrid.ActualWidth-20-centerMin);
+                    var left=Math.Clamp(_leftPanelWidth,leftMin,leftCap);
+                    var right=Math.Clamp(_rightPanelWidth,rightMin,rightCap);
+                    if(left+right>budget)
+                    {
+                        var extraLeft=left-leftMin;
+                        var extraRight=right-rightMin;
+                        var extraTotal=extraLeft+extraRight;
+                        var allowedExtra=Math.Max(0,budget-leftMin-rightMin);
+                        if(extraTotal>0)
+                        {
+                            left=leftMin+extraLeft*(allowedExtra/extraTotal);
+                            right=rightMin+extraRight*(allowedExtra/extraTotal);
+                        }
+                        else
+                        {
+                            left=leftMin;
+                            right=rightMin;
+                        }
+                    }
+                    var maxLeft=Math.Clamp(EditorGrid.ActualWidth-20-centerMin-right,leftMin,leftCap);
+                    var maxRight=Math.Clamp(EditorGrid.ActualWidth-20-centerMin-left,rightMin,rightCap);
+                    EditorGrid.ColumnDefinitions[0].MinWidth=leftMin;
+                    EditorGrid.ColumnDefinitions[0].MaxWidth=maxLeft;
+                    EditorGrid.ColumnDefinitions[0].Width=new GridLength(left);
+                    EditorGrid.ColumnDefinitions[4].MinWidth=rightMin;
+                    EditorGrid.ColumnDefinitions[4].MaxWidth=maxRight;
+                    EditorGrid.ColumnDefinitions[4].Width=new GridLength(right);
+                }
+            }
+            if(EditorGrid is not null&&EditorGrid.ActualHeight>0)
+            {
+                if(_previewWindow is not null)
+                {
+                    EditorGrid.RowDefinitions[0].MinHeight=0;
+                    EditorGrid.RowDefinitions[0].Height=new GridLength(0);
+                    EditorGrid.RowDefinitions[1].Height=new GridLength(0);
+                    EditorGrid.RowDefinitions[2].MinHeight=_focusMode?0:180;
+                    EditorGrid.RowDefinitions[2].MaxHeight=double.PositiveInfinity;
+                    EditorGrid.RowDefinitions[2].Height=_focusMode?new GridLength(0):new GridLength(1,GridUnitType.Star);
+                }
+                else if(_focusMode)
+                {
+                    EditorGrid.RowDefinitions[0].MinHeight=180;
+                    EditorGrid.RowDefinitions[0].Height=new GridLength(1,GridUnitType.Star);
+                    EditorGrid.RowDefinitions[1].Height=new GridLength(0);
+                    EditorGrid.RowDefinitions[2].MinHeight=0;
+                    EditorGrid.RowDefinitions[2].MaxHeight=double.PositiveInfinity;
+                    EditorGrid.RowDefinitions[2].Height=new GridLength(0);
+                }
+                else
+                {
+                    var previewMin=Math.Min(200,Math.Max(120,EditorGrid.ActualHeight-7-180));
+                    var maxTimeline=Math.Max(180,Math.Min(700,EditorGrid.ActualHeight-7-previewMin));
+                    EditorGrid.RowDefinitions[0].MinHeight=previewMin;
+                    EditorGrid.RowDefinitions[0].Height=new GridLength(1,GridUnitType.Star);
+                    EditorGrid.RowDefinitions[1].Height=new GridLength(7);
+                    EditorGrid.RowDefinitions[2].MinHeight=180;
+                    EditorGrid.RowDefinitions[2].MaxHeight=maxTimeline;
+                    EditorGrid.RowDefinitions[2].Height=new GridLength(Math.Clamp(_timelineHeight,180,maxTimeline));
+                }
             }
         }finally{_panelLayoutBusy=false;}
     }
     private void PropertiesLayoutChanged(object sender,SizeChangedEventArgs e)=>ApplyPanelSizes();
-    private void PanelResizeStarted(object sender,DragStartedEventArgs e)=>_panelDragging=true;
+    private void PanelResizeStarted(object sender,DragStartedEventArgs e){ApplyPanelSizes();_panelDragging=true;}
     private void LayerHeightChanged(object sender,DragCompletedEventArgs e)
-    {_panelDragging=false;if(!e.Canceled)_layerPanelHeight=Math.Clamp(LayerPanelRow.ActualHeight,110,480);ApplyPanelSizes();SaveWorkspace();}
+    {_panelDragging=false;if(!e.Canceled&&LayerPanelRow.ActualHeight>0)_layerPanelHeight=Math.Clamp(LayerPanelRow.ActualHeight,110,480);ApplyPanelSizes();SaveWorkspace();}
+    private void LeftWidthChanged(object sender,DragCompletedEventArgs e)
+    {_panelDragging=false;if(!e.Canceled&&EditorGrid.ColumnDefinitions[0].ActualWidth>0)_leftPanelWidth=Math.Clamp(EditorGrid.ColumnDefinitions[0].ActualWidth,220,520);ApplyPanelSizes();SaveWorkspace();}
     private void EffectsWidthChanged(object sender,DragCompletedEventArgs e)
-    {_panelDragging=false;if(!e.Canceled)_rightPanelWidth=Math.Clamp(EditorGrid.ColumnDefinitions[4].ActualWidth,300,700);ApplyPanelSizes();SaveWorkspace();}
+    {_panelDragging=false;if(!e.Canceled&&EditorGrid.ColumnDefinitions[4].ActualWidth>0)_rightPanelWidth=Math.Clamp(EditorGrid.ColumnDefinitions[4].ActualWidth,280,700);ApplyPanelSizes();SaveWorkspace();}
+    private void LeftSplitterDoubleClick(object sender,MouseButtonEventArgs e)
+    {if(sender is Thumb { IsDragging:true } t)t.CancelDrag();_panelDragging=false;_leftPanelWidth=280;ApplyPanelSizes();SaveWorkspace();e.Handled=true;}
+    private void EffectsSplitterDoubleClick(object sender,MouseButtonEventArgs e)
+    {if(sender is Thumb { IsDragging:true } t)t.CancelDrag();_panelDragging=false;_rightPanelWidth=335;ApplyPanelSizes();SaveWorkspace();e.Handled=true;}
+    private void TimelineSplitterDoubleClick(object sender,MouseButtonEventArgs e)
+    {if(_focusMode||_previewWindow is not null)return;if(sender is Thumb { IsDragging:true } t)t.CancelDrag();_panelDragging=false;_timelineHeight=245;ApplyPanelSizes();SaveWorkspace();e.Handled=true;}
+    private void TimelineScrollChanged(object sender,ScrollChangedEventArgs e){if(Math.Abs(e.ViewportWidthChange)>.1)TimelineEditor?.Refresh();}
     private void CloseAreaDetails(object sender,RoutedEventArgs e)=>AreaDetailsPopup.IsOpen=false;
     private void ToolbarMouseWheel(object sender,MouseWheelEventArgs e)
     {if(sender is ScrollViewer scroll){scroll.ScrollToHorizontalOffset(scroll.HorizontalOffset-e.Delta);e.Handled=true;}}
